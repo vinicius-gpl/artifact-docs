@@ -9,7 +9,7 @@
 # Uso: .githooks/commit-msg <arquivo-com-a-mensagem>
 
 TYPES='feat|fix|refactor|test|docs|style|perf|build|ci|chore|merge'
-SCOPES='backend|web|db|infra|git|ci|docs|deps|claude'
+SCOPES='backend|web|db|infra|tooling|git|ci|docs|deps|claude'
 
 # Primeira linha que não é comentário do template (.gitmessage) nem vazia.
 header=$(grep -v '^#' "$1" | sed '/^[[:space:]]*$/d' | head -n 1)
