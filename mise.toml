@@ -1,0 +1,138 @@
+# Todo comando do projeto passa por aqui.
+#
+#   mise install            → instala Node, Go e golangci-lint nas versões abaixo
+#   mise run setup          → git (hooks + template) e dependências do front
+#   mise run dev            → API Go :3010 + SPA :5010 (o Vite encaminha /api para o Go)
+#   mise run check          → tudo que precisa passar antes de considerar o trabalho pronto
+#   mise tasks              → lista tudo
+
+[tools]
+node = "24"
+go = "1.27.1"
+golangci-lint = "2.13.2"
+
+[tasks.setup]
+description = "Prepara a máquina: hooks do git, template de commit e dependências do front"
+run = ["sh scripts/git/setup.sh", "npm ci --prefix svelte"]
+
+# ── Desenvolvimento ──────────────────────────────────────────────────────────
+
+[tasks.dev]
+description = "Sobe a API Go e a SPA juntas (Ctrl+C derruba as duas)"
+depends = ["dev:api", "dev:web"]
+
+[tasks."dev:api"]
+description = "API Go em :3010"
+run = "go run ."
+
+[tasks."dev:web"]
+description = "SPA (Vite) em :5010, com /api encaminhado para o Go"
+run = "npm run dev --prefix svelte"
+
+# ── Build ────────────────────────────────────────────────────────────────────
+
+[tasks."build:web"]
+description = "Build da SPA e cópia para dentro do pacote Go que a embute"
+run = """
+npm run build --prefix svelte
+find src-go/web/dist -mindepth 1 ! -name .gitkeep -delete
+cp -r svelte/dist/. src-go/web/dist/
+"""
+
+[tasks.build]
+description = "Binário único de produção em bin/artifact-docs (SPA embutida)"
+depends = ["build:web"]
+# -s -w: tira os símbolos de depuração — binário menor, mesmo funcionamento.
+run = "go build -ldflags '-s -w' -o bin/artifact-docs ."
+
+# ── Backend (Go) ─────────────────────────────────────────────────────────────
+
+# O Go olha só para a raiz e o src-go/: um `./...` entraria em svelte/node_modules, onde há
+# pacote npm que traz código Go junto (ex.: flatted).
+
+[tasks.fmt]
+description = "Verifica formatação (gofmt); falha se algum arquivo precisar de ajuste"
+run = 'test -z "$(gofmt -l main.go src-go)" || { gofmt -l main.go src-go; exit 1; }'
+
+[tasks."fmt:fix"]
+description = "Aplica a formatação (gofmt -w)"
+run = "gofmt -w main.go src-go"
+
+[tasks.vet]
+description = "go vet — erros que o compilador não pega"
+run = "go vet . ./src-go/..."
+
+[tasks.lint]
+description = "golangci-lint — linter completo"
+run = "golangci-lint run . ./src-go/..."
+
+[tasks.test]
+description = "Testes do Go"
+run = "go test . ./src-go/..."
+
+# ── Frontend (svelte/) ───────────────────────────────────────────────────────
+
+[tasks."web:lint"]
+description = "ESLint e Prettier na SPA"
+run = ["npm run lint --prefix svelte", "npm run format:check --prefix svelte"]
+
+[tasks."web:format"]
+description = "Aplica o Prettier na SPA"
+run = "npm run format --prefix svelte"
+
+[tasks."web:check"]
+description = "Typecheck da SPA (svelte-check)"
+run = "npm run typecheck --prefix svelte"
+
+[tasks."web:test"]
+description = "Testes da SPA (Vitest)"
+run = "npm test --prefix svelte"
+
+[tasks."web:e2e"]
+description = "E2E da SPA (Playwright) — precisa da conta de teste no src-go/.env"
+run = "npm run test:e2e --prefix svelte"
+
+[tasks."web:storybook"]
+description = "Sobe o Storybook (revisão visual dos componentes)"
+run = "npm run storybook --prefix svelte"
+
+[tasks."web:storybook:build"]
+description = "Build estático do Storybook — valida que todas as stories compilam"
+run = "npm run storybook:build --prefix svelte"
+
+# ── Design (skills design-system e ui-standards) ─────────────────────────────
+
+[tasks."design:check"]
+description = "Regras de design no svelte/ e no src-go/ — só reprova o que é novo"
+run = "node .claude/hooks/design/check-design.mjs"
+
+[tasks."design:all"]
+description = "Lista todas as violações de design, inclusive a dívida congelada na baseline"
+run = "node .claude/hooks/design/check-design.mjs --all"
+
+[tasks."design:update"]
+description = "Regrava a baseline de design — só depois de CORRIGIR dívida; a baseline nunca cresce"
+run = "node .claude/hooks/design/check-design.mjs --update"
+
+[tasks."design:test"]
+description = "Testes das regras de design (node:test)"
+run = "node --test .claude/hooks/design/design-rules.test.mjs"
+
+# ── Tudo ─────────────────────────────────────────────────────────────────────
+
+[tasks.check]
+description = "Tudo que precisa passar antes de considerar o trabalho pronto"
+# Em sequência, e não por `depends`: em paralelo, o typecheck, o build e o Vitest disputam a
+# máquina, e teste de componente estoura o tempo limite de 5 s sem defeito nenhum.
+run = [
+  "mise run fmt",
+  "mise run vet",
+  "mise run lint",
+  "mise run test",
+  "mise run web:lint",
+  "mise run web:check",
+  "mise run web:test",
+  "mise run design:check",
+  "mise run design:test",
+  "mise run build",
+]

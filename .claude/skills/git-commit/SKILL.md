@@ -12,7 +12,11 @@ git status
 git branch --show-current
 ```
 
-- Por enquanto não há Gitflow: o trabalho é commitado direto na `main`.
+- Em `main` ou `develop`? Não commite aí — o git recusa (a não ser em Modo Admin, `git config
+  project.admin true`). Crie a branch antes, pela skill `git-flow` (Fase 1): as mudanças não
+  commitadas vão junto para a branch nova.
+- Commit na branch de feature é só um **ponto de salvamento**: não precisa do OK da pessoa. O
+  OK é para juntar na develop, e isso é a Fase 4 do `git-flow`.
 - Nada para commitar? Diga isso e pare.
 - O hook não roda? Confira `git config --get core.hooksPath` — tem que ser `.githooks`. Se não
   for, rode `sh scripts/git/setup.sh`.
@@ -23,10 +27,11 @@ Uma mudança que toca dois locais são **dois commits**. Os locais:
 
 | Local | Arquivos |
 |---|---|
-| `db` | `server/migrations/` e seeds |
-| `backend` | o resto de `server/` (Go) |
-| `web` | `web/` (Svelte) |
+| `db` | `src-go/migrations/` |
+| `backend` | o resto de `src-go/`, `main.go`, `go.mod`, `go.sum` |
+| `web` | `svelte/` |
 | `infra` | `deploy/` (Caddy, systemd, VPS) |
+| `tooling` | `mise.toml`, `.golangci.yml`, `.vscode/` |
 | `git` | `.githooks/`, `scripts/git/`, `.gitmessage`, `.gitattributes`, `.gitignore` |
 | `ci` | `.github/` |
 | `docs` | `docs/` e `.md` da raiz |
@@ -39,11 +44,11 @@ Arquivo que não cabe em nenhum: junte com o local mais relevante da mesma mudan
 Adicione **por caminho**, nunca `git add -A` às cegas:
 
 ```bash
-git add server/migrations
+git add src-go/migrations
 git diff --cached --stat     # confira o que vai
 ```
 
-**Nunca** adicione: `.env`, `node_modules`, `dist`, `bin/`, `coverage`. Se aparecerem no
+**Nunca** adicione: `.env`, `node_modules`, `dist`, `bin/`, `coverage`, `src-go/web/dist/*` (só o `.gitkeep`). Se aparecerem no
 status, o `.gitignore` está errado — avise.
 
 ## 3. A mensagem
@@ -74,10 +79,12 @@ Termine a mensagem com as linhas de atribuição que o sistema indicar, se houve
 ## 4. O hook recusou
 
 - **"✋ Commit recusado: …"** (formato): leia o motivo, corrija a mensagem e tente de novo.
+- **"✋ A branch main é protegida"** / **"Na branch develop só entram…"** → você está na branch
+  errada. Siga o `git-flow` (Fase 1) — não procure contorno.
 - **Nunca use `--no-verify`.** O CI (`Checks/Commits`) confere os mesmos commits depois do
   push — pular o hook só adia a recusa.
 
 ## 5. Depois
 
 Mostre em uma linha o que foi salvo (`git log --oneline -3`). **Não faça `git push`** sem a
-pessoa pedir — push publica.
+pessoa pedir — push publica. Terminar e juntar na develop é o `git-flow`, Fase 3.
