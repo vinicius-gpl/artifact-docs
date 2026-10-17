@@ -1,0 +1,50 @@
+#!/bin/sh
+# Padrão de commit do projeto:  [tipo](local): Mensagem
+#
+# Mesma regra do commitlint do acerola-ticket, em shell puro: sem npm, sem husky, sem nada
+# instalado. O git roda este arquivo porque `scripts/git/setup.sh` aponta o `core.hooksPath`
+# para `.githooks/`. O CI (`.github/workflows/checks-commits.yml`) roda o MESMO arquivo em
+# cada commit enviado — um lugar só para a regra.
+#
+# Uso: .githooks/commit-msg <arquivo-com-a-mensagem>
+
+TYPES='feat|fix|refactor|test|docs|style|perf|build|ci|chore|merge'
+SCOPES='backend|web|db|infra|git|ci|docs|deps|claude'
+
+# Primeira linha que não é comentário do template (.gitmessage) nem vazia.
+header=$(grep -v '^#' "$1" | sed '/^[[:space:]]*$/d' | head -n 1)
+
+# fixup!/squash! são temporários: somem no rebase antes de chegar à main.
+case "$header" in
+  'fixup! '* | 'squash! '*) exit 0 ;;
+esac
+
+fail() {
+  echo "✋ Commit recusado: $1" >&2
+  echo "   Recebido: $header" >&2
+  echo "   Formato:  [tipo](local): Mensagem — ex.: [feat](backend): Upload salva a versão nova no R2" >&2
+  echo "   Tipos:    $(echo "$TYPES" | tr '|' ' ')" >&2
+  echo "   Locais:   $(echo "$SCOPES" | tr '|' ' ')" >&2
+  exit 1
+}
+
+[ -n "$header" ] || fail 'mensagem vazia.'
+
+echo "$header" | grep -Eq '^\[[a-z]+\]\([a-z,-]+\): .+$' \
+  || fail 'cabeçalho fora do formato.'
+
+type=$(echo "$header" | sed -E 's/^\[([a-z]+)\].*/\1/')
+scope=$(echo "$header" | sed -E 's/^\[[a-z]+\]\(([a-z,-]+)\).*/\1/')
+subject=$(echo "$header" | sed -E 's/^\[[a-z]+\]\([a-z,-]+\): //')
+
+echo "$type" | grep -Eqx "$TYPES" || fail "tipo \"$type\" não existe."
+echo "$scope" | grep -Eqx "$SCOPES" \
+  || fail "local \"$scope\" não existe. Tocou dois locais? São dois commits."
+
+case "$subject" in
+  *.) fail 'mensagem termina com ponto final.' ;;
+esac
+
+[ "${#header}" -le 100 ] || fail "cabeçalho com ${#header} caracteres; o máximo é 100."
+
+exit 0

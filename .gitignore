@@ -1,0 +1,29 @@
+node_modules/
+dist/
+build/
+coverage/
+.vite/
+.svelte-kit/
+playwright-report/
+test-results/
+.eslintcache
+*.tsbuildinfo
+*.log
+
+# Binário do Go e saída do build da SPA que entra nele por embed.
+/bin/
+server/web/dist/
+*.test
+*.out
+
+.env
+.env.*
+!.env.example
+
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+
+# Ajuste local do Claude Code — é de quem programa, não do projeto.
+.claude/settings.local.json
