@@ -1,0 +1,10 @@
+#!/bin/sh
+# 1. Trava de branch: envio para a main é do admin (scripts/git/branch-guard.sh). O git manda
+#    as referências pelo stdin, e é a trava que as lê.
+sh scripts/git/branch-guard.sh push || exit 1
+
+# 2. A mesma checagem de design do CI, antes de sair da máquina: violação nova não chega ao
+#    GitHub. Sem Node no PATH (git fora do mise), o CI confere do mesmo jeito.
+if command -v node >/dev/null 2>&1; then
+  node .claude/hooks/design/check-design.mjs || exit 1
+fi
