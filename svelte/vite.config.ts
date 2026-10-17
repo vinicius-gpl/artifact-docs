@@ -1,0 +1,53 @@
+import { fileURLToPath } from 'node:url';
+
+import { sveltekit } from '@sveltejs/kit/vite';
+import tailwindcss from '@tailwindcss/vite';
+import { defineConfig, loadEnv } from 'vite';
+
+/**
+ * Em desenvolvimento a web fala com `/api` no MESMO host, e o Vite encaminha para o Go.
+ *
+ * Isso vale mais do que economizar uma variável: sem proxy, o navegador faz requisição
+ * entre origens diferentes, e aí toda falha de CORS chega à tela como "erro de rede" — a
+ * mesma mensagem genérica de quando a API está fora do ar. Com o proxy, erro de rede em
+ * desenvolvimento é erro de rede de verdade.
+ *
+ * Em produção não há proxy: a SPA vai embutida no binário Go, na mesma porta da API.
+ */
+const CLIENT_DIR = fileURLToPath(new URL('.', import.meta.url));
+
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, CLIENT_DIR, '');
+  const apiPort = env.VITE_API_PORT || '3010';
+
+  return {
+    plugins: [tailwindcss(), sveltekit()],
+    resolve: {
+      alias: {
+        'lucide-svelte': '@lucide/svelte',
+        '@': fileURLToPath(new URL('./src', import.meta.url)),
+      },
+    },
+    server: {
+      /* Escuta em todas as interfaces de rede, e não só em localhost: é o que deixa abrir a
+         tela pelo IP da máquina (`http://192.168.x.x:5010`) num celular do mesmo Wi-Fi, para
+         testar o que só existe lá — a câmera, o toque. A API continua só em localhost: o
+         celular fala com `/api` nesta mesma porta, e quem encaminha é o proxy abaixo. */
+      host: true,
+      port: Number(env.VITE_PORT || 5010),
+      /* Porta ocupada não derruba o Vite: ele procura a próxima livre e imprime qual pegou.
+         Aqui isso é seguro, e na API não seria — ninguém aponta para a porta da TELA, então
+         trocá-la não quebra nada; a tela é que aponta para a API (ver o proxy abaixo), e por
+         isso o server avisa alto quando muda de porta. */
+      strictPort: false,
+      proxy: {
+        '/api': {
+          target: `http://localhost:${apiPort}`,
+          changeOrigin: true,
+        },
+      },
+    },
+    preview: { port: 5105, strictPort: false },
+    build: { outDir: 'dist', sourcemap: true },
+  };
+});
