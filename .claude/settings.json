@@ -11,7 +11,20 @@
       "Bash(git commit*)",
       "Bash(git fetch*)",
       "Bash(git pull*)",
-      "Bash(sh scripts/git/setup.sh)"
+      "Bash(sh scripts/git/setup.sh)",
+      "Bash(git switch*)",
+      "Bash(git merge*)",
+      "Bash(git tag*)",
+      "Bash(git config project.admin*)",
+      "Bash(git config --local project.admin*)",
+      "Bash(git config --get project.admin*)",
+      "Bash(mise run*)",
+      "Bash(mise tasks*)",
+      "Bash(mise install)",
+      "Bash(npm ci --prefix svelte)",
+      "Bash(go test*)",
+      "Bash(go vet*)",
+      "Bash(go build*)"
     ],
     "ask": [
       "Bash(git push*)",
@@ -22,7 +35,29 @@
       "Bash(git clean*)",
       "Bash(git checkout -- *)",
       "Bash(git branch -D*)",
-      "Bash(gh repo*)"
+      "Bash(gh repo*)",
+      "Bash(gh pr create*)",
+      "Bash(npm install *)",
+      "Bash(go get*)"
+    ],
+    "deny": [
+      "Bash(npm install --force*)",
+      "Bash(npm install --legacy-peer-deps*)",
+      "Read(./svelte/.env)",
+      "Read(./src-go/.env)"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/design/check-design.mjs\" --hook"
+          }
+        ]
+      }
     ]
   }
 }
