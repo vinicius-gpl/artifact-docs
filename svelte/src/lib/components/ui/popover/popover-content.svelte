@@ -1,0 +1,47 @@
+<script lang="ts">
+	import { Popover as PopoverPrimitive } from "bits-ui";
+	import { cn, type WithoutChildrenOrChild } from "$lib/utils/cn.js";
+	import PopoverPortal from "./popover-portal.svelte";
+	import type { ComponentProps } from "svelte";
+
+	let {
+		ref = $bindable(null),
+		class: className,
+		sideOffset = 4,
+		align = "center",
+		matchAnchorWidth = false,
+		portalProps,
+		style,
+		...restProps
+	}: PopoverPrimitive.ContentProps & {
+		matchAnchorWidth?: boolean;
+		portalProps?: WithoutChildrenOrChild<ComponentProps<typeof PopoverPortal>>;
+	} = $props();
+</script>
+
+<PopoverPortal {...portalProps}>
+	<PopoverPrimitive.Content
+		bind:ref
+		data-slot="popover-content"
+		{sideOffset}
+		{align}
+		style={[
+			matchAnchorWidth
+				? "min-width: var(--bits-popover-anchor-width); max-width: var(--bits-popover-anchor-width); width: var(--bits-popover-anchor-width);"
+				: "",
+			style,
+		]
+			.filter(Boolean)
+			.join(" ") || undefined}
+		class={cn(
+			"bg-popover text-popover-foreground",
+			"data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 data-[side=bottom]:data-[state=open]:slide-in-from-top-2 data-[side=top]:data-[state=open]:slide-in-from-bottom-2 data-[side=left]:data-[state=open]:slide-in-from-right-2 data-[side=right]:data-[state=open]:slide-in-from-left-2",
+			"data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[side=bottom]:data-[state=closed]:slide-out-to-top-2 data-[side=top]:data-[state=closed]:slide-out-to-bottom-2 data-[side=left]:data-[state=closed]:slide-out-to-right-2 data-[side=right]:data-[state=closed]:slide-out-to-left-2",
+			"ring-foreground/10 flex flex-col gap-2.5 rounded-lg p-2.5 text-sm shadow-md ring-1 duration-150 ease-out z-50 w-72 origin-(--bits-popover-content-transform-origin) outline-hidden",
+			matchAnchorWidth &&
+				"min-w-(--bits-popover-anchor-width) max-w-(--bits-popover-anchor-width) w-(--bits-popover-anchor-width)",
+			className
+		)}
+		{...restProps}
+	/>
+</PopoverPortal>
