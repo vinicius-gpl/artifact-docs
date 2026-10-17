@@ -1,0 +1,11 @@
+.svelte-kit
+dist
+coverage
+storybook-static
+
+
+# Território do CLI (shadcn) — a seção 5 do CONTRIBUTING proíbe editar aqui, então
+# também não cobramos o nosso estilo de formatação de um arquivo que a CLI sobrescreve.
+src/lib/vendor
+src/lib/components/ui
+src/lib/hooks/ui

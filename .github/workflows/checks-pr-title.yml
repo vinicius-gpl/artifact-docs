@@ -1,0 +1,37 @@
+# O TÍTULO DO PR É O COMMIT DE MERGE.
+#
+# Com o repositório configurado para o commit de merge levar o título do PR (Settings →
+# General → Pull Requests → "Default to pull request title"), o título é conferido ANTES do
+# merge, pela MESMA regra dos commits (`.githooks/commit-msg`) — e precisa ser do tipo
+# `merge`, porque é isso que ele vai virar no histórico:
+#
+#   [merge](web): Galeria de artefatos com preview e filtro por tipo
+name: Checks/PR title
+
+on:
+  pull_request:
+    # `edited` é o que faz a conferência rodar de novo quando alguém corrige o título.
+    types: [opened, edited, reopened, synchronize]
+
+jobs:
+  title:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      # O título entra por variável de ambiente, e não colado no comando: título de PR é texto
+      # de quem abriu o PR, e colado no script ele poderia virar comando.
+      - name: Title follows the [merge](scope) Message format
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          printf '%s\n' "$PR_TITLE" > "$RUNNER_TEMP/title"
+          sh .githooks/commit-msg "$RUNNER_TEMP/title"
+
+          case "$PR_TITLE" in
+            "[merge]("*) ;;
+            *)
+              echo "::error::O título do PR vira o commit de merge, então precisa começar com [merge](local): — por exemplo: [merge](web): Galeria de artefatos com preview"
+              exit 1
+              ;;
+          esac

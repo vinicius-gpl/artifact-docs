@@ -1,0 +1,202 @@
+import { readAuthToken } from '$lib/auth/neon-auth.client';
+import { type StagedFile, type UploadTicket } from '$lib/contracts/staged-file.schema';
+
+import { type ApiErrorBody } from './api-error.type';
+
+/**
+ * Em desenvolvimento a base é `/api`, no mesmo host: o Vite encaminha para o Go. Em
+ * produção `VITE_API_URL` aponta para a API publicada — vazio quando é a mesma imagem.
+ *
+ * Preferir o caminho relativo em desenvolvimento evita que toda falha de CORS chegue à tela
+ * como "erro de rede" — a mesma mensagem de quando a API está fora do ar.
+ */
+const BASE_URL = import.meta.env.PROD ? `${import.meta.env.VITE_API_URL ?? ''}/api` : '/api';
+
+export class ApiError extends Error {
+  readonly status: number;
+  readonly details: { field: string; message: string }[];
+
+  constructor(status: number, message: string, details: { field: string; message: string }[] = []) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+    this.details = details;
+  }
+}
+
+export type RequestOptions = {
+  credentials?: RequestCredentials;
+  method?: 'GET' | 'POST' | 'PATCH' | 'DELETE';
+  body?: unknown;
+  query?: Record<string, string | number | boolean | undefined | null>;
+  signal?: AbortSignal;
+};
+
+/**
+ * A WEB NUNCA AFIRMA QUEM É — ela APRESENTA uma prova.
+ *
+ * O que vai no cabeçalho é o token assinado pelo Neon Auth, e o servidor confere a assinatura
+ * antes de acreditar em qualquer coisa. É a diferença entre dizer "sou administrador" (o que
+ * qualquer pessoa poderia escrever) e mostrar um crachá que só a Neon consegue emitir.
+ *
+ * Requisição sem token sai assim mesmo, sem cabeçalho: a API responde 401 e a guarda de rota
+ * manda para o login. Barrar aqui só esconderia o motivo.
+ */
+export async function apiRequest<TResponse>(
+  path: string,
+  options: RequestOptions = {},
+): Promise<TResponse> {
+  const response = await fetch(`${BASE_URL}${path}${buildQuery(options.query)}`, {
+    credentials: options.credentials,
+    method: options.method ?? 'GET',
+    signal: options.signal,
+    headers: await buildHeaders(options),
+    body: toRequestBody(options.body),
+  });
+
+  if (response.status === 204) return undefined as TResponse;
+  if (response.ok) return (await response.json()) as TResponse;
+
+  throw await toApiError(response);
+}
+
+/**
+ * Envia o arquivo DIRETO para o storage, pelo link assinado que a API emitiu.
+ *
+ * O arquivo nunca passa pela API: um vídeo de 50 MB ocuparia o processo do servidor durante o
+ * envio inteiro. O link é de vida curta e só aceita este arquivo, nesta chave.
+ *
+ * O tipo vai no cabeçalho porque é ele que o storage guarda — e é o que a API confere depois.
+ * Arquivo sem tipo (um `.docx` num Windows sem Office) vai como `application/octet-stream`, e a
+ * API decide pela extensão, como sempre decidiu.
+ */
+export async function uploadToSignedUrl(uploadUrl: string, file: File): Promise<void> {
+  const response = await fetch(uploadUrl, {
+    method: 'PUT',
+    headers: { 'Content-Type': file.type || 'application/octet-stream' },
+    body: file,
+  });
+
+  if (response.ok) return;
+
+  throw new ApiError(
+    response.status,
+    `Não consegui enviar ${file.name} (${response.status}). Nada foi gravado — tente de novo.`,
+  );
+}
+
+/**
+ * Os dois primeiros passos do envio: pede o link em `uploadPath` (a API confere quem pode) e
+ * envia o arquivo por ele. Devolve o que vai no corpo da gravação — a chave e o nome.
+ */
+export async function uploadFile(uploadPath: string, file: File): Promise<StagedFile> {
+  const ticket = await apiRequest<UploadTicket>(uploadPath, {
+    method: 'POST',
+    body: { fileName: file.name, contentType: file.type, sizeBytes: file.size },
+  });
+
+  await uploadToSignedUrl(ticket.uploadUrl, file);
+
+  return { storageKey: ticket.storageKey, fileName: file.name };
+}
+
+export type Downloaded = { blob: Blob; fileName: string };
+
+/**
+ * Baixa um relatório. Existe separado de `apiRequest` porque a resposta é o ARQUIVO, não
+ * JSON — chamar `.json()` nela quebraria antes mesmo de a pessoa ver o motivo.
+ */
+export async function apiDownload(path: string, options: RequestOptions = {}): Promise<Downloaded> {
+  const response = await fetch(`${BASE_URL}${path}${buildQuery(options.query)}`, {
+    method: options.method ?? 'GET',
+    signal: options.signal,
+    headers: await buildHeaders(options),
+  });
+
+  if (!response.ok) throw await toApiError(response);
+
+  return { blob: await response.blob(), fileName: fileNameOf(response) };
+}
+
+/** O nome vem do `Content-Disposition` que o servidor escolheu — a tela não inventa outro. */
+function fileNameOf(response: Response): string {
+  const disposition = response.headers.get('Content-Disposition');
+  const match = disposition ? /filename="([^"]+)"/.exec(disposition) : null;
+
+  return match?.[1] ?? 'relatorio';
+}
+
+/**
+ * A falha precisa chegar à tela COM O MOTIVO. Recusa do servidor engolida vira chamado de
+ * "não está salvando", sem nada para investigar.
+ *
+ * Quando o corpo não é o formato da API — um 502 do proxy, uma página HTML de erro —, o
+ * status vira a mensagem, em vez de um "undefined" na tela.
+ */
+async function toApiError(response: Response): Promise<ApiError> {
+  const body = await readErrorBody(response);
+  if (body) return new ApiError(response.status, body.message, body.details ?? []);
+
+  return new ApiError(
+    response.status,
+    `Não consegui falar com o servidor (${response.status}). Tente de novo em instantes.`,
+  );
+}
+
+/**
+ * O corpo da requisição — sempre JSON. Arquivo não passa pela API: ele vai direto para o
+ * storage (`uploadFile`), e o corpo leva só a chave dele.
+ */
+function toRequestBody(body: unknown): BodyInit | undefined {
+  if (body === undefined) return undefined;
+
+  return JSON.stringify(body);
+}
+
+async function buildHeaders(options: RequestOptions): Promise<Record<string, string>> {
+  const headers: Record<string, string> = {};
+  if (options.body !== undefined) headers['Content-Type'] = 'application/json';
+
+  const token = await readAuthToken();
+  if (token) headers.Authorization = `Bearer ${token}`;
+
+  return headers;
+}
+
+async function readErrorBody(response: Response): Promise<ApiErrorBody | null> {
+  try {
+    const parsed: unknown = await response.json();
+    if (typeof parsed !== 'object' || parsed === null) return null;
+    if (!('message' in parsed)) return null;
+
+    return parsed as ApiErrorBody;
+  } catch {
+    return null;
+  }
+}
+
+function buildQuery(query: RequestOptions['query']): string {
+  if (!query) return '';
+
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(query)) {
+    if (value === undefined || value === null || value === '') continue;
+    params.set(key, String(value));
+  }
+  const serialized = params.toString();
+
+  return serialized ? `?${serialized}` : '';
+}
+
+/**
+ * A mensagem que a tela mostra para qualquer falha.
+ *
+ * O `ApiError` já traz o texto em português que o servidor escolheu; o resto (rede caída,
+ * resposta que não é JSON) vira uma frase que diz o que fazer, em vez de "undefined".
+ */
+export function readError(error: unknown): string | null {
+  if (!error) return null;
+  if (error instanceof ApiError) return error.message;
+
+  return 'Não consegui falar com o servidor. Confira se ele está rodando e tente de novo.';
+}
