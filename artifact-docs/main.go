@@ -15,9 +15,9 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/vinicius-gpl/artifact-docs/src-go/config"
-	"github.com/vinicius-gpl/artifact-docs/src-go/server"
-	"github.com/vinicius-gpl/artifact-docs/src-go/web"
+	"github.com/vinicius-gpl/artifact-docs/artifact-docs/src-go/config"
+	"github.com/vinicius-gpl/artifact-docs/artifact-docs/src-go/server"
+	"github.com/vinicius-gpl/artifact-docs/artifact-docs/src-go/web"
 )
 
 // shutdownTimeout é quanto as requisições em andamento têm para terminar quando o processo
