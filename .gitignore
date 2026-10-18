@@ -12,10 +12,10 @@ test-results/
 
 # Binário do Go e a cópia da SPA que entra nele por embed (`mise run build:web`). O `.gitkeep`
 # fica: sem nenhum arquivo na pasta, o `go:embed` não compila antes do primeiro build.
-/bin/
-!src-go/web/dist/
-src-go/web/dist/*
-!src-go/web/dist/.gitkeep
+artifact-docs/bin/
+!artifact-docs/src-go/web/dist/
+artifact-docs/src-go/web/dist/*
+!artifact-docs/src-go/web/dist/.gitkeep
 *.test
 *.out
 
@@ -25,7 +25,7 @@ src-go/web/dist/*
 
 # Valor falso só para o Vitest carregar em `import.meta.env` — sem ele, o CI (que nunca tem
 # um `.env` de verdade) não consegue nem carregar a tela de login para testar o resto.
-!svelte/.env.test
+!artifact-docs/svelte/.env.test
 
 .DS_Store
 Thumbs.db
