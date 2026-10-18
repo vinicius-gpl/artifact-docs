@@ -8,8 +8,8 @@ Hub pessoal: central de documentos e artefatos HTML/MD/PDF com galeria e preview
 banco de ideias, hub de apps e casa da marca. O porquê e o como estão em
 [`docs/briefing.md`](./docs/briefing.md).
 
-- **Stack:** SPA SvelteKit (`svelte/`, `adapter-static`) embutida num binário Go (`main.go` +
-  `src-go/`). Neon (Postgres) para dados e login, R2 (API S3) para arquivos, Caddy na frente.
+- **Stack:** SPA SvelteKit (`artifact-docs/svelte/`, `adapter-static`) embutida num binário Go (`artifact-docs/main.go` +
+  `artifact-docs/src-go/`). Neon (Postgres) para dados e login, R2 (API S3) para arquivos, Caddy na frente.
 - **RAM é o limite:** a VPS tem 1 GB. Nada de Node em produção, biblioteca padrão do Go
   primeiro, nada de processo extra no servidor.
 - **A infra do front foi copiada do acerola-ticket** — libs, versões, componentes, tokens e
@@ -49,8 +49,8 @@ O padrão está em **`CONTRIBUTING.md`**, e ele manda. Os pontos que mais quebra
 6. **Todo componente tem `.stories.svelte`.**
 7. **Todo código com lógica tem teste do caminho feliz e do triste** (`// feliz`, `// triste`),
    no Vitest e no `go test`.
-8. **Contrato:** o schema Zod em `svelte/src/lib/contracts/` valida o formulário; o lado Go mora
-   em `src-go/`. Os dois precisam combinar — mudou um, muda o outro.
+8. **Contrato:** o schema Zod em `artifact-docs/svelte/src/lib/contracts/` valida o formulário; o lado Go mora
+   em `artifact-docs/src-go/`. Os dois precisam combinar — mudou um, muda o outro.
 9. **Export nomeado. Sem barril (`index.ts`).**
 
 ## Use as skills
@@ -67,17 +67,22 @@ O padrão está em **`CONTRIBUTING.md`**, e ele manda. Os pontos que mais quebra
 ## Onde fica cada coisa
 
 ```
-main.go                                         sobe o processo e embute a SPA
-src-go/<pacote>/                                Go (config, server, web…)
-src-go/web/dist/                                cópia da SPA compilada (gerada)
-svelte/src/routes/(app)/<feature>/              tela (só composição): artifacts, plans, ideas, apps, brand
-svelte/src/routes/(app)/<feature>/components/acerola-<nome>/  componente da feature
-svelte/src/lib/hooks/use-<nome>/                estado e dados das telas
-svelte/src/lib/components/acerola-<nome>/       componente genérico
-svelte/src/lib/components/ui/                   ⛔ CLI do shadcn (lib/hooks/ui/ idem)
-svelte/src/lib/contracts/                       schemas Zod
-svelte/src/lib/navigation/navigation.ts         menu lateral — tela nova entra com uma linha
+artifact-docs/                                  o app (como acerola/dashboard no acerola-ticket)
+├── main.go                                     sobe o processo e embute a SPA
+├── mise.toml                                   tarefas do app (dev, build, Go, web)
+├── src-go/<pacote>/                            Go (config, server, web…)
+├── src-go/web/dist/                            cópia da SPA compilada (gerada)
+└── svelte/src/
+    ├── routes/(app)/<feature>/                 tela (só composição): artifacts, plans, ideas, apps, brand
+    ├── routes/(app)/<feature>/components/acerola-<nome>/  componente da feature
+    ├── lib/hooks/use-<nome>/                   estado e dados das telas
+    ├── lib/components/acerola-<nome>/          componente genérico
+    ├── lib/components/ui/                      ⛔ CLI do shadcn (lib/hooks/ui/ idem)
+    ├── lib/contracts/                          schemas Zod
+    └── lib/navigation/navigation.ts            menu lateral — tela nova entra com uma linha
 docs/                                           briefing e decisões
+.claude/ .github/ .githooks/ scripts/git/       infra do repositório (raiz)
+mise.toml                                       ferramentas, setup, design e atalhos para o app
 ```
 
 A casca (`acerola-app-shell`) é uma só, montada em `routes/(app)/+layout.svelte`, que também
@@ -86,14 +91,15 @@ guarda a sessão. A margem do conteúdo é dela: a tela define só a largura má
 
 ## Comandos
 
-Tudo passa pelo **mise**:
+Tudo passa pelo **mise**. Da raiz, `dev`, `build` e `check` são atalhos para as tarefas de
+`artifact-docs/mise.toml`; dentro de `artifact-docs/` estão todas as do app.
 
 ```bash
 mise run setup          # uma vez: hooks do git, Git-Flow e dependências do front
 mise run dev            # API Go :3010 + SPA :5010 (em segundo plano: não termina)
 mise run check          # tudo o que o CI roda — para quem quiser à mão; o Claude não roda (ver Git)
 mise run design:check   # regras de design — só reprova violação nova
-mise run build          # binário único em bin/artifact-docs
+mise run build          # binário único em artifact-docs/bin/artifact-docs
 mise tasks              # lista tudo
 ```
 
@@ -110,7 +116,7 @@ Para conferir a tela, use o navegador em http://localhost:5010.
 
 - Commit direto na `main` ou na `develop`; `--no-verify`; ativar o Modo Admin sem pedido.
 - `npm install --force` ou `--legacy-peer-deps`.
-- Editar `lib/components/ui/`, `lib/hooks/ui/` ou `src-go/web/dist/`.
+- Editar `lib/components/ui/`, `lib/hooks/ui/` ou `artifact-docs/src-go/web/dist/`.
 - Reescrever componente existente além do que foi pedido, ou recriar à mão componente que o
   shadcn-svelte já tem.
 - Colocar segredo em variável `VITE_` ou em arquivo versionado.
