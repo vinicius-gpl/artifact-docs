@@ -34,7 +34,7 @@ const REPO_ROOT = join(__dirname, '..', '..', '..');
 const BASELINE_FILE = join(__dirname, 'design-baseline.json');
 
 /** O que entra na varredura, relativo à raiz do repositório. */
-const SCAN_ROOTS = [...APPS.map((app) => app.src), 'src-go'];
+const SCAN_ROOTS = [...APPS.map((app) => app.src), 'artifact-docs/src-go'];
 const TEXT_FILE = /\.(svelte|ts|go|md)$/;
 const SKIPPED_DIRS = new Set(['node_modules', 'dist', 'build', '.svelte-kit', 'coverage']);
 

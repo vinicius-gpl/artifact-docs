@@ -12,7 +12,7 @@ são os componentes `acerola-*` correspondentes (`acerola-page-header`, `acerola
 O objetivo não é enfeitar: é que **toda tela pareça o mesmo sistema** e que a pessoa nunca fique
 sem saber o que aconteceu.
 
-Tudo que é medida visual vem de `svelte/src/lib/theme/tokens.css`. **Se o valor não existe como
+Tudo que é medida visual vem de `artifact-docs/svelte/src/lib/theme/tokens.css`. **Se o valor não existe como
 token, ele não entra no componente** — ou vira token, ou não é usado.
 
 ---

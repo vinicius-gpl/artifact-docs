@@ -53,17 +53,17 @@ Nunca diga o caminho do arquivo para a pessoa. Diga **a tela ou a parte** que el
 
 | Arquivo | Como falar |
 |---|---|
-| `svelte/src/routes/(app)/<feature>/+page.svelte` | "a tela **<título>**" — o título está no `PageHeader` da tela |
-| `svelte/src/routes/(app)/<feature>/components/acerola-<x>-view/…` | "a tela **<título do PageHeader>**" |
-| `svelte/src/routes/(app)/<feature>/components/acerola-<x>-form-dialog/…` | "o formulário de **<x>**" (título do `DialogTitle`) |
-| `svelte/src/lib/hooks/use-<x>/use-<x>.svelte.ts` | "o funcionamento da tela **<x>**" (filtros, botões, o que carrega) |
-| `svelte/src/lib/components/acerola-<x>/acerola-<x>.svelte` | "o componente **<x>**, usado nas telas A, B…" (descubra com `Grep` quem importa) |
-| `svelte/src/lib/navigation/navigation.ts` | "o **menu lateral**" |
-| `svelte/src/lib/theme/tokens.css` | "as **cores** do sistema" |
-| `svelte/src/lib/contracts/<x>.schema.ts` | "as **regras do cadastro de <x>**" (campos obrigatórios, limites, mensagens de erro) |
-| `src-go/<pacote>/...` | "a parte do servidor que **<o que o pacote faz>**" |
-| `src-go/migrations/**` | "o **histórico de mudanças do banco**" — ver §5 |
-| `svelte/package.json`, `svelte/package-lock.json`, `go.mod`, `go.sum` | "a **lista de bibliotecas** do projeto" — ver §5 |
+| `artifact-docs/svelte/src/routes/(app)/<feature>/+page.svelte` | "a tela **<título>**" — o título está no `PageHeader` da tela |
+| `artifact-docs/svelte/src/routes/(app)/<feature>/components/acerola-<x>-view/…` | "a tela **<título do PageHeader>**" |
+| `artifact-docs/svelte/src/routes/(app)/<feature>/components/acerola-<x>-form-dialog/…` | "o formulário de **<x>**" (título do `DialogTitle`) |
+| `artifact-docs/svelte/src/lib/hooks/use-<x>/use-<x>.svelte.ts` | "o funcionamento da tela **<x>**" (filtros, botões, o que carrega) |
+| `artifact-docs/svelte/src/lib/components/acerola-<x>/acerola-<x>.svelte` | "o componente **<x>**, usado nas telas A, B…" (descubra com `Grep` quem importa) |
+| `artifact-docs/svelte/src/lib/navigation/navigation.ts` | "o **menu lateral**" |
+| `artifact-docs/svelte/src/lib/theme/tokens.css` | "as **cores** do sistema" |
+| `artifact-docs/svelte/src/lib/contracts/<x>.schema.ts` | "as **regras do cadastro de <x>**" (campos obrigatórios, limites, mensagens de erro) |
+| `artifact-docs/src-go/<pacote>/...` | "a parte do servidor que **<o que o pacote faz>**" |
+| `artifact-docs/src-go/migrations/**` | "o **histórico de mudanças do banco**" — ver §5 |
+| `artifact-docs/svelte/package.json`, `artifact-docs/svelte/package-lock.json`, `artifact-docs/go.mod`, `artifact-docs/go.sum` | "a **lista de bibliotecas** do projeto" — ver §5 |
 | `*.test.ts`, `*.stories.svelte` | "os **testes**" / "o **catálogo visual**" da parte correspondente |
 | `README.md`, `CONTRIBUTING.md`, `.claude/**` | "a **documentação**" |
 
@@ -105,13 +105,13 @@ mudar uma regra que ela criou), sugira **conversar com ela** antes, e mostre o n
 
 - **`package-lock.json`**: fique com a versão da develop e regenere.
   ```bash
-  git checkout --theirs -- svelte/package-lock.json   # "theirs" = develop, neste merge
+  git checkout --theirs -- artifact-docs/svelte/package-lock.json   # "theirs" = develop, neste merge
   ```
   Resolva o `package.json` à mão (as duas listas somadas) e rode `npm install --prefix svelte`.
-- **`go.sum`**: fique com a versão da develop, resolva o `go.mod` à mão (as duas listas somadas)
+- **`artifact-docs/go.sum`**: fique com a versão da develop, resolva o `artifact-docs/go.mod` à mão (as duas listas somadas)
   e rode `go mod tidy`.
-- **`src-go/migrations/`**: **nunca** junte SQL à mão.
-  1. Fique com **todas** as migrations da develop (`git checkout --theirs -- src-go/migrations`).
+- **`artifact-docs/src-go/migrations/`**: **nunca** junte SQL à mão.
+  1. Fique com **todas** as migrations da develop (`git checkout --theirs -- artifact-docs/src-go/migrations`).
   2. Renumere as migrations que eram **só desta branch** para depois da última da develop.
   3. Avise a pessoa que o banco de desenvolvimento precisa receber as migrations de novo se a
      antiga já tinha sido aplicada.
