@@ -185,13 +185,15 @@ a publicação atômica.
 ## Estrutura do repositório
 
 ```
-main.go            sobe o processo e embute a SPA (o go:embed exige ficar acima dela)
-src-go/            Go: config, server (API + SPA), web (SPA embutida) e, depois, migrations/
-svelte/            SPA SvelteKit (adapter-static) — infra copiada do acerola-ticket
-deploy/            Caddyfile, unit do systemd
-docs/              este briefing e decisões
-.claude/skills/    skills de projeto e, depois, as de documentação (módulo 6)
-mise.toml          todo comando do projeto
+artifact-docs/           o app (como acerola/dashboard no acerola-ticket)
+├── main.go              sobe o processo e embute a SPA (o go:embed exige ficar acima dela)
+├── src-go/              Go: config, server (API + SPA), web (SPA embutida) e, depois, migrations/
+├── svelte/              SPA SvelteKit (adapter-static) — infra copiada do acerola-ticket
+└── mise.toml            tarefas do app
+deploy/                  Caddyfile, unit do systemd
+docs/                    este briefing e decisões
+.claude/skills/          skills de projeto e, depois, as de documentação (módulo 6)
+mise.toml                ferramentas, setup, design e atalhos para o app
 ```
 
 Os locais de commit (`.gitmessage`) já seguem esta divisão.
