@@ -21,7 +21,7 @@
       "Bash(mise run*)",
       "Bash(mise tasks*)",
       "Bash(mise install)",
-      "Bash(npm ci --prefix svelte)",
+      "Bash(npm ci --prefix artifact-docs/svelte)",
       "Bash(go test*)",
       "Bash(go vet*)",
       "Bash(go build*)"
@@ -43,8 +43,8 @@
     "deny": [
       "Bash(npm install --force*)",
       "Bash(npm install --legacy-peer-deps*)",
-      "Read(./svelte/.env)",
-      "Read(./src-go/.env)"
+      "Read(./artifact-docs/svelte/.env)",
+      "Read(./artifact-docs/src-go/.env)"
     ]
   },
   "hooks": {

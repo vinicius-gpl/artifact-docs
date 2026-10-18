@@ -34,10 +34,10 @@
  */
 
 /** Os apps Svelte do projeto. Cada um segue as mesmas regras de componente, hook e rota. */
-export const APPS = [{ name: 'svelte', src: 'svelte/src' }];
+export const APPS = [{ name: 'svelte', src: 'artifact-docs/svelte/src' }];
 
 /** O backend Go, fora do app Svelte (só a regra `storage-folder-language` olha aqui). */
-const SERVER_SRC = 'src-go';
+const SERVER_SRC = 'artifact-docs/src-go';
 
 /** Pastas permitidas em `<app>/lib` (skill `design-system` §2), para os dois apps. */
 export const LIB_FOLDERS = [

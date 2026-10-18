@@ -16,9 +16,9 @@ function file(path, content = '') {
   return { path, content };
 }
 
-const LIB = 'svelte/src/lib/components';
-const HOOKS = 'svelte/src/lib/hooks';
-const ROUTES = 'svelte/src/routes';
+const LIB = 'artifact-docs/svelte/src/lib/components';
+const HOOKS = 'artifact-docs/svelte/src/lib/hooks';
+const ROUTES = 'artifact-docs/svelte/src/routes';
 
 describe('component-prefix', () => {
   // feliz
@@ -213,8 +213,8 @@ describe('lib-folder', () => {
   it('accepts the mapped folders in both apps', () => {
     const files = [
       file(`${LIB.replace('/components', '')}/components/x.svelte`),
-      file('svelte/src/lib/components/x.svelte'),
-      file('svelte/src/lib/utils/format.ts'),
+      file('artifact-docs/svelte/src/lib/components/x.svelte'),
+      file('artifact-docs/svelte/src/lib/utils/format.ts'),
     ];
 
     assert.deepEqual(run('lib-folder', files), []);
@@ -223,13 +223,13 @@ describe('lib-folder', () => {
   // triste
   it('flags the agent debt: metrics and reporting are not in the map', () => {
     const files = [
-      file('svelte/src/lib/metrics/store.svelte.ts'),
-      file('svelte/src/lib/reporting/client.ts'),
+      file('artifact-docs/svelte/src/lib/metrics/store.svelte.ts'),
+      file('artifact-docs/svelte/src/lib/reporting/client.ts'),
     ];
 
     assert.deepEqual(run('lib-folder', files).sort(), [
-      'svelte/src/lib/metrics pasta fora do mapa',
-      'svelte/src/lib/reporting pasta fora do mapa',
+      'artifact-docs/svelte/src/lib/metrics pasta fora do mapa',
+      'artifact-docs/svelte/src/lib/reporting pasta fora do mapa',
     ]);
   });
 });
@@ -345,7 +345,7 @@ describe('storage-folder-language', () => {
   it('flags pt-BR bucket folders', () => {
     const files = [
       file(
-        'src-go/storage/artifacts.go',
+        'artifact-docs/src-go/storage/artifacts.go',
         'const artifactsFolder = "artefatos/"',
       ),
     ];
@@ -357,7 +357,7 @@ describe('storage-folder-language', () => {
   it('accepts English folders', () => {
     const files = [
       file(
-        'src-go/storage/artifacts.go',
+        'artifact-docs/src-go/storage/artifacts.go',
         'const artifactsFolder = "artifacts/"',
       ),
     ];

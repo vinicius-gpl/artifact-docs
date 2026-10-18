@@ -1,6 +1,6 @@
 ---
 name: design-system
-description: A regra de organização do projeto inteiro — onde cada arquivo mora (svelte, src-go, docs), prefixo acerola-* em componente e use-* em hook, componente genérico em lib e componente de feature em routes/{feature}/components, h-10 em todo campo de formulário, nunca reescrever componente, idioma de infra (bucket, pasta, arquivo, env) em inglês, onde ficam testes, stories e docs. Consulte ANTES de criar, mover ou renomear qualquer arquivo, e ao revisar se algo está no lugar certo.
+description: A regra de organização do projeto inteiro — onde cada arquivo mora (artifact-docs/svelte, artifact-docs/src-go, docs), prefixo acerola-* em componente e use-* em hook, componente genérico em lib e componente de feature em routes/{feature}/components, h-10 em todo campo de formulário, nunca reescrever componente, idioma de infra (bucket, pasta, arquivo, env) em inglês, onde ficam testes, stories e docs. Consulte ANTES de criar, mover ou renomear qualquer arquivo, e ao revisar se algo está no lugar certo.
 ---
 
 # Sistema de design do projeto
@@ -44,33 +44,34 @@ CLAUDE.md  CONTRIBUTING.md  README.md      regras e entrada (MAIÚSCULO por conv
 .claude/commands/<nome-pt>.md              atalho pt-BR que delega para a skill (§7.3)
 .github/                                    CI e template de PR
 
-main.go  go.mod                            sobe o processo e embute a SPA — o resto do Go mora em src-go/
-mise.toml                                   todo comando do projeto
+mise.toml                                   ferramentas, setup, design e atalhos para o app
 docs/<nome-kebab>.md                        conteúdo em pt-BR, nome em inglês
 
-src-go/
-├── <pacote>/<arquivo>.go (+ _test.go)      pacotes Go, nome curto em inglês (config, server…)
-├── migrations/                             SQL do Neon
-├── web/dist/                               cópia da SPA compilada (gerada — não edite)
-└── .env.example                            variáveis da API
-
-svelte/
-├── src/lib/
-│   ├── api/<entities>.api.ts               uma função por endpoint
-│   ├── contracts/<entity>.schema.ts (+ .test.ts)  contrato Zod (API e formulário) — o lado
-│   │                                       Go mora em src-go/, e os dois precisam combinar
-│   ├── components/ui/                      ⛔ CLI do shadcn
-│   ├── components/acerola-<nome>/          componente GENÉRICO
-│   ├── hooks/ui/                           ⛔ CLI do shadcn (hooks que o shadcn gera)
-│   ├── hooks/use-<nome>/                   hook próprio (view-model)
-│   ├── auth/  navigation/  theme/  motion/  types/  utils/
-├── src/routes/
-│   ├── (app)/<feature>/
-│   │   ├── +page.svelte                    só composição
-│   │   ├── <nome>-slot.svelte              liga hook → componente (pode chamar hook)
-│   │   └── components/acerola-<nome>/      componente DA FEATURE
-├── e2e/<fluxo>.e2e.ts                      E2E da web (Playwright)
-└── tests/                                  mocks e apoio de teste
+artifact-docs/                              o app (como acerola/dashboard no acerola-ticket)
+├── main.go  go.mod                         sobe o processo e embute a SPA — o resto do Go mora em src-go/
+├── mise.toml                               tarefas do app (dev, build, Go, web)
+├── src-go/
+│   ├── <pacote>/<arquivo>.go (+ _test.go)  pacotes Go, nome curto em inglês (config, server…)
+│   ├── migrations/                         SQL do Neon
+│   ├── web/dist/                           cópia da SPA compilada (gerada — não edite)
+│   └── .env.example                        variáveis da API
+└── svelte/
+    ├── src/lib/
+    │   ├── api/<entities>.api.ts           uma função por endpoint
+    │   ├── contracts/<entity>.schema.ts (+ .test.ts)  contrato Zod (API e formulário) — o lado
+    │   │                                   Go mora em src-go/, e os dois precisam combinar
+    │   ├── components/ui/                  ⛔ CLI do shadcn
+    │   ├── components/acerola-<nome>/      componente GENÉRICO
+    │   ├── hooks/ui/                       ⛔ CLI do shadcn (hooks que o shadcn gera)
+    │   ├── hooks/use-<nome>/               hook próprio (view-model)
+    │   ├── auth/  navigation/  theme/  motion/  types/  utils/
+    ├── src/routes/
+    │   ├── (app)/<feature>/
+    │   │   ├── +page.svelte                só composição
+    │   │   ├── <nome>-slot.svelte          liga hook → componente (pode chamar hook)
+    │   │   └── components/acerola-<nome>/  componente DA FEATURE
+    ├── e2e/<fluxo>.e2e.ts                  E2E da web (Playwright)
+    └── tests/                              mocks e apoio de teste
 ```
 
 **`<feature>` é a primeira pasta de `(app)/`** — uma por item do menu
@@ -175,8 +176,8 @@ Tudo em `kebab-case`, inglês, singular para componente/hook, plural para módul
 | Util | `<nome>.util.ts` | `format-date.util.ts` |
 | Tipo | `<nome>.type.ts` | `form-field.type.ts` |
 | Schema Zod | `lib/contracts/<entity>.schema.ts` | `artifact.schema.ts` |
-| Pacote Go | `src-go/<pacote>/<arquivo>.go` · teste `_test.go` | `src-go/server/spa.go` |
-| Migration | `src-go/migrations/<NNNN>_<nome>.sql` | `0001_artifacts.sql` |
+| Pacote Go | `artifact-docs/src-go/<pacote>/<arquivo>.go` · teste `_test.go` | `artifact-docs/src-go/server/spa.go` |
+| Migration | `artifact-docs/src-go/migrations/<NNNN>_<nome>.sql` | `0001_artifacts.sql` |
 | E2E | `<fluxo>.e2e.ts` | `login.e2e.ts` |
 | Doc | `docs/<nome-kebab>.md` | `docs/briefing.md` |
 | Branch | `feature/<nome-kebab>` · `bugfix/<nome-kebab>` | |
@@ -207,7 +208,7 @@ fica para ação dentro de linha de tabela/cartão (skill `ui-standards` §3.4).
 de campo de formulário. Verificação:
 
 ```bash
-rg -n '\bh-(7|8|9|11|12)\b' svelte/src/routes   # deve voltar vazio
+rg -n '\bh-(7|8|9|11|12)\b' artifact-docs/svelte/src/routes   # deve voltar vazio
 ```
 
 ---
@@ -255,8 +256,8 @@ em pt-BR, identificador técnico em inglês.
 | Hook | `use-<nome>.test.ts` + `use-<nome>-harness.test.svelte` | |
 | Story | `acerola-<nome>.stories.svelte` | Default, variantes de `ui`, estados, caso limite |
 | Go | ao lado: `<arquivo>_test.go` | `// feliz` e `// triste` acima de cada `Test…` |
-| E2E web | `svelte/e2e/<fluxo>.e2e.ts` | Playwright |
-| Mock compartilhado | `svelte/tests/` | nunca dado real |
+| E2E web | `artifact-docs/svelte/e2e/<fluxo>.e2e.ts` | Playwright |
+| Mock compartilhado | `artifact-docs/svelte/tests/` | nunca dado real |
 
 Componente de feature em `routes/**/components/` **também** tem story e teste — o glob do
 Storybook (`src/**/*.stories.svelte`) e do Vitest (`src/**/*.test.ts`) já cobrem `routes/`.
@@ -308,11 +309,11 @@ mise run design:test      # testes das próprias regras
   Claude corrigir **na mesma tarefa**, antes de seguir. Arquivo fora da varredura (outro app,
   outra extensão) não paga custo nenhum: sai sem rodar as regras.
 
-Cobre o app Svelte (`APPS` em `design-rules.mjs`: `svelte/src`): prefixo `acerola-*`, `use-*`,
+Cobre o app Svelte (`APPS` em `design-rules.mjs`: `artifact-docs/svelte/src`): prefixo `acerola-*`, `use-*`,
 mapa de `lib/`, fronteira de `ui/`, story e teste ao lado, componente de feature em `lib`
 (seguindo a cadeia de imports), hooks, pastas de `lib`, import entre features, markup e altura
 na rota, raio, paleta crua, fonte em px, sombra, par cartão/tabela, pasta de bucket (no Go, em
-`src-go/`) e nome de doc (`docs/*.md`).
+`artifact-docs/src-go/`) e nome de doc (`docs/*.md`).
 
 A dívida existente está congelada em `.claude/hooks/design/design-baseline.json`. **Nunca
 adicione linha nova à baseline para fazer o check passar** — corrija. A baseline só diminui.

@@ -27,15 +27,15 @@ Uma mudança que toca dois locais são **dois commits**. Os locais:
 
 | Local | Arquivos |
 |---|---|
-| `db` | `src-go/migrations/` |
-| `backend` | o resto de `src-go/`, `main.go`, `go.mod`, `go.sum` |
-| `web` | `svelte/` |
+| `db` | `artifact-docs/src-go/migrations/` |
+| `backend` | o resto de `artifact-docs/src-go/`, `artifact-docs/main.go`, `artifact-docs/go.mod`, `artifact-docs/go.sum` |
+| `web` | `artifact-docs/svelte/` |
 | `infra` | `deploy/` (Caddy, systemd, VPS) |
-| `tooling` | `mise.toml`, `.golangci.yml`, `.vscode/` |
+| `tooling` | `mise.toml`, `artifact-docs/mise.toml`, `artifact-docs/.golangci.yml`, `.vscode/` |
 | `git` | `.githooks/`, `scripts/git/`, `.gitmessage`, `.gitattributes`, `.gitignore` |
 | `ci` | `.github/` |
 | `docs` | `docs/` e `.md` da raiz |
-| `deps` | só `go.mod`/`go.sum`/`package.json`/lockfile por atualização de dependência |
+| `deps` | só `artifact-docs/go.mod`/`artifact-docs/go.sum`/`package.json`/lockfile por atualização de dependência |
 | `claude` | `.claude/`, `CLAUDE.md` |
 
 Ordem quando é uma feature: `db` → `backend` → `web`.
@@ -44,11 +44,11 @@ Arquivo que não cabe em nenhum: junte com o local mais relevante da mesma mudan
 Adicione **por caminho**, nunca `git add -A` às cegas:
 
 ```bash
-git add src-go/migrations
+git add artifact-docs/src-go/migrations
 git diff --cached --stat     # confira o que vai
 ```
 
-**Nunca** adicione: `.env`, `node_modules`, `dist`, `bin/`, `coverage`, `src-go/web/dist/*` (só o `.gitkeep`). Se aparecerem no
+**Nunca** adicione: `.env`, `node_modules`, `dist`, `bin/`, `coverage`, `artifact-docs/src-go/web/dist/*` (só o `.gitkeep`). Se aparecerem no
 status, o `.gitignore` está errado — avise.
 
 ## 3. A mensagem
