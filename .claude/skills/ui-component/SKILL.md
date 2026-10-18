@@ -23,8 +23,8 @@ texto). Esta skill é o **como escrever**.
 
 Procure, nesta ordem:
 
-1. `svelte/src/lib/components/acerola-*/` (genéricos);
-2. `svelte/src/routes/**/components/acerola-*/` da mesma feature;
+1. `artifact-docs/svelte/src/lib/components/acerola-*/` (genéricos);
+2. `artifact-docs/svelte/src/routes/**/components/acerola-*/` da mesma feature;
 3. <https://www.shadcn-svelte.com/docs/components>.
 
 Dá para resolver compondo o que existe? Faça isso em vez de criar.

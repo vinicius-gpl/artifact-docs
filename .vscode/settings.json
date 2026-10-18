@@ -4,9 +4,9 @@
   "editor.codeActionsOnSave": {
     "source.fixAll.eslint": "explicit"
   },
-  "eslint.workingDirectories": [{ "directory": "svelte", "changeProcessCWD": true }],
+  "eslint.workingDirectories": [{ "directory": "artifact-docs/svelte", "changeProcessCWD": true }],
   "prettier.requireConfig": true,
-  "typescript.tsdk": "svelte/node_modules/typescript/lib",
+  "typescript.tsdk": "artifact-docs/svelte/node_modules/typescript/lib",
   "[go]": {
     "editor.defaultFormatter": "golang.go"
   },

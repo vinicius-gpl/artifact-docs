@@ -21,12 +21,11 @@ qualquer coisa na `develop`.
 
 | Pasta | O quê |
 |---|---|
-| `svelte/` | A SPA (SvelteKit, `adapter-static`). A infra veio do acerola-ticket. |
-| `src-go/` | O backend em Go. `main.go`, na raiz, sobe o processo e embute a SPA. |
+| `artifact-docs/` | O app: `svelte/` (SPA SvelteKit, `adapter-static`, infra do acerola-ticket), `src-go/` (backend Go) e `main.go`, que sobe o processo e embute a SPA. |
 | `docs/` | Briefing e decisões. |
 | `.claude/` | Skills e hooks do Claude Code. |
 
-Em produção é **um binário só** (`mise run build` → `bin/artifact-docs`), com a tela embutida:
+Em produção é **um binário só** (`mise run build` → `artifact-docs/bin/artifact-docs`), com a tela embutida:
 sem Node no servidor.
 
 ## Contribuindo
