@@ -2,7 +2,8 @@
 # pre-push some com um `--no-verify`; isto aqui não.
 #
 # Tudo passa pelo mise, como na máquina: as versões de Node, Go e golangci-lint vêm do
-# mise.toml, e um comando que funciona aqui funciona lá.
+# mise.toml da raiz, e as tarefas do app do artifact-docs/mise.toml — por isso os passos do app
+# rodam dentro de artifact-docs/.
 name: Tests
 
 on:
@@ -21,14 +22,17 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - uses: jdx/mise-action@v3
-      - run: npm ci --prefer-offline --prefix svelte
+      - run: npm ci --prefer-offline --prefix artifact-docs/svelte
       - run: mise run web:lint
+        working-directory: artifact-docs
       - run: mise run web:check
+        working-directory: artifact-docs
       # Regras das skills design-system e ui-standards. Só reprova violação NOVA (fora da
-      # baseline em .claude/hooks/design/design-baseline.json).
+      # baseline em .claude/hooks/design/design-baseline.json). Moram na raiz.
       - run: mise run design:test
       - run: mise run design:check
       - run: mise run web:test
+        working-directory: artifact-docs
 
   go:
     runs-on: ubuntu-latest
@@ -36,9 +40,13 @@ jobs:
       - uses: actions/checkout@v5
       - uses: jdx/mise-action@v3
       - run: mise run fmt
+        working-directory: artifact-docs
       - run: mise run vet
+        working-directory: artifact-docs
       - run: mise run lint
+        working-directory: artifact-docs
       - run: mise run test
+        working-directory: artifact-docs
 
   # O binário de produção, com a SPA embutida: é o que vai para a VPS.
   build:
@@ -47,5 +55,6 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - uses: jdx/mise-action@v3
-      - run: npm ci --prefer-offline --prefix svelte
+      - run: npm ci --prefer-offline --prefix artifact-docs/svelte
       - run: mise run build
+        working-directory: artifact-docs
