@@ -109,7 +109,7 @@ Regras:
 
 1. **Prefixo `acerola-*` em todo componente próprio**, genérico ou de feature.
 2. **Existe no shadcn-svelte? Instale** (`npx shadcn-svelte@latest add <nome>`, dentro de
-   `svelte/`) e envolva num `acerola-*` com `tv()`. Recriar à mão é proibido; copiar o markup do
+   `artifact-docs/svelte/`) e envolva num `acerola-*` com `tv()`. Recriar à mão é proibido; copiar o markup do
    baixado para editar também.
 3. **Rodar o `add` sobrescreve `ui/`** — e é para sobrescrever mesmo. Por isso nada nosso mora lá.
 4. **Nunca reescrever componente existente.** Mudança limitada ao que foi pedido.
@@ -177,14 +177,14 @@ O que não precisa:
 
 - Biblioteca padrão primeiro. Dependência nova só quando a padrão não resolve — a VPS tem 1 GB,
   e cada pacote é binário e memória a mais.
-- Código em `src-go/<pacote>/`, nome de pacote curto e em inglês. `main.go` na raiz só liga as
+- Código em `artifact-docs/src-go/<pacote>/`, nome de pacote curto e em inglês. `artifact-docs/main.go`, na raiz do app, só liga as
   peças (o `go:embed` da SPA é o motivo de ele ficar lá).
-- Configuração só por variável de ambiente (`src-go/config`). Valor inválido derruba a partida;
+- Configuração só por variável de ambiente (`artifact-docs/src-go/config`). Valor inválido derruba a partida;
   nunca cai num padrão em silêncio.
 - Erro da API tem um formato só, `{"message": "..."}` em pt-BR — o mesmo que a SPA lê em
   `lib/api/api-error.type.ts`. Endereço de API que não existe é 404 em JSON, nunca o `index.html`.
 - Teste ao lado (`_test.go`), com `// feliz` e `// triste` acima de cada `Test…`.
-- **Lint:** `gofmt`, `go vet` e `golangci-lint` (`.golangci.yml`: `gocyclo` 10, o mesmo limite do ESLint).
+- **Lint:** `gofmt`, `go vet` e `golangci-lint` (`artifact-docs/.golangci.yml`: `gocyclo` 10, o mesmo limite do ESLint).
 
 ---
 
@@ -199,8 +199,8 @@ O que não precisa:
 | Teste          | `<arquivo>.test.ts` · Go: `<arquivo>_test.go` | `format-date.test.ts` · `spa_test.go`                 |
 | E2E            | `<fluxo>.e2e.ts`                            | `login.e2e.ts`                                         |
 | Contrato Zod   | `lib/contracts/<nome>.schema.ts`            | `user.schema.ts`                                       |
-| Pacote Go      | `src-go/<pacote>/<arquivo>.go`              | `src-go/server/spa.go`                                 |
-| Migration      | `src-go/migrations/<NNNN>_<nome>.sql`       | `0001_artifacts.sql`                                   |
+| Pacote Go      | `artifact-docs/src-go/<pacote>/<arquivo>.go`              | `artifact-docs/src-go/server/spa.go`                                 |
+| Migration      | `artifact-docs/src-go/migrations/<NNNN>_<nome>.sql`       | `0001_artifacts.sql`                                   |
 | Util puro      | `<nome>.util.ts`                            | `download-file.util.ts`                                |
 
 Export nomeado sempre. `export default` só onde o framework exige.
@@ -247,11 +247,11 @@ Local:
 
 | Local     | Alcance                                                               |
 | --------- | --------------------------------------------------------------------- |
-| `backend` | `src-go/`, `main.go`, `go.mod`, `go.sum`                              |
-| `web`     | `svelte/`                                                             |
-| `db`      | `src-go/migrations/`                                                  |
+| `backend` | `artifact-docs/src-go/`, `artifact-docs/main.go`, `artifact-docs/go.mod`, `artifact-docs/go.sum`                              |
+| `web`     | `artifact-docs/svelte/`                                                             |
+| `db`      | `artifact-docs/src-go/migrations/`                                                  |
 | `infra`   | `deploy/` (Caddy, systemd, VPS)                                       |
-| `tooling` | `mise.toml`, `.golangci.yml`, `.vscode/`                              |
+| `tooling` | `mise.toml`, `artifact-docs/mise.toml`, `artifact-docs/.golangci.yml`, `.vscode/` |
 | `git`     | `.githooks/`, `scripts/git/`, `.gitmessage`, `.gitattributes`, `.gitignore` |
 | `ci`      | `.github/`                                                            |
 | `docs`    | `docs/` e `.md` na raiz                                               |
