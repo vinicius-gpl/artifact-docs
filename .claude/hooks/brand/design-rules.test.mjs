@@ -1,0 +1,206 @@
+/**
+ * Testes das regras de design. Rodam com o test runner do Node, sem dependência:
+ *   node --test ".claude/hooks/brand/*.test.mjs"
+ * Cada regra tem um caso feliz (código certo passa) e um triste (o erro comum é pego).
+ */
+/**
+* Testes das regras de design. Rodam com o test runner do Node, sem dependência:
+*   node --test ".claude/hooks/brand/*.test.mjs"
+* Cada regra tem um caso feliz (código certo passa) e um triste (o erro comum é pego).
+*/
+import assert from "node:assert/strict";
+import { describe, it } from "node:test";
+import { checkSource, formatViolations, isInScope, summarize } from "./design-rules.mjs";
+const config = {
+	brand: "teste",
+	skill: "teste-design",
+	scan: {
+		dirs: ["src"],
+		extensions: [
+			".svelte",
+			".tsx",
+			".html",
+			".css"
+		],
+		tokenFiles: ["tokens.css"],
+		ignore: ["node_modules"]
+	},
+	brandRules: {
+		tokensOnly: true,
+		noPureBlackWhite: true,
+		noArbitraryValues: true
+	},
+	laws: {
+		hick: {
+			enabled: true,
+			maxNavItems: 3,
+			maxSelectOptions: 3
+		},
+		fitts: {
+			enabled: true,
+			minTargetPx: 40
+		},
+		jakob: { enabled: true },
+		miller: {
+			enabled: true,
+			maxUngroupedFields: 3
+		},
+		vonRestorff: {
+			enabled: true,
+			maxPrimaryActions: 1
+		},
+		uniformConnectedness: { enabled: true },
+		tesler: { enabled: true }
+	}
+};
+const rulesFor = (code, path = "src/x.svelte", cfg = config) => checkSource(path, code, cfg).map((v) => v.rule);
+describe("brand/no-pure-black-white", () => {
+	it("passes tokens", () => assert.deepEqual(rulesFor("<div class=\"bg-background text-foreground\"></div>"), []));
+	it("catches #fff, bg-black and color: white", () => {
+		const found = rulesFor("<div class=\"bg-black\"></div>\n<style>.a { color: white; border-color: #fff; }</style>");
+		assert.equal(found.filter((r) => r === "brand/no-pure-black-white").length, 3);
+	});
+	it("applies inside token files too", () => {
+		assert.ok(rulesFor(":root { --background: #000000; }", "src/tokens.css").includes("brand/no-pure-black-white"));
+	});
+});
+describe("brand/tokens-only", () => {
+	it("allows raw colors in token files", () => assert.deepEqual(rulesFor(":root { --primary: #f2b84b; }", "src/tokens.css"), []));
+	it("ignores anchors and html entities", () => assert.deepEqual(rulesFor("<a href=\"#sobre\">Sobre</a> &#123;"), []));
+	it("catches hex, rgb and tailwind palette", () => {
+		const found = rulesFor("<p class=\"text-blue-500\" style=\"color: #f2b84b; background: rgb(1, 2, 3)\">x</p>");
+		assert.equal(found.filter((r) => r === "brand/tokens-only").length, 3);
+	});
+});
+describe("brand/no-arbitrary-values", () => {
+	it("allows var() and the scale", () => assert.deepEqual(rulesFor("<div class=\"rounded-[var(--radius)] text-sm\"></div>"), []));
+	it("catches arbitrary sizes", () => assert.deepEqual(rulesFor("<div class=\"text-[13px]\"></div>"), ["brand/no-arbitrary-values"]));
+});
+describe("hick", () => {
+	it("passes a short nav", () => assert.deepEqual(rulesFor("<nav><a href=\"/\">A</a><a href=\"/b\">B</a></nav>"), []));
+	it("catches a long nav", () => {
+		const nav = `<nav>${"<a href=\"/x\">x</a>".repeat(4)}</nav>`;
+		assert.deepEqual(rulesFor(nav), ["hick/nav-items"]);
+	});
+	it("catches a long select but not a grouped one", () => {
+		const options = "<option>a</option>".repeat(4);
+		assert.deepEqual(rulesFor(`<label>X<select>${options}</select></label>`), ["hick/select-options"]);
+		assert.deepEqual(rulesFor(`<label>X<select><optgroup label="g">${options}</optgroup></select></label>`), []);
+	});
+});
+describe("fitts/target-size", () => {
+	it("passes h-10 and min-h-10", () => {
+		assert.deepEqual(rulesFor("<button type=\"button\" class=\"h-10\">Ok</button>"), []);
+		assert.deepEqual(rulesFor("<button type=\"button\" class=\"h-8 min-h-10\">Ok</button>"), []);
+	});
+	it("catches h-6 buttons and small CSS buttons", () => {
+		assert.deepEqual(rulesFor("<button type=\"button\" class=\"h-6\">Ok</button>"), ["fitts/target-size"]);
+		assert.deepEqual(rulesFor("<style>.btn { height: 28px; }</style>"), ["fitts/target-size"]);
+	});
+	it("ignores checkboxes", () => assert.deepEqual(rulesFor("<label><input type=\"checkbox\" class=\"size-4\" /> Aceito</label>"), []));
+});
+describe("jakob", () => {
+	it("passes button and link", () => assert.deepEqual(rulesFor("<button type=\"button\" onclick={go}>Ir</button><a href=\"/x\">X</a>"), []));
+	it("catches clickable div and anchor without href", () => {
+		assert.deepEqual(rulesFor("<div onclick={go}>Ir</div>"), ["jakob/clickable-non-interactive"]);
+		assert.deepEqual(rulesFor("<a onclick={go}>Ir</a>"), ["jakob/anchor-without-href"]);
+	});
+	it("accepts the svelte {href} shorthand", () => assert.deepEqual(rulesFor("<a {href}>Ir</a>"), []));
+	it("catches placeholder-only inputs but accepts labels", () => {
+		assert.deepEqual(rulesFor("<input placeholder=\"Buscar\" />"), ["jakob/placeholder-as-label"]);
+		assert.deepEqual(rulesFor("<label for=\"q\">Busca</label><input id=\"q\" placeholder=\"ex.: nota\" />"), []);
+		assert.deepEqual(rulesFor("<label>Busca <input placeholder=\"ex.: nota\" /></label>"), []);
+	});
+});
+describe("miller/ungrouped-fields", () => {
+	const field = "<label>c <input aria-label=\"c\" /></label>";
+	it("passes grouped forms", () => assert.deepEqual(rulesFor(`<form><fieldset><legend>a</legend>${field.repeat(5)}</fieldset></form>`), []));
+	it("catches long flat forms", () => assert.deepEqual(rulesFor(`<form>${field.repeat(5)}</form>`), ["miller/ungrouped-fields"]));
+});
+describe("von-restorff/single-primary", () => {
+	it("passes one primary", () => assert.deepEqual(rulesFor("<button type=\"button\" class=\"h-10 bg-primary\">A</button><button type=\"button\" class=\"h-10\">B</button>"), []));
+	it("catches two primaries", () => {
+		const two = "<button type=\"button\" class=\"h-10 bg-primary\">A</button><a href=\"/\" class=\"h-10 bg-primary\">B</a>";
+		assert.deepEqual(rulesFor(two), ["von-restorff/single-primary"]);
+	});
+	it("does not count bg-primary-soft", () => assert.deepEqual(rulesFor("<a href=\"/\" class=\"bg-primary-soft\">A</a><a href=\"/\" class=\"bg-primary\">B</a>"), []));
+});
+describe("uniform-connectedness/choice-group", () => {
+	const radios = "<label><input type=\"radio\" name=\"plano\" /> A</label><label><input type=\"radio\" name=\"plano\" /> B</label>";
+	it("passes inside a fieldset", () => assert.deepEqual(rulesFor(`<fieldset><legend>Plano</legend>${radios}</fieldset>`), []));
+	it("catches loose radios", () => assert.deepEqual(rulesFor(radios), ["uniform-connectedness/choice-group"]));
+});
+describe("tesler", () => {
+	it("passes a complete email field", () => assert.deepEqual(rulesFor("<label>E-mail <input name=\"email\" type=\"email\" autocomplete=\"email\" /></label>"), []));
+	it("catches missing autocomplete and wrong type", () => {
+		assert.deepEqual(rulesFor("<label>E-mail <input name=\"email\" /></label>").sort(), ["tesler/autocomplete", "tesler/input-type"]);
+	});
+});
+describe("ignore comments and config", () => {
+	it("honours design-ignore-next-line", () => {
+		assert.deepEqual(rulesFor("<!-- design-ignore-next-line fitts/target-size: ícone -->\n<button type=\"button\" class=\"h-6\">x</button>"), []);
+	});
+	it("honours design-ignore-file", () => assert.deepEqual(rulesFor("<!-- design-ignore-file -->\n<div class=\"bg-black\"></div>"), []));
+	it("skips disabled laws", () => {
+		const off = {
+			...config,
+			laws: {
+				...config.laws,
+				fitts: {
+					enabled: false,
+					minTargetPx: 40
+				}
+			}
+		};
+		assert.deepEqual(rulesFor("<button type=\"button\" class=\"h-6\">x</button>", "src/x.svelte", off), []);
+	});
+	it("reports the right line", () => {
+		const [v] = checkSource("src/x.svelte", "<p>a</p>\n\n<div class=\"bg-black\"></div>", config);
+		assert.equal(v.line, 3);
+	});
+	it("summarizes the active rules for the agent", () => {
+		const text = summarize(config);
+		assert.match(text, /teste-design/);
+		assert.match(text, /40px/);
+	});
+});
+describe("casos de borda", () => {
+	it("reads heights from inline styles, honoring min-height", () => {
+		assert.deepEqual(rulesFor("<button type=\"button\" style=\"height: 24px\">x</button>"), ["fitts/target-size"]);
+		assert.deepEqual(rulesFor("<button type=\"button\" style=\"height: 24px; min-height: 44px\">x</button>"), []);
+	});
+	it("asks for a numeric keyboard on postal codes", () => {
+		assert.deepEqual(rulesFor("<label>CEP <input name=\"cep\" autocomplete=\"postal-code\" /></label>"), ["tesler/input-type"]);
+		assert.deepEqual(rulesFor("<label>CEP <input name=\"cep\" autocomplete=\"postal-code\" inputmode=\"numeric\" /></label>"), []);
+	});
+	it("respects ignored paths, extensions and the project root as scan dir", () => {
+		assert.equal(isInScope("src/node_modules/x.svelte", config), false);
+		assert.equal(isInScope("src/readme.md", config), false);
+		assert.equal(isInScope("lib/x.svelte", config), false);
+		assert.equal(isInScope("lib/x.svelte", {
+			...config,
+			scan: {
+				...config.scan,
+				dirs: ["."]
+			}
+		}), true);
+	});
+	it("formats errors and warnings with location, rule and hint", () => {
+		const text = formatViolations("src/x.svelte", [{
+			rule: "a/b",
+			law: "Lei",
+			severity: "error",
+			line: 3,
+			message: "Erro.",
+			hint: "Dica."
+		}, {
+			rule: "c/d",
+			law: "Lei",
+			severity: "warning",
+			line: 4,
+			message: "Aviso.",
+			hint: "Dica."
+		}]);
+		assert.equal(text, "✕ src/x.svelte:3  [a/b] Erro.\n    Lei: Dica.\n! src/x.svelte:4  [c/d] Aviso.\n    Lei: Dica.");
+	});
+});

@@ -1,0 +1,3 @@
+#!/bin/sh
+# Trava de branch: merge na main é do admin (scripts/git/branch-guard.sh).
+exec sh scripts/git/branch-guard.sh merge
