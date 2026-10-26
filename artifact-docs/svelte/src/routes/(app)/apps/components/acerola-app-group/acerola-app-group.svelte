@@ -13,6 +13,7 @@
 
 <script lang="ts">
   import AppLinkCard from '../acerola-app-link-card/acerola-app-link-card.svelte';
+  import { revealChildren } from '$lib/motion/motion';
   import { cn } from '$lib/utils/cn';
 
   let { data, ui }: AcerolaAppGroupProps = $props();
@@ -23,7 +24,7 @@
     {data.group.name}
     <span class="text-muted-foreground text-sm">{data.group.apps.length}</span>
   </h2>
-  <div class="card-grid">
+  <div class="card-grid" use:revealChildren>
     {#each data.group.apps as app (app.id)}
       <AppLinkCard data={{ app }} />
     {/each}

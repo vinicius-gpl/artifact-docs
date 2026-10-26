@@ -11,7 +11,8 @@
    *
    * Fica presa no topo (`sticky`) com o acabamento Vidro: o conteúdo passa por baixo desfocado.
    * A tela aberta é marcada com `aria-current="page"` e um traço na cor da marca embaixo — o
-   * indicador do Carbon.
+   * indicador do Carbon. O traço é UM só e desliza de item em item (GSAP, `moveIndicator`):
+   * o olho acompanha para onde a navegação foi, em vez de ver um traço sumir e outro surgir.
    *
    * No celular os itens não cabem em linha: viram um botão "Menu" que abre a lista embaixo da
    * barra. Abrir e fechar é estado visual, mora aqui; clicar num item fecha a lista.
@@ -28,18 +29,42 @@
   import X from '@lucide/svelte/icons/x';
 
   import ActionButton from '$lib/components/acerola-action-button/acerola-action-button.svelte';
+  import { tick } from 'svelte';
+
   import { BrandMark } from '$lib/components/acerola-brand-mark/acerola-brand-mark';
   import ThemeToggle from '$lib/components/acerola-theme-toggle/acerola-theme-toggle.svelte';
+  import { moveIndicator, slideDown } from '$lib/motion/motion';
   import { cn } from '$lib/utils/cn';
 
   let { data, state: navState, ui }: AcerolaTopNavProps = $props();
 
   let isMenuOpen = $state(false);
 
+  /* Estado visual do marcador: a lista onde ele corre e se já foi posicionado uma vez. */
+  let list = $state<HTMLUListElement>();
+  let indicator = $state<HTMLSpanElement>();
+  let isPlaced = false;
+
+  function placeIndicator(immediate: boolean) {
+    const active = list?.querySelector<HTMLElement>('[aria-current="page"]') ?? null;
+    moveIndicator(indicator ?? null, active, { immediate });
+  }
+
+  $effect(() => {
+    void navState.activeKey;
+    void tick().then(() => {
+      placeIndicator(!isPlaced);
+      isPlaced = true;
+    });
+  });
+
   function closeMenu() {
     isMenuOpen = false;
   }
 </script>
+
+<!-- Janela mudou de largura: os itens mudam de lugar, o marcador vai junto, sem viajar. -->
+<svelte:window onresize={() => placeIndicator(true)} />
 
 <header
   class={cn(
@@ -54,7 +79,7 @@
     </a>
 
     <nav aria-label="Principal" class="hidden md:block">
-      <ul class="flex items-center gap-1">
+      <ul bind:this={list} class="relative flex items-center gap-1">
         {#each data.items as item (item.key)}
           {@const isActive = item.key === navState.activeKey}
           <li>
@@ -62,16 +87,20 @@
               href={item.to}
               aria-current={isActive ? 'page' : undefined}
               class={cn(
-                'flex h-16 items-center border-b-2 px-3 text-sm transition-colors',
-                isActive
-                  ? 'border-primary text-foreground'
-                  : 'text-muted-foreground hover:text-foreground border-transparent',
+                'flex h-16 items-center px-3 text-sm transition-colors',
+                isActive ? 'text-foreground' : 'text-muted-foreground hover:text-foreground',
               )}
             >
               {item.label}
             </a>
           </li>
         {/each}
+        <span
+          bind:this={indicator}
+          class="bg-primary pointer-events-none absolute bottom-0 left-0 h-0.5 w-0 opacity-0"
+          aria-hidden="true"
+          data-slot="top-nav-indicator"
+        ></span>
       </ul>
     </nav>
 
@@ -89,7 +118,12 @@
   </div>
 
   {#if isMenuOpen}
-    <nav aria-label="Principal" class="border-border/70 border-t md:hidden" data-slot="top-nav-menu">
+    <nav
+      aria-label="Principal"
+      class="border-border/70 overflow-hidden border-t md:hidden"
+      data-slot="top-nav-menu"
+      use:slideDown
+    >
       <ul class="mx-auto flex max-w-6xl flex-col px-4 py-2">
         {#each data.items as item (item.key)}
           {@const isActive = item.key === navState.activeKey}

@@ -37,6 +37,9 @@ export const EASE = {
  */
 export function prefersReducedMotion(): boolean {
   if (typeof window === 'undefined' || !window.matchMedia) return false;
+  /* O modo leve (`data-effects='lite'`, decidido por `use-effects`) também desliga: a máquina
+     não dá conta, e animação travada é pior que nenhuma. */
+  if (document.documentElement.dataset.effects === 'lite') return true;
 
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 }
@@ -155,4 +158,155 @@ export function countTo(element: HTMLElement | null, value: number): void {
       element.textContent = String(value);
     },
   });
+}
+
+/* ==========================================================================
+   A TROCA DE PÁGINA e as entradas — o que a navegação do hub anima.
+   ========================================================================== */
+
+/**
+ * A tela que está SAINDO: some e sobe um pouco, rápido. A navegação espera esta promessa
+ * (`onNavigate`), então ela tem de ser curta — é tempo em que a pessoa já clicou e ainda não
+ * vê a tela nova. Com movimento reduzido, resolve na hora.
+ */
+export function pageLeave(target: Element | null): Promise<void> {
+  if (!target || prefersReducedMotion()) return Promise.resolve();
+
+  return new Promise((resolve) => {
+    gsap.to(target, {
+      opacity: 0,
+      y: -8,
+      duration: DURATION.fast * 0.8,
+      ease: 'power1.in',
+      onComplete: resolve,
+    });
+  });
+}
+
+/**
+ * A tela que está CHEGANDO: o contêiner volta ao normal e os blocos da tela (título, filtros,
+ * conteúdo) entram em cascata, de cima para baixo — a ordem em que se lê.
+ *
+ * `clearProps` no fim de tudo: transform e opacidade voltam para o CSS. Sem isso, um
+ * `transform` esquecido no contêiner cria um novo contexto de empilhamento e o `sticky` e os
+ * balões de dentro da tela passam a se comportar errado.
+ */
+export function pageEnter(target: HTMLElement | null): void {
+  if (!target) return;
+
+  gsap.set(target, { opacity: 1, y: 0, clearProps: 'opacity,transform' });
+  if (prefersReducedMotion()) return;
+
+  const blocks = target.firstElementChild?.children ?? target.children;
+  gsap.fromTo(
+    blocks,
+    { opacity: 0, y: 18 },
+    {
+      opacity: 1,
+      y: 0,
+      duration: DURATION.base + 0.08,
+      ease: 'power3.out',
+      stagger: 0.07,
+      clearProps: 'opacity,transform',
+    },
+  );
+}
+
+/**
+ * Action: os FILHOS do elemento entram em cascata quando ele aparece — a grade de cartões, a
+ * lista de grupos. `stagger` com teto (`amount`): numa grade de 40 cartões, o último não pode
+ * chegar dois segundos depois do primeiro.
+ */
+export function revealChildren(node: HTMLElement): void {
+  if (prefersReducedMotion() || node.children.length === 0) return;
+
+  gsap.fromTo(
+    node.children,
+    { opacity: 0, y: 14, scale: 0.98 },
+    {
+      opacity: 1,
+      y: 0,
+      scale: 1,
+      duration: DURATION.base,
+      ease: 'power2.out',
+      stagger: { each: 0.045, amount: 0.4 },
+      clearProps: 'opacity,transform',
+    },
+  );
+}
+
+/** Action: o bloco abre DESLIZANDO de cima (o menu do celular), em vez de surgir de uma vez. */
+export function slideDown(node: HTMLElement): void {
+  if (prefersReducedMotion()) return;
+
+  gsap.fromTo(
+    node,
+    { height: 0, opacity: 0 },
+    {
+      height: 'auto',
+      opacity: 1,
+      duration: DURATION.base,
+      ease: EASE.out,
+      clearProps: 'height,opacity',
+    },
+  );
+  gsap.fromTo(
+    node.querySelectorAll('li'),
+    { opacity: 0, x: -12 },
+    { opacity: 1, x: 0, duration: DURATION.base, ease: EASE.out, stagger: 0.04, delay: 0.05 },
+  );
+}
+
+/**
+ * O marcador da navbar DESLIZA até o item aceso: mede o item dentro da lista e anima posição e
+ * largura. Na primeira medida (`immediate`) ele só se posiciona — a página que abre já vem
+ * com o marcador no lugar, sem viajar do canto da tela.
+ */
+export function moveIndicator(
+  indicator: HTMLElement | null,
+  active: HTMLElement | null,
+  options: { immediate?: boolean } = {},
+): void {
+  if (!indicator) return;
+  if (!active) {
+    gsap.to(indicator, { opacity: 0, duration: DURATION.fast });
+
+    return;
+  }
+
+  const props = { x: active.offsetLeft, width: active.offsetWidth, opacity: 1 };
+  if (options.immediate || prefersReducedMotion()) {
+    gsap.set(indicator, props);
+
+    return;
+  }
+
+  gsap.to(indicator, { ...props, duration: DURATION.base, ease: 'power3.out' });
+}
+
+/**
+ * Action: o cartão LEVANTA um pouco sob o mouse e volta ao sair. Só onde existe mouse de
+ * verdade — no toque não há hover, e o cartão ficaria levantado depois do toque.
+ */
+export function hoverLift(node: HTMLElement): { destroy: () => void } {
+  const hasMouse = window.matchMedia?.('(hover: hover) and (pointer: fine)').matches ?? false;
+  if (!hasMouse) return { destroy: () => {} };
+
+  const lift = () => {
+    if (prefersReducedMotion()) return;
+    gsap.to(node, { y: -4, duration: DURATION.fast, ease: EASE.out });
+  };
+  const settle = () => {
+    gsap.to(node, { y: 0, duration: DURATION.base, ease: EASE.out, clearProps: 'transform' });
+  };
+
+  node.addEventListener('pointerenter', lift);
+  node.addEventListener('pointerleave', settle);
+
+  return {
+    destroy: () => {
+      node.removeEventListener('pointerenter', lift);
+      node.removeEventListener('pointerleave', settle);
+    },
+  };
 }

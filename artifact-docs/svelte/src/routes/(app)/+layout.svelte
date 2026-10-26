@@ -2,6 +2,7 @@
   import type { Snippet } from 'svelte';
 
   import TopNav from '$lib/components/acerola-top-nav/acerola-top-nav.svelte';
+  import { usePageTransition } from '$lib/hooks/use-page-transition/use-page-transition.svelte';
   import { useTopNavModel } from '$lib/hooks/use-top-nav/use-top-nav.svelte';
 
   /**
@@ -13,10 +14,14 @@
   let { children }: { children: Snippet } = $props();
 
   const nav = useTopNavModel();
+
+  /* A troca de página anima este contêiner: a tela sai, a nova entra em cascata. */
+  let main = $state<HTMLElement>();
+  usePageTransition(() => main);
 </script>
 
 <TopNav data={nav.data} state={nav.state} />
 
-<main class="min-w-0 px-4 pt-8 pb-16 sm:px-6">
+<main bind:this={main} class="min-w-0 px-4 pt-8 pb-16 sm:px-6">
   {@render children()}
 </main>
