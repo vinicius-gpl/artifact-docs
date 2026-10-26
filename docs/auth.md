@@ -22,6 +22,7 @@ A regra fica no Go, não na tela: a tela só esconde; quem impede é o servidor.
 |---|---|---|
 | `GET /api/auth/setup` | sim | `{ "needsSetup": true }` enquanto não há usuário no Neon Auth com e-mail de `AUTH_ALLOWED_EMAILS` (consulta em `neon_auth.user`) |
 | `GET /api/auth/me` | não | `{ id, email, name, image }` de quem está no token |
+| `GET /api/auth/config` | sim | `{ "neonAuthUrl": "…" }` — onde o login acontece, quando a URL não veio no build da tela |
 | `GET /api/health` | sim | já existe |
 
 O porteiro valida a assinatura do JWT com as chaves públicas do Neon Auth (JWKS, buscadas uma
@@ -30,7 +31,8 @@ vez e guardadas em memória, renovadas quando aparece um `kid` desconhecido) e c
 Variáveis do Go (`src-go/.env`):
 
 ```
-NEON_AUTH_JWKS_URL=     # no painel da Neon: Auth → JWKS URL
+NEON_AUTH_URL=          # Auth → URL do endpoint (entregue em /api/auth/config)
+NEON_AUTH_JWKS_URL=     # no painel da Neon: Auth → JWKS URL (vazia = login desligado, 503)
 AUTH_ALLOWED_EMAILS=    # o seu e-mail; vários separados por vírgula
 ```
 
