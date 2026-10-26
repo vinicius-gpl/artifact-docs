@@ -1,4 +1,3 @@
-import { readAuthToken } from '$lib/auth/neon-auth.client';
 import { type StagedFile, type UploadTicket } from '$lib/contracts/staged-file.schema';
 
 import { type ApiErrorBody } from './api-error.type';
@@ -49,14 +48,10 @@ export type RequestOptions = {
 };
 
 /**
- * A WEB NUNCA AFIRMA QUEM É — ela APRESENTA uma prova.
+ * Uma chamada à API, com o corpo em JSON e a falha convertida em `ApiError` com o motivo.
  *
- * O que vai no cabeçalho é o token assinado pelo Neon Auth, e o servidor confere a assinatura
- * antes de acreditar em qualquer coisa. É a diferença entre dizer "sou administrador" (o que
- * qualquer pessoa poderia escrever) e mostrar um crachá que só a Neon consegue emitir.
- *
- * Requisição sem token sai assim mesmo, sem cabeçalho: a API responde 401 e a guarda de rota
- * manda para o login. Barrar aqui só esconderia o motivo.
+ * O hub é de uso próprio e não tem login: nenhuma credencial vai no cabeçalho. Quem protege a
+ * instância é a rede (Caddy, VPN), não a tela.
  */
 export async function apiRequest<TResponse>(
   path: string,
@@ -68,7 +63,7 @@ export async function apiRequest<TResponse>(
     credentials: options.credentials,
     method: options.method ?? 'GET',
     signal: options.signal,
-    headers: await buildHeaders(options),
+    headers: buildHeaders(options),
     body: toRequestBody(options.body),
   });
 
@@ -128,7 +123,7 @@ export async function apiDownload(path: string, options: RequestOptions = {}): P
   const response = await fetch(`${BASE_URL}${path}${buildQuery(options.query)}`, {
     method: options.method ?? 'GET',
     signal: options.signal,
-    headers: await buildHeaders(options),
+    headers: buildHeaders(options),
   });
 
   if (!response.ok) throw await toApiError(response);
@@ -171,14 +166,10 @@ function toRequestBody(body: unknown): BodyInit | undefined {
   return JSON.stringify(body);
 }
 
-async function buildHeaders(options: RequestOptions): Promise<Record<string, string>> {
-  const headers: Record<string, string> = {};
-  if (options.body !== undefined) headers['Content-Type'] = 'application/json';
+function buildHeaders(options: RequestOptions): Record<string, string> {
+  if (options.body === undefined) return {};
 
-  const token = await readAuthToken();
-  if (token) headers.Authorization = `Bearer ${token}`;
-
-  return headers;
+  return { 'Content-Type': 'application/json' };
 }
 
 async function readErrorBody(response: Response): Promise<ApiErrorBody | null> {

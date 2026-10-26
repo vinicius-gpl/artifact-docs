@@ -6,16 +6,10 @@
   import '$lib/theme/tokens.css';
 
   /**
-   * A WEB NÃO GUARDA SESSÃO, e não manda identidade.
+   * O que TODA tela precisa: o cliente de dados e a captura de erro.
    *
-   * A sessão do login próprio é um cookie `HttpOnly` — o JavaScript da tela nem consegue lê-lo,
-   * então não há nada aqui para guardar ou mandar. Nada de token no `localStorage`: num
-   * escritório de máquinas compartilhadas, a próxima pessoa a abrir o sistema herdaria a conta
-   * da anterior.
-   *
-   * A casca (menu lateral) NÃO mora aqui: ela é de `routes/(app)/+layout.svelte`, que também
-   * exige sessão válida. Este layout raiz vale para a tela de login também, então só tem o que
-   * toda tela precisa — cliente de dados e captura de erro.
+   * A casca (a barra do topo) NÃO mora aqui: ela é de `routes/(app)/+layout.svelte`. Este
+   * layout raiz vale também para a tela de erro, que aparece sem a barra.
    */
   let { children }: { children: Snippet } = $props();
 

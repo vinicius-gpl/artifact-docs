@@ -40,10 +40,10 @@ describe('toArtifactView', () => {
   });
 
   // triste
-  it('says a private artifact needs login and has no status badge when it is a document', () => {
+  it('says a private artifact is private and has no status badge when it is a document', () => {
     const view = toArtifactView(detail('manual-da-marca'));
 
-    expect(view.facts).toContainEqual({ label: 'Acesso', value: 'Exige login' });
+    expect(view.facts).toContainEqual({ label: 'Acesso', value: 'Privado' });
     expect(view.badges.map((badge) => badge.label)).toEqual(['Documento']);
   });
 });

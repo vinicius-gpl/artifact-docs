@@ -8,10 +8,9 @@ import {
   type Artifact,
 } from '$lib/contracts/artifact.schema';
 import { paletteListSchema } from '$lib/contracts/palette.schema';
-import { sessionUserSchema } from '$lib/contracts/user.schema';
 
 import { ApiError, type RequestOptions } from './http-client';
-import { createMockDatabase, MOCK_USER, type MockDatabase } from './mock-fixtures';
+import { createMockDatabase, type MockDatabase } from './mock-fixtures';
 
 /**
  * O BACKEND DE MENTIRA — responde às mesmas rotas `/api/...` que o Go vai responder.
@@ -99,7 +98,6 @@ function patchArtifact({ params, body }: MockContext) {
 }
 
 const ROUTES: MockRoute[] = [
-  { method: 'GET', path: '/auth/me', handle: () => sessionUserSchema.parse(MOCK_USER) },
   { method: 'GET', path: '/artifacts', handle: listArtifacts },
   { method: 'GET', path: '/artifacts/:label', handle: getArtifact },
   { method: 'PATCH', path: '/artifacts/:label', handle: patchArtifact },

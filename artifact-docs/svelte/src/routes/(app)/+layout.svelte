@@ -1,29 +1,22 @@
 <script lang="ts">
   import type { Snippet } from 'svelte';
 
-  import AppShell from '$lib/components/acerola-app-shell/acerola-app-shell.svelte';
-  import { useAppShellModel } from '$lib/hooks/use-app-shell/use-app-shell.svelte';
-  import { NAV_ITEMS } from '$lib/navigation/navigation';
-  import type { LayoutData } from './$types';
+  import TopNav from '$lib/components/acerola-top-nav/acerola-top-nav.svelte';
+  import { useTopNavModel } from '$lib/hooks/use-top-nav/use-top-nav.svelte';
 
   /**
-   * A CASCA DO HUB — menu à esquerda, tela à direita.
+   * A CASCA DO HUB — a barra no topo e a tela embaixo.
    *
-   * Uma casca só, porque o hub é um módulo só. `data.user` e `data.sidebarOpen` vêm da guarda
-   * de sessão em `+layout.ts`: quando qualquer coisa daqui para baixo roda, a sessão já foi
-   * conferida.
+   * Sem guarda de sessão: o hub é de uso próprio e não tem login. A margem do conteúdo é
+   * daqui; cada tela define só a largura máxima (`mx-auto w-full max-w-6xl`).
    */
-  let { data, children }: { data: LayoutData; children: Snippet } = $props();
+  let { children }: { children: Snippet } = $props();
 
-  const shell = useAppShellModel({ user: data.user, items: NAV_ITEMS });
+  const nav = useTopNavModel();
 </script>
 
-<AppShell
-  initialSidebarOpen={data.sidebarOpen}
-  data={shell.data}
-  ui={shell.ui}
-  state={shell.state}
-  actions={shell.actions}
->
+<TopNav data={nav.data} state={nav.state} />
+
+<main class="min-w-0 px-4 pt-8 pb-16 sm:px-6">
   {@render children()}
-</AppShell>
+</main>

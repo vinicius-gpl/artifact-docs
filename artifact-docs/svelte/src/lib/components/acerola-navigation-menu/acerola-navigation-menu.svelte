@@ -2,7 +2,7 @@
   /**
    * Uma fileira de links de seção (Visão geral · Histórico · Peças) para navegar DENTRO de uma
    * tela. Envolve o `ui/navigation-menu` do shadcn. O menu do sistema inteiro é a barra
-   * lateral (`acerola-app-shell`); este aqui é para as abas de uma página.
+   * topo (`acerola-top-nav`); este aqui é para as abas de uma página.
    *
    * São links de verdade (`href`), e não botões: a pessoa pode abrir numa aba nova e o endereço
    * diz onde ela está. Quem sabe qual é o item atual é a tela, que marca `isActive`.

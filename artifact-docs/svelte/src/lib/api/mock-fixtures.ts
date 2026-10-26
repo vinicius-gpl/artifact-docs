@@ -1,7 +1,6 @@
 import { type AppHub } from '$lib/contracts/app-link.schema';
 import { type Artifact, type ArtifactVersion } from '$lib/contracts/artifact.schema';
 import { type Palette } from '$lib/contracts/palette.schema';
-import { type SessionUser } from '$lib/contracts/user.schema';
 
 /**
  * OS DADOS DE MENTIRA do modo mock (`VITE_API_MOCKS=true`) — inventados, nunca dado real.
@@ -13,14 +12,6 @@ import { type SessionUser } from '$lib/contracts/user.schema';
  * Os artefatos não têm arquivo servido de verdade: o `url` é um `data:` com uma página HTML
  * mínima, para o preview e o visualizador funcionarem igual funcionariam com `/a/<token>/`.
  */
-
-export const MOCK_USER: SessionUser = {
-  id: 'user-mock',
-  email: 'vinicius@exemplo.com',
-  name: 'Vinicius',
-  image: null,
-  role: 'admin',
-};
 
 /** Uma página mínima, no estilo da marca, para servir de artefato publicado. */
 function mockPage(title: string, lines: string[]): string {
