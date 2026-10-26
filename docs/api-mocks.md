@@ -31,7 +31,6 @@ A tabela `ROUTES` do `mock-server.ts` é a lista viva. Hoje:
 | `GET` | `/api/artifacts/{label}` | `artifactDetailSchema` | grava `last_viewed_at` (é o que ordena "Recentes") |
 | `PATCH` | `/api/artifacts/{label}` | `artifactSchema` | corpo `artifactPatchSchema` (fixar, privado, situação) |
 | `GET` | `/api/apps` | `appHubSchema` | tipos e apps juntos; a tela agrupa |
-| `GET` | `/api/palettes` | `paletteListSchema` | `outputUrl` aponta para o `.css` gerado no R2 |
 
 Erro segue o formato que o `http-client` já lê: status HTTP e corpo
 `{ "message": "texto em português", "details": [] }`.
