@@ -13,10 +13,12 @@ import (
 )
 
 // New devolve o handler raiz do servidor.
-func New(logger *slog.Logger, spa fs.FS) http.Handler {
+func New(logger *slog.Logger, spa fs.FS, authCfg Auth) http.Handler {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /api/health", health)
+	mux.HandleFunc("GET /api/auth/config", authConfig(authCfg))
+	mux.HandleFunc("GET /api/auth/me", requireUser(authCfg, authMe))
 	// Endereço de API que não existe é 404 em JSON — nunca o index.html da SPA, que chegaria
 	// à tela como "resposta que não é JSON" e esconderia o erro de verdade.
 	mux.HandleFunc("/api/", func(w http.ResponseWriter, _ *http.Request) {
