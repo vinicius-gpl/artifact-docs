@@ -7,4 +7,5 @@ sh scripts/git/branch-guard.sh push || exit 1
 #    GitHub. Sem Node no PATH (git fora do mise), o CI confere do mesmo jeito.
 if command -v node >/dev/null 2>&1; then
   node .claude/hooks/design/check-design.mjs || exit 1
+  node .claude/hooks/brand/check-design.mjs || exit 1
 fi
