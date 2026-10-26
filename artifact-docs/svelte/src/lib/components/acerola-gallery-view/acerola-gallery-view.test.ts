@@ -17,10 +17,12 @@ const ITEM: PreviewItem = {
   isPinned: false,
 };
 
-function props(overrides: {
-  data?: Partial<AcerolaGalleryViewProps['data']>;
-  state?: Partial<AcerolaGalleryViewProps['state']>;
-} = {}): AcerolaGalleryViewProps {
+function props(
+  overrides: {
+    data?: Partial<AcerolaGalleryViewProps['data']>;
+    state?: Partial<AcerolaGalleryViewProps['state']>;
+  } = {},
+): AcerolaGalleryViewProps {
   return {
     data: {
       items: [ITEM],

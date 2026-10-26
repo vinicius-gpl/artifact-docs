@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from '@testing-library/svelte';
+import { fireEvent, render, within } from '@testing-library/svelte';
 import { describe, expect, it, vi } from 'vitest';
 
 import { type PreviewItem } from '$lib/components/acerola-preview-card/acerola-preview-card.svelte';
