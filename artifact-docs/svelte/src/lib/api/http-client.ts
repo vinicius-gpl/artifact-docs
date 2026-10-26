@@ -12,6 +12,22 @@ import { type ApiErrorBody } from './api-error.type';
  */
 const BASE_URL = import.meta.env.PROD ? `${import.meta.env.VITE_API_URL ?? ''}/api` : '/api';
 
+/**
+ * O MODO MOCK: com `VITE_API_MOCKS=true`, toda chamada é respondida por `mock-server.ts`, que
+ * imita as rotas que o Go ainda não tem. É o único desvio do sistema inteiro — trocar pelo Go
+ * é desligar a variável, sem mexer em tela nem em hook.
+ *
+ * O `import()` é dinâmico para o mock (e os dados de mentira) nem entrarem no bundle quando a
+ * variável está desligada: o Vite troca a comparação por `false` no build e descarta o ramo.
+ */
+const USE_MOCKS = import.meta.env.VITE_API_MOCKS === 'true';
+
+async function requestMock<TResponse>(path: string, options: RequestOptions): Promise<TResponse> {
+  const { handleMockRequest } = await import('./mock-server');
+
+  return handleMockRequest<TResponse>(path, options);
+}
+
 export class ApiError extends Error {
   readonly status: number;
   readonly details: { field: string; message: string }[];
@@ -46,6 +62,8 @@ export async function apiRequest<TResponse>(
   path: string,
   options: RequestOptions = {},
 ): Promise<TResponse> {
+  if (USE_MOCKS) return requestMock<TResponse>(path, options);
+
   const response = await fetch(`${BASE_URL}${path}${buildQuery(options.query)}`, {
     credentials: options.credentials,
     method: options.method ?? 'GET',
