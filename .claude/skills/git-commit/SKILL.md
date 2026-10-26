@@ -27,7 +27,7 @@ Uma mudança que toca dois locais são **dois commits**. Os locais:
 
 | Local | Arquivos |
 |---|---|
-| `db` | `artifact-docs/src-go/migrations/` |
+| `db` | `artifact-docs/src-go/lib/infra/database/migrations/` |
 | `backend` | o resto de `artifact-docs/src-go/`, `artifact-docs/main.go`, `artifact-docs/go.mod`, `artifact-docs/go.sum` |
 | `web` | `artifact-docs/svelte/` |
 | `infra` | `deploy/` (Caddy, systemd, VPS) |
@@ -44,11 +44,11 @@ Arquivo que não cabe em nenhum: junte com o local mais relevante da mesma mudan
 Adicione **por caminho**, nunca `git add -A` às cegas:
 
 ```bash
-git add artifact-docs/src-go/migrations
+git add artifact-docs/src-go/lib/infra/database/migrations
 git diff --cached --stat     # confira o que vai
 ```
 
-**Nunca** adicione: `.env`, `node_modules`, `dist`, `bin/`, `coverage`, `artifact-docs/src-go/web/dist/*` (só o `.gitkeep`). Se aparecerem no
+**Nunca** adicione: `.env`, `node_modules`, `dist`, `bin/`, `coverage`, `artifact-docs/src-go/lib/web/dist/*` (só o `.gitkeep`). Se aparecerem no
 status, o `.gitignore` está errado — avise.
 
 ## 3. A mensagem
