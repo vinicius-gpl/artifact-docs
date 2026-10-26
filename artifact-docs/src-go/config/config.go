@@ -28,8 +28,8 @@ type Config struct {
 }
 
 // Addr é o endereço em que o servidor escuta.
-func (c Config) Addr() string {
-	return fmt.Sprintf(":%d", c.Port)
+func (cfg Config) Addr() string {
+	return fmt.Sprintf(":%d", cfg.Port)
 }
 
 // Load monta a Config a partir de getenv (os.Getenv em produção; um mapa nos testes).

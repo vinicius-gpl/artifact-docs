@@ -49,23 +49,23 @@ func NewKeySet(url string, client *http.Client) *KeySet {
 }
 
 // Key devolve a chave pública com este kid.
-func (k *KeySet) Key(ctx context.Context, kid string) (crypto.PublicKey, error) {
-	k.mu.Lock()
-	defer k.mu.Unlock()
+func (keySet *KeySet) Key(ctx context.Context, kid string) (crypto.PublicKey, error) {
+	keySet.mu.Lock()
+	defer keySet.mu.Unlock()
 
-	if key, ok := k.keys[kid]; ok {
+	if key, ok := keySet.keys[kid]; ok {
 		return key, nil
 	}
-	if k.keys != nil && k.now().Sub(k.fetchedAt) < minRefreshInterval {
+	if keySet.keys != nil && keySet.now().Sub(keySet.fetchedAt) < minRefreshInterval {
 		return nil, ErrUnknownKey
 	}
 
-	keys, err := k.fetch(ctx)
+	keys, err := keySet.fetch(ctx)
 	if err != nil {
 		return nil, err
 	}
-	k.keys = keys
-	k.fetchedAt = k.now()
+	keySet.keys = keys
+	keySet.fetchedAt = keySet.now()
 
 	if key, ok := keys[kid]; ok {
 		return key, nil
@@ -74,13 +74,13 @@ func (k *KeySet) Key(ctx context.Context, kid string) (crypto.PublicKey, error) 
 	return nil, ErrUnknownKey
 }
 
-func (k *KeySet) fetch(ctx context.Context) (map[string]crypto.PublicKey, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, k.url, nil)
+func (keySet *KeySet) fetch(ctx context.Context) (map[string]crypto.PublicKey, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, keySet.url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("auth: build jwks request: %w", err)
 	}
 
-	res, err := k.client.Do(req)
+	res, err := keySet.client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("auth: fetch jwks: %w", err)
 	}
@@ -103,12 +103,12 @@ func (k *KeySet) fetch(ctx context.Context) (map[string]crypto.PublicKey, error)
 // jwk é uma chave do JWKS. Só os campos das duas famílias que a Neon pode usar: Ed25519
 // (OKP, o padrão do Better Auth) e RSA.
 type jwk struct {
-	Kid string `json:"kid"`
-	Kty string `json:"kty"`
-	Crv string `json:"crv"`
-	X   string `json:"x"`
-	N   string `json:"n"`
-	E   string `json:"e"`
+	Kid      string `json:"kid"`
+	Kty      string `json:"kty"`
+	Crv      string `json:"crv"`
+	PublicX  string `json:"x"`
+	Modulus  string `json:"n"`
+	Exponent string `json:"e"`
 }
 
 // parseKeys ignora a chave que não sabe ler, em vez de recusar o JWKS inteiro: uma chave
@@ -126,19 +126,19 @@ func parseKeys(raw []jwk) map[string]crypto.PublicKey {
 	return keys
 }
 
-func (j jwk) publicKey() (crypto.PublicKey, error) {
-	if j.Kty == "OKP" && j.Crv == "Ed25519" {
-		return ed25519Key(j.X)
+func (entry jwk) publicKey() (crypto.PublicKey, error) {
+	if entry.Kty == "OKP" && entry.Crv == "Ed25519" {
+		return ed25519Key(entry.PublicX)
 	}
-	if j.Kty == "RSA" {
-		return rsaKey(j.N, j.E)
+	if entry.Kty == "RSA" {
+		return rsaKey(entry.Modulus, entry.Exponent)
 	}
 
-	return nil, fmt.Errorf("auth: unsupported key type %q", j.Kty)
+	return nil, fmt.Errorf("auth: unsupported key type %q", entry.Kty)
 }
 
-func ed25519Key(x string) (crypto.PublicKey, error) {
-	raw, err := base64.RawURLEncoding.DecodeString(x)
+func ed25519Key(encodedX string) (crypto.PublicKey, error) {
+	raw, err := base64.RawURLEncoding.DecodeString(encodedX)
 	if err != nil || len(raw) != ed25519.PublicKeySize {
 		return nil, errors.New("auth: invalid Ed25519 key")
 	}
@@ -146,12 +146,12 @@ func ed25519Key(x string) (crypto.PublicKey, error) {
 	return ed25519.PublicKey(raw), nil
 }
 
-func rsaKey(n, e string) (crypto.PublicKey, error) {
-	modulus, err := base64.RawURLEncoding.DecodeString(n)
+func rsaKey(encodedModulus, encodedExponent string) (crypto.PublicKey, error) {
+	modulus, err := base64.RawURLEncoding.DecodeString(encodedModulus)
 	if err != nil {
 		return nil, errors.New("auth: invalid RSA modulus")
 	}
-	exponent, err := base64.RawURLEncoding.DecodeString(e)
+	exponent, err := base64.RawURLEncoding.DecodeString(encodedExponent)
 	if err != nil || len(exponent) == 0 || len(exponent) > 4 {
 		return nil, errors.New("auth: invalid RSA exponent")
 	}

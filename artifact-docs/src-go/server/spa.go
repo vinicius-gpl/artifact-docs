@@ -21,29 +21,29 @@ const notBuilt = "A tela ainda não foi compilada. Em desenvolvimento, use a do 
 func spaHandler(dist fs.FS) http.Handler {
 	files := http.FileServerFS(dist)
 
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		name := strings.TrimPrefix(path.Clean(r.URL.Path), "/")
+	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		name := strings.TrimPrefix(path.Clean(request.URL.Path), "/")
 
 		if name != "" && isFile(dist, name) {
-			files.ServeHTTP(w, r)
+			files.ServeHTTP(writer, request)
 			return
 		}
 
 		index, err := fs.ReadFile(dist, "index.html")
 		if errors.Is(err, fs.ErrNotExist) {
-			http.Error(w, notBuilt, http.StatusServiceUnavailable)
+			http.Error(writer, notBuilt, http.StatusServiceUnavailable)
 			return
 		}
 		if err != nil {
-			http.Error(w, "Não consegui abrir a tela.", http.StatusInternalServerError)
+			http.Error(writer, "Não consegui abrir a tela.", http.StatusInternalServerError)
 			return
 		}
 
 		// O index.html nunca vai para cache: é ele que aponta para os arquivos com hash de
 		// cada build. Em cache, um deploy novo continuaria abrindo a tela antiga.
-		w.Header().Set("Cache-Control", "no-cache")
-		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		_, _ = w.Write(index)
+		writer.Header().Set("Cache-Control", "no-cache")
+		writer.Header().Set("Content-Type", "text/html; charset=utf-8")
+		_, _ = writer.Write(index)
 	})
 }
 

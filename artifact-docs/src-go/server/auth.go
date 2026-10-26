@@ -31,35 +31,35 @@ type userKey struct{}
 // A regra mora aqui, e não na tela: a tela só esconde o que a pessoa não pode ver; quem
 // impede é o servidor.
 func requireUser(cfg Auth, next http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
+	return func(writer http.ResponseWriter, request *http.Request) {
 		if cfg.Tokens == nil {
-			writeError(w, http.StatusServiceUnavailable, "O login ainda não foi configurado no servidor.")
+			writeError(writer, http.StatusServiceUnavailable, "O login ainda não foi configurado no servidor.")
 			return
 		}
 
-		token, ok := bearerToken(r)
+		token, ok := bearerToken(request)
 		if !ok {
-			writeError(w, http.StatusUnauthorized, "Entre para continuar.")
+			writeError(writer, http.StatusUnauthorized, "Entre para continuar.")
 			return
 		}
 
-		user, err := cfg.Tokens.Verify(r.Context(), token)
+		user, err := cfg.Tokens.Verify(request.Context(), token)
 		if err != nil {
-			writeError(w, http.StatusUnauthorized, "Sua sessão expirou. Entre de novo.")
+			writeError(writer, http.StatusUnauthorized, "Sua sessão expirou. Entre de novo.")
 			return
 		}
 
 		if !isAllowed(cfg.AllowedEmails, user.Email) {
-			writeError(w, http.StatusForbidden, "Esta conta não tem acesso ao hub.")
+			writeError(writer, http.StatusForbidden, "Esta conta não tem acesso ao hub.")
 			return
 		}
 
-		next(w, r.WithContext(context.WithValue(r.Context(), userKey{}, user)))
+		next(writer, request.WithContext(context.WithValue(request.Context(), userKey{}, user)))
 	}
 }
 
-func bearerToken(r *http.Request) (string, bool) {
-	scheme, token, found := strings.Cut(r.Header.Get("Authorization"), " ")
+func bearerToken(request *http.Request) (string, bool) {
+	scheme, token, found := strings.Cut(request.Header.Get("Authorization"), " ")
 	if !found || !strings.EqualFold(scheme, "Bearer") || token == "" {
 		return "", false
 	}
@@ -79,8 +79,8 @@ func isAllowed(allowed []string, email string) bool {
 }
 
 // currentUser é quem o porteiro deixou passar. Só existe dentro de rota com requireUser.
-func currentUser(r *http.Request) auth.User {
-	user, _ := r.Context().Value(userKey{}).(auth.User)
+func currentUser(request *http.Request) auth.User {
+	user, _ := request.Context().Value(userKey{}).(auth.User)
 
 	return user
 }
@@ -94,10 +94,10 @@ type sessionUser struct {
 	Image *string `json:"image"`
 }
 
-func authMe(w http.ResponseWriter, r *http.Request) {
-	user := currentUser(r)
+func authMe(writer http.ResponseWriter, request *http.Request) {
+	user := currentUser(request)
 
-	writeJSON(w, http.StatusOK, sessionUser{
+	writeJSON(writer, http.StatusOK, sessionUser{
 		ID:    user.ID,
 		Email: user.Email,
 		Name:  user.Name,
@@ -108,7 +108,7 @@ func authMe(w http.ResponseWriter, r *http.Request) {
 // authConfig é público: diz à tela ONDE o login acontece quando a URL não veio no build
 // (ver ensureNeonAuthClient em svelte/src/lib/auth/neon-auth.client.ts). Não é segredo.
 func authConfig(cfg Auth) http.HandlerFunc {
-	return func(w http.ResponseWriter, _ *http.Request) {
-		writeJSON(w, http.StatusOK, map[string]string{"neonAuthUrl": cfg.NeonAuthURL})
+	return func(writer http.ResponseWriter, _ *http.Request) {
+		writeJSON(writer, http.StatusOK, map[string]string{"neonAuthUrl": cfg.NeonAuthURL})
 	}
 }
