@@ -30,7 +30,13 @@ run = "mise run build"
 
 [tasks.check]
 description = "Tudo que o CI roda: o app (artifact-docs/) e as regras de design"
-run = ["mise run design:check", "mise run design:test", "cd artifact-docs && mise run check"]
+run = [
+  "mise run design:check",
+  "mise run design:test",
+  "mise run brand:check",
+  "mise run brand:test",
+  "cd artifact-docs && mise run check",
+]
 
 # ── Design (skills design-system e ui-standards) ─────────────────────────────
 
@@ -49,3 +55,15 @@ run = "node .claude/hooks/design/check-design.mjs --update"
 [tasks."design:test"]
 description = "Testes das regras de design (node:test)"
 run = "node --test .claude/hooks/design/design-rules.test.mjs"
+
+# ── Marca e leis de UX (skills brand-design e ux-laws) ──────────────────────
+# Verificador do kit de design da marca. Mora ao lado do de estrutura (hooks/design) porque
+# confere outra coisa: cor só por token, sem preto/branco puro, alvo de 40px, leis de UX.
+
+[tasks."brand:check"]
+description = "Regras da marca e das leis de UX no svelte/ — reprova erro"
+run = "node .claude/hooks/brand/check-design.mjs"
+
+[tasks."brand:test"]
+description = "Testes do verificador da marca (node:test)"
+run = "node --test .claude/hooks/brand/design-rules.test.mjs .claude/hooks/brand/check-design.test.mjs"
