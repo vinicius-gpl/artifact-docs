@@ -17,6 +17,9 @@ const DefaultPort = 3010
 // Config é tudo o que o processo precisa saber para subir.
 type Config struct {
 	Port int
+	// DatabaseURL é a conexão com o Neon (endpoint pooled). Vazia, o servidor sobe sem
+	// banco e as rotas que precisam dele respondem 503 — em desenvolvimento a tela usa o mock.
+	DatabaseURL string
 	// NeonAuthURL é o endereço do login (Auth → URL do endpoint, no painel da Neon).
 	NeonAuthURL string
 	// NeonAuthJWKSURL é de onde vêm as chaves que conferem o token. Vazia, o login fica
@@ -45,6 +48,7 @@ func Load(getenv func(string) string) (Config, error) {
 
 	return Config{
 		Port:            port,
+		DatabaseURL:     strings.TrimSpace(getenv("DATABASE_URL")),
 		NeonAuthURL:     strings.TrimSpace(getenv("NEON_AUTH_URL")),
 		NeonAuthJWKSURL: strings.TrimSpace(getenv("NEON_AUTH_JWKS_URL")),
 		AllowedEmails:   splitEmails(getenv("AUTH_ALLOWED_EMAILS")),

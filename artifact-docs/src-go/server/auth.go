@@ -112,3 +112,25 @@ func authConfig(cfg Auth) http.HandlerFunc {
 		writeJSON(writer, http.StatusOK, map[string]string{"neonAuthUrl": cfg.NeonAuthURL})
 	}
 }
+
+// SetupChecker responde se o dono já criou a conta — o store.Store em produção.
+type SetupChecker interface {
+	HasOwner(ctx context.Context, allowedEmails []string) (bool, error)
+}
+
+// authSetup é público: a tela de login pergunta, antes de qualquer sessão, se deve oferecer
+// o "Primeiro acesso" (setupStatusSchema em svelte/src/lib/contracts/auth.schema.ts).
+func (api *routes) authSetup(writer http.ResponseWriter, request *http.Request) {
+	if api.deps.Setup == nil {
+		databaseMissing(writer)
+		return
+	}
+
+	hasOwner, err := api.deps.Setup.HasOwner(request.Context(), api.deps.Auth.AllowedEmails)
+	if err != nil {
+		api.fail(writer, request, err, "Não consegui conferir as contas. Tente de novo em instantes.")
+		return
+	}
+
+	writeJSON(writer, http.StatusOK, map[string]bool{"needsSetup": !hasOwner})
+}

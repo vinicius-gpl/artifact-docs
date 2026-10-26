@@ -46,16 +46,20 @@ func TestLoadRejectsAnInvalidPort(test *testing.T) {
 }
 
 // feliz
-func TestLoadReadsTheAuthSettings(test *testing.T) {
+func TestLoadReadsTheAuthAndDatabaseSettings(test *testing.T) {
 	cfg, err := Load(envOf(map[string]string{
 		"NEON_AUTH_URL":       " https://auth.example.com ",
 		"NEON_AUTH_JWKS_URL":  "https://auth.example.com/.well-known/jwks.json",
 		"AUTH_ALLOWED_EMAILS": "Dono@Exemplo.com, outra@exemplo.com,,",
+		"DATABASE_URL":        " postgres://neon.example/hub ",
 	}))
 	if err != nil {
 		test.Fatalf("unexpected error: %v", err)
 	}
 
+	if cfg.DatabaseURL != "postgres://neon.example/hub" {
+		test.Fatalf("database url = %q", cfg.DatabaseURL)
+	}
 	if cfg.NeonAuthURL != "https://auth.example.com" {
 		test.Fatalf("neon auth url = %q", cfg.NeonAuthURL)
 	}
