@@ -14,7 +14,8 @@ VITE_API_MOCKS=false mise run dev    # tela falando com o Go de verdade
 O desvio para o mock está num lugar só: `apiRequest`, em `lib/api/http-client.ts`. Hooks, telas
 e os `*.api.ts` não sabem que o mock existe. Para trocar uma rota:
 
-1. Implemente a rota no Go (`artifact-docs/src-go/server/`), devolvendo **exatamente** o schema
+1. Implemente a rota no módulo Go da feature (`artifact-docs/src-go/modules/<feature>/`) e ligue-a
+   em `src-go/app/server/server.go`, devolvendo **exatamente** o schema
    Zod de `lib/contracts/` — os dois lados precisam combinar.
 2. Rode com `VITE_API_MOCKS=false` e confira a tela.
 3. Quando todas as rotas existirem, apague `mock-server.ts`, `mock-fixtures.ts` e o desvio no
