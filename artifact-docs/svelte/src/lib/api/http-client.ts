@@ -1,3 +1,4 @@
+import { readAuthToken } from '$lib/auth/neon-auth.client';
 import { type StagedFile, type UploadTicket } from '$lib/contracts/staged-file.schema';
 
 import { type ApiErrorBody } from './api-error.type';
@@ -19,7 +20,7 @@ const BASE_URL = import.meta.env.PROD ? `${import.meta.env.VITE_API_URL ?? ''}/a
  * O `import()` é dinâmico para o mock (e os dados de mentira) nem entrarem no bundle quando a
  * variável está desligada: o Vite troca a comparação por `false` no build e descarta o ramo.
  */
-const USE_MOCKS = import.meta.env.VITE_API_MOCKS === 'true';
+export const USE_MOCKS = import.meta.env.VITE_API_MOCKS === 'true';
 
 async function requestMock<TResponse>(path: string, options: RequestOptions): Promise<TResponse> {
   const { handleMockRequest } = await import('./mock-server');
@@ -50,8 +51,10 @@ export type RequestOptions = {
 /**
  * Uma chamada à API, com o corpo em JSON e a falha convertida em `ApiError` com o motivo.
  *
- * O hub é de uso próprio e não tem login: nenhuma credencial vai no cabeçalho. Quem protege a
- * instância é a rede (Caddy, VPN), não a tela.
+ * A WEB NUNCA AFIRMA QUEM É — ela APRESENTA uma prova: o token assinado pelo Neon Auth, que o
+ * Go confere (JWKS) antes de acreditar em qualquer coisa. Requisição sem token sai assim
+ * mesmo: a API responde 401 e a guarda de rota manda para o login. No modo mock não há token —
+ * quem responde é o `mock-server`, que guarda a sessão de mentira.
  */
 export async function apiRequest<TResponse>(
   path: string,
@@ -63,7 +66,7 @@ export async function apiRequest<TResponse>(
     credentials: options.credentials,
     method: options.method ?? 'GET',
     signal: options.signal,
-    headers: buildHeaders(options),
+    headers: await buildHeaders(options),
     body: toRequestBody(options.body),
   });
 
@@ -123,7 +126,7 @@ export async function apiDownload(path: string, options: RequestOptions = {}): P
   const response = await fetch(`${BASE_URL}${path}${buildQuery(options.query)}`, {
     method: options.method ?? 'GET',
     signal: options.signal,
-    headers: buildHeaders(options),
+    headers: await buildHeaders(options),
   });
 
   if (!response.ok) throw await toApiError(response);
@@ -166,10 +169,14 @@ function toRequestBody(body: unknown): BodyInit | undefined {
   return JSON.stringify(body);
 }
 
-function buildHeaders(options: RequestOptions): Record<string, string> {
-  if (options.body === undefined) return {};
+async function buildHeaders(options: RequestOptions): Promise<Record<string, string>> {
+  const headers: Record<string, string> = {};
+  if (options.body !== undefined) headers['Content-Type'] = 'application/json';
 
-  return { 'Content-Type': 'application/json' };
+  const token = await readAuthToken();
+  if (token) headers.Authorization = `Bearer ${token}`;
+
+  return headers;
 }
 
 async function readErrorBody(response: Response): Promise<ApiErrorBody | null> {

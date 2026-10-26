@@ -4,6 +4,8 @@ import { type AppHub } from '$lib/contracts/app-link.schema';
 import { type ArtifactDetail, type ArtifactList } from '$lib/contracts/artifact.schema';
 
 import { ApiError } from './http-client';
+import { MOCK_PASSWORD, MOCK_USER } from './mock-fixtures';
+import { resetMockAccount, setMockSession } from './mock-auth';
 import { handleMockRequest, matchPath, resetMockDatabase } from './mock-server';
 
 /* Sem atraso: o teste mede a resposta, não a espera. */
@@ -11,6 +13,8 @@ const request = <T>(path: string, options = {}) => handleMockRequest<T>(path, op
 
 beforeEach(() => {
   resetMockDatabase(Date.parse('2026-10-25T12:00:00.000Z'));
+  resetMockAccount();
+  setMockSession(MOCK_USER.email);
 });
 
 describe('matchPath', () => {
@@ -81,5 +85,44 @@ describe('handleMockRequest', () => {
 
     const second = await request<ArtifactList>('/artifacts');
     expect(second.items[0]?.title).not.toBe('mexido');
+  });
+
+  it('answers 401 without the mock session, like the Go API will', async () => {
+    setMockSession(null);
+
+    await expect(request('/artifacts')).rejects.toMatchObject({ status: 401 });
+  });
+});
+
+describe('mock sign-in', () => {
+  // feliz
+  it('opens the mock session and then answers who is signed in', async () => {
+    setMockSession(null);
+
+    await request('/auth/mock/sign-in', {
+      method: 'POST',
+      body: { email: MOCK_USER.email, password: MOCK_PASSWORD },
+    });
+
+    await expect(request('/auth/me')).resolves.toMatchObject({ email: 'voce@exemplo.com' });
+  });
+
+  // triste
+  it('refuses a wrong password with the same message as a wrong e-mail', async () => {
+    setMockSession(null);
+
+    await expect(
+      request('/auth/mock/sign-in', {
+        method: 'POST',
+        body: { email: MOCK_USER.email, password: 'errada' },
+      }),
+    ).rejects.toThrow('E-mail ou senha incorretos.');
+    await expect(request('/auth/me')).rejects.toMatchObject({ status: 401 });
+  });
+
+  it('closes the session on sign-out', async () => {
+    await request('/auth/mock/sign-out', { method: 'POST' });
+
+    await expect(request('/auth/me')).rejects.toMatchObject({ status: 401 });
   });
 });
