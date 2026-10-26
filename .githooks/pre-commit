@@ -1,0 +1,3 @@
+#!/bin/sh
+# Trava de branch: nada de commit direto na main nem na develop (scripts/git/branch-guard.sh).
+exec sh scripts/git/branch-guard.sh commit

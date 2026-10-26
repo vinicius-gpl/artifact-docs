@@ -1,0 +1,551 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+
+/**
+ * ONDE PROCURAR CLASSE, declarado à mão.
+ *
+ * O Tailwind v4 descobre as fontes sozinho a partir da raiz do projeto, e com o plugin do
+ * Vite essa descoberta não reage a ARQUIVO NOVO: uma tela criada com o servidor no ar usava
+ * classes que nunca eram geradas, e o sintoma era grade responsiva que não respondia — a
+ * página com `lg:grid-cols-3` abrindo em uma coluna só, sem erro nenhum no console.
+ *
+ * Declarado assim, o watcher observa o diretório e a classe existe no primeiro salvamento.
+ */
+@source '../../**/*.{ts,tsx,svelte}';
+@source '../../app.html';
+
+/**
+ * A IDENTIDADE VISUAL DO SISTEMA, EM UM ARQUIVO SÓ.
+ *
+ * No Tailwind v4 a configuração é o próprio CSS: não existe mais `tailwind.config.ts`. Um
+ * token declarado em `@theme` vira classe utilitária sozinho — `--color-primary-soft` dá
+ * `bg-primary-soft`, `text-primary-soft`, `border-primary-soft`.
+ *
+ * Isso não é só arrumação: no arranjo anterior a cor morava num `.ts` que o Vite não
+ * observava, e um token novo só aparecia depois de derrubar o servidor à mão.
+ *
+ * A marca é a do kit de design (skill `brand-design`): padrão **Carbon**, paleta
+ * **Personalizada**, acabamento **Vidro**, IBM Plex, neutros **Grafite puro**. Os valores vêm
+ * do `tailwind.css` do kit sem alteração — mudar a marca é gerar o kit de novo e trocar os
+ * valores desta seção, e só desta seção. Este é o único arquivo onde cor crua é permitida.
+ */
+
+/**
+ * O tema escuro é marcado por `[data-theme='dark']`, e não pela classe `.dark` que o shadcn
+ * assume por padrão. A escolha é do projeto: o atributo é o que o `<html>` já carrega e o
+ * que a preferência gravada no navegador escreve.
+ */
+@custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
+
+/* ==========================================================================
+   A PALETA — a do kit de design, claro e escuro.
+
+   Os tokens do kit (`background`, `card`, `muted`, `primary-strong`, `accent-strong`,
+   `tertiary`…) vêm primeiro. Os nomes que o shadcn espera (`popover`, `secondary`, `accent`,
+   `input`, `sidebar-*`) e os apelidos antigos (`ink-*`, `surface`…) só APONTAM para eles: os
+   componentes baixados não se editam, e as telas antigas passam a seguir a marca sem serem
+   reescritas uma a uma.
+   ========================================================================== */
+:root {
+  /* ---- Do kit ---- */
+  --background: #f4f4f3;
+  --card: #fafaf9;
+  --muted: #ebebe9;
+  --border: #dcdcd8;
+  --foreground: #141416;
+  --muted-foreground: #626267;
+  --sidebar: #efefed;
+  --primary: #ffa58a;
+  --primary-foreground: #121214;
+  --primary-strong: #d13200;
+  --primary-soft: #fbebe5;
+  --accent-hero: #ecb00e;
+  --accent-hero-foreground: #121214;
+  --accent-strong: #8c6909;
+  --tertiary: #f88ca8;
+  --tertiary-strong: #d90d42;
+  --ring: #ffa58a;
+  --shadow: #121214;
+  --success-soft: #d1e4d7;
+  --success: #126e35;
+  --warning-soft: #eddcce;
+  --warning: #9c4808;
+  --info-soft: #d2dbf3;
+  --info: #1d4ed8;
+  --destructive-soft: #f5d4d3;
+  --destructive: #bb1e1e;
+  --destructive-foreground: #f4f4f3;
+  --chart-1: #ff5824;
+  --chart-2: #b7890b;
+  --chart-3: #f55780;
+  --chart-4: #1d4ed8;
+  --chart-5: #dc2626;
+
+  color-scheme: light;
+}
+
+/**
+ * O tema escuro só TROCA tokens; nenhuma cor tem definição única aqui dentro. Assim não
+ * existe cor que só valha no escuro — que é como uma tela nasce ilegível em um dos dois.
+ */
+:root[data-theme='dark'] {
+  --background: #121214;
+  --card: #19191c;
+  --muted: #202024;
+  --border: #2c2c31;
+  --foreground: #f2f2f0;
+  --muted-foreground: #a1a1a6;
+  --sidebar: #141417;
+  --primary: #ffb59e;
+  --primary-foreground: #121214;
+  --primary-strong: #ffb59e;
+  --primary-soft: #3e3231;
+  --accent-hero: #f8db8c;
+  --accent-hero-foreground: #121214;
+  --accent-strong: #f8db8c;
+  --tertiary: #f88ca8;
+  --tertiary-strong: #f88ca8;
+  --ring: #ffb59e;
+  --shadow: #121214;
+  --success-soft: #21392c;
+  --success: #4ade80;
+  --warning-soft: #3d341d;
+  --warning: #fbbf24;
+  --info-soft: #242f40;
+  --info: #60a5fa;
+  --destructive-soft: #3d272a;
+  --destructive: #f87171;
+  --destructive-foreground: #121214;
+  --chart-1: #ffb59e;
+  --chart-2: #f8db8c;
+  --chart-3: #f88ca8;
+  --chart-4: #60a5fa;
+  --chart-5: #f87171;
+
+  color-scheme: dark;
+}
+
+/* ---- Os nomes do shadcn e os apelidos antigos: só apontam para o kit, nos dois temas ---- */
+:root {
+  --card-foreground: var(--foreground);
+  --popover: var(--card);
+  --popover-foreground: var(--foreground);
+  --secondary: var(--muted);
+  --secondary-foreground: var(--foreground);
+  /* `accent` no shadcn é o fundo de hover de item de menu, não a cor de destaque da marca
+     (essa é `accent-hero`). Carbon marca hover por tom, então é o `muted`. */
+  --accent: var(--muted);
+  --accent-foreground: var(--foreground);
+  --input: var(--border);
+
+  --sidebar-foreground: var(--foreground);
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: var(--primary-foreground);
+  --sidebar-accent: var(--primary-soft);
+  --sidebar-accent-foreground: var(--foreground);
+  --sidebar-border: var(--border);
+  --sidebar-ring: var(--ring);
+
+  /* Sem `base`: como cor ele virava `text-base`, que o Tailwind já usa para o TAMANHO de
+     16px — e a classe passava a pintar o texto em vez de dimensioná-lo. */
+  --crust: var(--border);
+  --mantle: var(--sidebar);
+  --surface: var(--muted);
+  --subtext: var(--muted-foreground);
+  --ink-900: var(--foreground);
+  --ink-700: var(--subtext);
+  --ink-500: var(--muted-foreground);
+  --ink-300: var(--border);
+  --ink-100: var(--surface);
+
+  /* ---- Padrão Carbon: forma, movimento e fonte ---- */
+  --radius: 0;
+  --shape-square: 0;
+  --shape-pill: 9999px;
+  --motion-duration: 110ms;
+  --motion-easing: cubic-bezier(0.2, 0, 0.38, 0.9);
+  --brand-font-sans: 'IBM Plex Sans', system-ui, sans-serif;
+  --brand-font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+}
+
+/* ==========================================================================
+   O que vira classe utilitária. `inline` porque os valores são `var(...)`:
+   assim a troca de tema muda a variável, e não a classe gerada.
+   ========================================================================== */
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-shadow: var(--shadow);
+
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-strong: var(--primary-strong);
+  --color-primary-soft: var(--primary-soft);
+  --color-accent-hero: var(--accent-hero);
+  --color-accent-hero-foreground: var(--accent-hero-foreground);
+  --color-accent-strong: var(--accent-strong);
+  --color-tertiary: var(--tertiary);
+  --color-tertiary-strong: var(--tertiary-strong);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+  --color-destructive: var(--destructive);
+  --color-destructive-soft: var(--destructive-soft);
+  --color-destructive-foreground: var(--destructive-foreground);
+
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  --color-crust: var(--crust);
+  --color-mantle: var(--mantle);
+  --color-surface: var(--surface);
+  --color-subtext: var(--subtext);
+  --color-ink-900: var(--ink-900);
+  --color-ink-700: var(--ink-700);
+  --color-ink-500: var(--ink-500);
+  --color-ink-300: var(--ink-300);
+  --color-ink-100: var(--ink-100);
+
+  /* ---- O ARREDONDAMENTO ----
+
+     Carbon é de canto reto. A escala por TAMANHO do Tailwind (`rounded-md`, `rounded-lg`…)
+     vai a zero porque os componentes baixados (`ui/*`) a usam e não se editam: zerar aqui é
+     o que deixa o card, o diálogo e o select do shadcn retos sem tocar neles.
+     `rounded-full` continua redondo — avatar, ponto de status, pílula. */
+  --radius-xs: var(--shape-square);
+  --radius-sm: var(--shape-square);
+  --radius-md: var(--shape-square);
+  --radius-lg: var(--shape-square);
+  --radius-xl: var(--shape-square);
+  --radius-2xl: var(--shape-square);
+  --radius-3xl: var(--shape-square);
+
+  /* A escala por PAPEL. As quatro primeiras são do projeto (`rounded-surface` num cartão,
+     `rounded-control` num campo); `button`, `card` e `dialog` são os nomes do kit para os
+     mesmos papéis. Só `badge` (selo, tag, pastilha de filtro) é pílula, como manda o Carbon.
+     `chip` aqui é a miudeza DENTRO de um bloco (item de lista, quadradinho de ícone), e por
+     isso fica reto — a pílula do kit é o `badge`. */
+  --radius-surface: var(--shape-square);
+  --radius-control: var(--shape-square);
+  --radius-box: var(--shape-square);
+  --radius-chip: var(--shape-square);
+  --radius-button: var(--shape-square);
+  --radius-card: var(--shape-square);
+  --radius-dialog: var(--shape-square);
+  --radius-badge: var(--shape-pill);
+
+  --ease-brand: var(--motion-easing);
+
+  --font-sans: var(--brand-font-sans);
+  --font-heading: var(--brand-font-sans);
+  --font-mono: var(--brand-font-mono);
+}
+
+/* ==========================================================================
+   A RÉGUA DE ALTURA DOS CONTROLES.
+
+   Três degraus, e cada um com um trabalho. Antes eram cinco alturas soltas — 28, 32, 36 e
+   40px, mais um campo que não tinha altura nenhuma e crescia pelo padding —, e o efeito
+   aparecia no rodapé de todo diálogo: o "Cancelar" 4px mais baixo que o "Salvar" ao lado.
+
+   | classe       | altura | onde                                                          |
+   |--------------|--------|---------------------------------------------------------------|
+   | `control-sm` | 32px   | dentro de outra coisa: linha de tabela, rodapé de cartão, paginação |
+   | `control-md` | 36px   | a ação da tela: cabeçalho e rodapé de diálogo, botão de enviar |
+   | `control-lg` | 40px   | campo de formulário E de filtro: texto, data, seletor, combobox, trilho de pastilhas |
+
+   A regra que decide: **o que divide fileira tem que ter a mesma altura**. Um botão ao lado
+   de um campo é `control-lg`; o mesmo botão sozinho num cabeçalho é `control-md`.
+
+   O `control-icon-*` é o irmão quadrado, para o botão que só tem ícone: a largura acompanha
+   a altura, e não o ícone dentro — senão a lixeira fica mais estreita que o lápis ao lado,
+   numa fileira que deveria ser uma régua só.
+
+   O RAIO NÃO ENTRA aqui, de propósito: ele é `rounded-control`, uma classe à parte. Junto,
+   um controle que precisasse de outro raio (uma pastilha redonda, por exemplo) ficaria com
+   dois arredondamentos na marcação e quem venceria seria a ordem do CSS gerado — o mesmo
+   problema que o `cn` existe para resolver (ver `lib/utils/cn.ts`).
+
+   As três medidas ficam em `:root` para aparecerem UMA vez: mudar o degrau é mudar aqui, e
+   não caçar `h-9` por trinta arquivos.
+   ========================================================================== */
+:root {
+  --control-sm: 2rem;
+  --control-md: 2.25rem;
+  --control-lg: 2.5rem;
+}
+
+@utility control-sm {
+  height: var(--control-sm);
+  padding-inline: 0.625rem;
+}
+
+@utility control-md {
+  height: var(--control-md);
+  padding-inline: 0.75rem;
+}
+
+@utility control-lg {
+  height: var(--control-lg);
+  padding-inline: 0.75rem;
+}
+
+@utility control-icon-sm {
+  height: var(--control-sm);
+  width: var(--control-sm);
+  padding-inline: 0;
+}
+
+@utility control-icon-md {
+  height: var(--control-md);
+  width: var(--control-md);
+  padding-inline: 0;
+}
+
+@utility control-icon-lg {
+  height: var(--control-lg);
+  width: var(--control-lg);
+  padding-inline: 0;
+}
+
+/* ==========================================================================
+   A GRADE DE CARTÕES DAS LISTAS.
+
+   De 1 a 4 cartões por linha, e quem decide quantos é o ESPAÇO QUE A LISTA TEM, não a
+   largura da janela: a área de conteúdo é mais estreita que o monitor (o menu lateral ocupa
+   256px e a página tem largura máxima), e uma lista dentro de um diálogo é mais estreita
+   ainda. Contando pela janela, o diálogo ganharia quatro colunas espremidas.
+
+   Na prática: celular 1, tablet 2 a 3, monitor 3 a 4.
+
+   A conta: cada cartão tem no mínimo 15rem (240px); cabem quantos couberem, e o `max(...)`
+   segura o teto em 4 — um quinto cartão só entraria com cada um mais estreito que um quarto
+   da linha, o que o mínimo não deixa. `min-width: 0` nos filhos é o que permite o texto
+   comprido quebrar dentro do cartão em vez de alargar a coluna.
+   ========================================================================== */
+@utility card-grid {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fill, minmax(max(15rem, calc((100% - 3 * 0.75rem) / 4)), 1fr));
+
+  & > * {
+    min-width: 0;
+  }
+
+  /* O RODAPÉ DO CARTÃO FICA NO FUNDO. Os cartões de uma mesma fileira têm a altura do maior;
+     sem isto, o que tem menos texto termina antes e o rodapé dele sobe, desalinhado dos
+     vizinhos, com um vazio embaixo. O cartão vira uma coluna e o último bloco é empurrado
+     para o fim — a sobra de altura fica entre o conteúdo e o rodapé.
+
+     `.col-span-full` é a legenda da lista, que mora na grade mas não é cartão. */
+  & > :not(.col-span-full) {
+    display: flex;
+    flex-direction: column;
+  }
+
+  & > :not(.col-span-full) > :last-child {
+    margin-top: auto;
+  }
+
+  /* `margin-top: auto` toma o lugar do respiro que o rodapé tinha (`mt-3`). Nos cartões sem
+     `gap` próprio, quem devolve esse respiro mínimo é o bloco de cima. Os que já usam `gap`
+     (a classe do cartão tem `gap-`) não precisam: o `gap` continua valendo. */
+  & > :not(.col-span-full):not([class*='gap-']) > :nth-last-child(2) {
+    margin-bottom: 0.75rem;
+  }
+}
+
+/* ==========================================================================
+   O PREENCHIMENTO NO HOVER — a cor do status entra por onde o mouse entrou.
+
+   Um círculo da cor do tom nasce no ponto em que o cursor cruzou a borda e cresce até
+   cobrir o item; ao sair, encolhe em direção ao ponto de saída. Quem informa os dois pontos
+   é a action `fillFromPointer` (`lib/motion/hover-fill.ts`), por `--fill-x`/`--fill-y`; a cor
+   vem em `--fill-color`.
+
+   É LEVE DE PROPÓSITO: a única coisa animada é `transform: scale` de uma camada só, que o
+   navegador entrega à placa de vídeo sem redesenhar o conteúdo — nada de animar cor de fundo,
+   sombra ou tamanho. E só o item sob o mouse anima, então 50 itens custam o mesmo que 5.
+
+   O círculo tem o tamanho exato para alcançar o canto mais distante a partir do ponto de
+   entrada. `isolation` + `z-index: -1` o deixam ACIMA do fundo do item e ABAIXO do texto.
+   Quem pediu menos movimento ao sistema vê a cor aparecer e sumir, sem crescer.
+   ========================================================================== */
+@utility hover-fill {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+
+  &::before {
+    content: '';
+    position: absolute;
+    z-index: -1;
+    top: var(--fill-y, 50%);
+    left: var(--fill-x, 50%);
+    /* O dobro da distância até o canto mais longe (a action mede em `--fill-reach`); sem a
+       medida, 3× a largura do item cobre qualquer ponto de entrada. */
+    width: calc(var(--fill-reach, 150%) * 2);
+    aspect-ratio: 1;
+    border-radius: 9999px;
+    background-color: var(--fill-color, var(--muted));
+    transform: translate(-50%, -50%) scale(0);
+    transition: transform 450ms cubic-bezier(0.22, 1, 0.36, 1);
+    pointer-events: none;
+  }
+
+  /* Só onde existe mouse de verdade: no toque não há hover, e o "hover preso" depois de um
+     toque deixaria o item pintado até o próximo toque em outro lugar. */
+  @media (hover: hover) and (pointer: fine) {
+    &:hover::before {
+      transform: translate(-50%, -50%) scale(1);
+    }
+  }
+
+  /* Modo LEVE (`data-effects='lite'` no <html>, decidido por `lib/hooks/use-effects`): a cor
+     aparece e some de uma vez, sem crescer. O mesmo para quem pediu menos movimento ao sistema
+     operacional. O resultado é igual; só a animação sai. */
+  :root[data-effects='lite'] &::before {
+    transition: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    &::before {
+      transition: none;
+    }
+  }
+}
+
+/* SÓ PARA CARTÃO (e outros blocos que cortam o próprio conteúdo). Em LINHA DE TABELA não:
+   uma `<tr>` ignora `overflow: hidden`, então a camada circular conta como conteúdo da tabela,
+   estica a área de rolagem e a tabela ganha barra para os lados. Foi testado e retirado. */
+
+/* ==========================================================================
+   O ACABAMENTO VIDRO — superfície translúcida e desfocada sobre manchas de cor.
+
+   É efeito POR CIMA do Carbon: não muda forma nem borda. As manchas moram no `body` (abaixo)
+   e valem para o produto inteiro; `glass` é a superfície que deixa elas aparecerem. Use em
+   cartão e painel, nunca em campo de texto — texto digitado sobre fundo que se mexe cansa.
+
+   No modo leve (`data-effects='lite'`) o desfoque sai: ele é o que mais pesa para a placa de
+   vídeo, e a superfície continua legível só com a transparência.
+   ========================================================================== */
+@utility glass {
+  background-color: color-mix(in oklab, var(--card) 55%, transparent);
+  border: 1px solid color-mix(in oklab, var(--foreground) 12%, transparent);
+  backdrop-filter: blur(24px);
+
+  :root[data-effects='lite'] & {
+    backdrop-filter: none;
+    background-color: var(--card);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+
+  /* As manchas do Vidro: fixas atrás de tudo, nas três cores da marca. `pointer-events: none`
+     e `z-index: -1` — é papel de parede, não conteúdo. */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    opacity: 0.35;
+    filter: blur(64px);
+    background:
+      radial-gradient(30% 40% at 85% 10%, var(--primary), transparent 70%),
+      radial-gradient(28% 35% at 10% 60%, var(--accent-hero), transparent 70%),
+      radial-gradient(30% 30% at 60% 100%, var(--tertiary), transparent 70%);
+  }
+
+  :root[data-theme='dark'] body::before {
+    opacity: 0.18;
+  }
+
+  /* Títulos em peso normal, como o Carbon: a hierarquia vem do tamanho, não do negrito. */
+  :where(h1, h2, h3) {
+    font-family: var(--font-heading);
+    font-weight: 400;
+  }
+
+  /* Foco visível SEMPRE: o sistema é operado no teclado o dia inteiro, e um contorno que
+     some é como alguém digita num campo sem saber em qual campo está. */
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+
+  /**
+   * A BARRA DE ROLAGEM, fina e sem trilho.
+   *
+   * Firefox lê `scrollbar-*`; Chrome/Edge/Safari só respondem aos pseudo-elementos
+   * `::-webkit-scrollbar-*` — as duas declarações convivem porque cobrem navegadores
+   * diferentes, nenhuma é redundante. `-button` escondido tira as setinhas do fim da
+   * barra: no tamanho fino que sobra aqui, elas viram dois quadrados apertados brigando
+   * com o polegar por espaço, não um controle que alguém usa de verdade.
+   */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background-color: var(--border);
+    border-radius: 9999px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: var(--muted-foreground);
+  }
+
+  ::-webkit-scrollbar-button {
+    display: none;
+    height: 0;
+    width: 0;
+  }
+}
