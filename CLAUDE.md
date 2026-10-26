@@ -4,8 +4,8 @@ Instruções para o Claude Code neste repositório. Leia inteiro antes da primei
 
 ## O projeto
 
-Hub pessoal: central de documentos e artefatos HTML/MD/PDF com galeria e preview, planejamentos,
-banco de ideias, hub de apps e casa da marca. O porquê e o como estão em
+Hub pessoal: hub de apps (a tela inicial), central de documentos e artefatos HTML/MD/PDF com
+galeria e preview, planejamentos e banco de ideias. O porquê e o como estão em
 [`docs/briefing.md`](./docs/briefing.md).
 
 - **Stack:** SPA SvelteKit (`artifact-docs/svelte/`, `adapter-static`) embutida num binário Go (`artifact-docs/main.go` +
@@ -75,7 +75,7 @@ artifact-docs/                                  o app (como acerola/dashboard no
 ├── src-go/<pacote>/                            Go (config, server, web…)
 ├── src-go/web/dist/                            cópia da SPA compilada (gerada)
 └── svelte/src/
-    ├── routes/(app)/<feature>/                 tela (só composição): artifacts, plans, ideas, apps, brand
+    ├── routes/(app)/<feature>/                 tela (só composição): apps, artifacts, plans, ideas
     ├── routes/(app)/<feature>/components/acerola-<nome>/  componente da feature
     ├── lib/hooks/use-<nome>/                   estado e dados das telas
     ├── lib/components/acerola-<nome>/          componente genérico
