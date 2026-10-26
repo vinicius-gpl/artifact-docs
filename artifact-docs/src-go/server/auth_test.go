@@ -16,8 +16,8 @@ import (
 // teste próprio em src-go/auth.
 type fakeTokens map[string]auth.User
 
-func (f fakeTokens) Verify(_ context.Context, token string) (auth.User, error) {
-	user, ok := f[token]
+func (tokens fakeTokens) Verify(_ context.Context, token string) (auth.User, error) {
+	user, ok := tokens[token]
 	if !ok {
 		return auth.User{}, auth.ErrInvalidToken
 	}
@@ -34,8 +34,8 @@ var allowedAuth = Auth{
 	NeonAuthURL:   "https://auth.example.com",
 }
 
-func getWithToken(t *testing.T, cfg Auth, target, token string) *http.Response {
-	t.Helper()
+func getWithToken(test *testing.T, cfg Auth, target, token string) *http.Response {
+	test.Helper()
 
 	req := httptest.NewRequest(http.MethodGet, target, nil)
 	if token != "" {
@@ -48,44 +48,44 @@ func getWithToken(t *testing.T, cfg Auth, target, token string) *http.Response {
 }
 
 // feliz
-func TestMeAnswersWhoIsLoggedIn(t *testing.T) {
-	res := getWithToken(t, allowedAuth, "/api/auth/me", "owner")
+func TestMeAnswersWhoIsLoggedIn(test *testing.T) {
+	res := getWithToken(test, allowedAuth, "/api/auth/me", "owner")
 
 	if res.StatusCode != http.StatusOK {
-		t.Fatalf("status = %d, want 200", res.StatusCode)
+		test.Fatalf("status = %d, want 200", res.StatusCode)
 	}
 
 	var body map[string]any
 	if err := json.NewDecoder(res.Body).Decode(&body); err != nil {
-		t.Fatalf("decode: %v", err)
+		test.Fatalf("decode: %v", err)
 	}
 	if body["id"] != "u1" || body["email"] != "Dono@Exemplo.com" || body["name"] != "Dono" {
-		t.Fatalf("body = %v", body)
+		test.Fatalf("body = %v", body)
 	}
 	if image, ok := body["image"]; !ok || image != nil {
-		t.Fatalf("image = %v, want null (the contract requires the key)", image)
+		test.Fatalf("image = %v, want null (the contract requires the key)", image)
 	}
 }
 
 // feliz
-func TestAuthConfigIsPublic(t *testing.T) {
-	res := getWithToken(t, allowedAuth, "/api/auth/config", "")
+func TestAuthConfigIsPublic(test *testing.T) {
+	res := getWithToken(test, allowedAuth, "/api/auth/config", "")
 
 	if res.StatusCode != http.StatusOK {
-		t.Fatalf("status = %d, want 200", res.StatusCode)
+		test.Fatalf("status = %d, want 200", res.StatusCode)
 	}
 
 	var body map[string]string
 	if err := json.NewDecoder(res.Body).Decode(&body); err != nil {
-		t.Fatalf("decode: %v", err)
+		test.Fatalf("decode: %v", err)
 	}
 	if body["neonAuthUrl"] != "https://auth.example.com" {
-		t.Fatalf("neonAuthUrl = %q", body["neonAuthUrl"])
+		test.Fatalf("neonAuthUrl = %q", body["neonAuthUrl"])
 	}
 }
 
 // triste
-func TestTheGateKeepsOutWhoCannotProveOrIsNotAllowed(t *testing.T) {
+func TestTheGateKeepsOutWhoCannotProveOrIsNotAllowed(test *testing.T) {
 	cases := []struct {
 		name   string
 		cfg    Auth
@@ -98,16 +98,16 @@ func TestTheGateKeepsOutWhoCannotProveOrIsNotAllowed(t *testing.T) {
 		{"login not configured", Auth{}, "owner", http.StatusServiceUnavailable},
 	}
 
-	for _, tc := range cases {
-		res := getWithToken(t, tc.cfg, "/api/auth/me", tc.token)
+	for _, testCase := range cases {
+		res := getWithToken(test, testCase.cfg, "/api/auth/me", testCase.token)
 
-		if res.StatusCode != tc.status {
-			t.Errorf("%s: status = %d, want %d", tc.name, res.StatusCode, tc.status)
+		if res.StatusCode != testCase.status {
+			test.Errorf("%s: status = %d, want %d", testCase.name, res.StatusCode, testCase.status)
 		}
 
 		var body errorBody
 		if err := json.NewDecoder(res.Body).Decode(&body); err != nil || body.Message == "" {
-			t.Errorf("%s: want a JSON error with a message, got %v", tc.name, err)
+			test.Errorf("%s: want a JSON error with a message, got %v", testCase.name, err)
 		}
 	}
 }

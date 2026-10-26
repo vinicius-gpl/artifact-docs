@@ -21,8 +21,8 @@ func New(logger *slog.Logger, spa fs.FS, authCfg Auth) http.Handler {
 	mux.HandleFunc("GET /api/auth/me", requireUser(authCfg, authMe))
 	// Endereço de API que não existe é 404 em JSON — nunca o index.html da SPA, que chegaria
 	// à tela como "resposta que não é JSON" e esconderia o erro de verdade.
-	mux.HandleFunc("/api/", func(w http.ResponseWriter, _ *http.Request) {
-		writeError(w, http.StatusNotFound, "Endereço da API não encontrado.")
+	mux.HandleFunc("/api/", func(writer http.ResponseWriter, _ *http.Request) {
+		writeError(writer, http.StatusNotFound, "Endereço da API não encontrado.")
 	})
 	mux.Handle("/", spaHandler(spa))
 
@@ -31,8 +31,8 @@ func New(logger *slog.Logger, spa fs.FS, authCfg Auth) http.Handler {
 
 // health responde se o processo está de pé. É o que o Playwright e o deploy esperam antes
 // de seguir.
-func health(w http.ResponseWriter, _ *http.Request) {
-	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+func health(writer http.ResponseWriter, _ *http.Request) {
+	writeJSON(writer, http.StatusOK, map[string]string{"status": "ok"})
 }
 
 // errorBody é o formato único de erro da API — o mesmo que a SPA lê em
@@ -41,19 +41,19 @@ type errorBody struct {
 	Message string `json:"message"`
 }
 
-func writeError(w http.ResponseWriter, status int, message string) {
-	writeJSON(w, status, errorBody{Message: message})
+func writeError(writer http.ResponseWriter, status int, message string) {
+	writeJSON(writer, status, errorBody{Message: message})
 }
 
-func writeJSON(w http.ResponseWriter, status int, body any) {
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	w.WriteHeader(status)
-	_ = json.NewEncoder(w).Encode(body)
+func writeJSON(writer http.ResponseWriter, status int, body any) {
+	writer.Header().Set("Content-Type", "application/json; charset=utf-8")
+	writer.WriteHeader(status)
+	_ = json.NewEncoder(writer).Encode(body)
 }
 
 func logRequests(logger *slog.Logger, next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		next.ServeHTTP(w, r)
-		logger.Debug("request", "method", r.Method, "path", r.URL.Path)
+	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		next.ServeHTTP(writer, request)
+		logger.Debug("request", "method", request.Method, "path", request.URL.Path)
 	})
 }

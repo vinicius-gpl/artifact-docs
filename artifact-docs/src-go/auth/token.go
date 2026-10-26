@@ -59,7 +59,7 @@ type claims struct {
 //
 // A ordem importa: a assinatura é conferida ANTES de ler as claims. Ler primeiro seria
 // acreditar no que o token diz antes de saber se foi a Neon que disse.
-func (v *Verifier) Verify(ctx context.Context, token string) (User, error) {
+func (verifier *Verifier) Verify(ctx context.Context, token string) (User, error) {
 	parts := strings.Split(token, ".")
 	if len(parts) != 3 {
 		return User{}, ErrInvalidToken
@@ -70,7 +70,7 @@ func (v *Verifier) Verify(ctx context.Context, token string) (User, error) {
 		return User{}, ErrInvalidToken
 	}
 
-	key, err := v.keys.Key(ctx, head.Kid)
+	key, err := verifier.keys.Key(ctx, head.Kid)
 	if err != nil {
 		return User{}, ErrInvalidToken
 	}
@@ -85,14 +85,14 @@ func (v *Verifier) Verify(ctx context.Context, token string) (User, error) {
 		return User{}, ErrInvalidToken
 	}
 
-	return v.userFrom(body)
+	return verifier.userFrom(body)
 }
 
-func (v *Verifier) userFrom(body claims) (User, error) {
+func (verifier *Verifier) userFrom(body claims) (User, error) {
 	if body.Sub == "" || body.Email == "" || body.Exp == 0 {
 		return User{}, ErrInvalidToken
 	}
-	if !v.now().Before(time.Unix(body.Exp, 0)) {
+	if !verifier.now().Before(time.Unix(body.Exp, 0)) {
 		return User{}, ErrInvalidToken
 	}
 
