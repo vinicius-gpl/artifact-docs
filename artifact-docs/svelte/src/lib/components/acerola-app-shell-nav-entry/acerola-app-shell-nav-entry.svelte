@@ -34,10 +34,9 @@
   <!-- Recolhida, o botão vira um quadrado de 32px e o ícone tem 20: com o padding de 8 que
        vem do componente, ele não cabe e é cortado, parecendo empurrado para a esquerda.
        `p-0` devolve o espaço e `justify-center` o põe no meio do quadrado. -->
-  <!-- O tamanho da fonte vai como `text-base`, e NÃO como `text-base`: a paleta declara um
-       token de cor chamado `base` (`--color-base` em `tokens.css`), então o Tailwind lê
-       `text-base` como COR, não como tamanho. O resultado era o menu inteiro pintado de
-       #eff1f5 — quase branco sobre a barra clara, ou seja, invisível. -->
+  <!-- `text-base` é o TAMANHO da fonte (16px). Já foi `text-[1rem]` porque a paleta antiga
+       tinha um token de cor chamado `base`, e o Tailwind lia `text-base` como cor — o menu
+       inteiro ficava invisível. O token saiu de `tokens.css`, e com ele a ambiguidade. -->
   <SidebarMenuButton
     {isActive}
     tooltipContent={item.label}

@@ -146,9 +146,10 @@
   --sidebar-border: var(--border);
   --sidebar-ring: var(--ring);
 
+  /* Sem `base`: como cor ele virava `text-base`, que o Tailwind já usa para o TAMANHO de
+     16px — e a classe passava a pintar o texto em vez de dimensioná-lo. */
   --crust: var(--border);
   --mantle: var(--sidebar);
-  --base: var(--card);
   --surface: var(--muted);
   --subtext: var(--muted-foreground);
   --ink-900: var(--foreground);
@@ -226,7 +227,6 @@
 
   --color-crust: var(--crust);
   --color-mantle: var(--mantle);
-  --color-base: var(--base);
   --color-surface: var(--surface);
   --color-subtext: var(--subtext);
   --color-ink-900: var(--ink-900);
