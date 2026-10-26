@@ -1,6 +1,9 @@
 package config
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 func envOf(values map[string]string) func(string) string {
 	return func(key string) string { return values[key] }
@@ -39,5 +42,40 @@ func TestLoadRejectsAnInvalidPort(t *testing.T) {
 		if _, err := Load(envOf(map[string]string{"API_PORT": raw})); err == nil {
 			t.Errorf("API_PORT=%q: expected an error", raw)
 		}
+	}
+}
+
+// feliz
+func TestLoadReadsTheAuthSettings(t *testing.T) {
+	cfg, err := Load(envOf(map[string]string{
+		"NEON_AUTH_URL":       " https://auth.example.com ",
+		"NEON_AUTH_JWKS_URL":  "https://auth.example.com/.well-known/jwks.json",
+		"AUTH_ALLOWED_EMAILS": "Dono@Exemplo.com, outra@exemplo.com,,",
+	}))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if cfg.NeonAuthURL != "https://auth.example.com" {
+		t.Fatalf("neon auth url = %q", cfg.NeonAuthURL)
+	}
+	if cfg.NeonAuthJWKSURL != "https://auth.example.com/.well-known/jwks.json" {
+		t.Fatalf("jwks url = %q", cfg.NeonAuthJWKSURL)
+	}
+	want := []string{"dono@exemplo.com", "outra@exemplo.com"}
+	if strings.Join(cfg.AllowedEmails, "|") != strings.Join(want, "|") {
+		t.Fatalf("allowed emails = %v, want %v", cfg.AllowedEmails, want)
+	}
+}
+
+// triste
+func TestLoadWithoutAllowedEmailsLetsNobodyIn(t *testing.T) {
+	cfg, err := Load(envOf(map[string]string{"AUTH_ALLOWED_EMAILS": " , "}))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if len(cfg.AllowedEmails) != 0 {
+		t.Fatalf("allowed emails = %v, want none", cfg.AllowedEmails)
 	}
 }

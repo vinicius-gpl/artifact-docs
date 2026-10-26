@@ -26,7 +26,7 @@ func get(t *testing.T, handler http.Handler, target string) *http.Response {
 }
 
 func newServer(spa fstest.MapFS) http.Handler {
-	return New(slog.New(slog.NewTextHandler(io.Discard, nil)), spa)
+	return New(slog.New(slog.NewTextHandler(io.Discard, nil)), spa, Auth{})
 }
 
 func bodyOf(t *testing.T, res *http.Response) string {

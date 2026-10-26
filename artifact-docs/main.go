@@ -15,6 +15,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/vinicius-gpl/artifact-docs/artifact-docs/src-go/auth"
 	"github.com/vinicius-gpl/artifact-docs/artifact-docs/src-go/config"
 	"github.com/vinicius-gpl/artifact-docs/artifact-docs/src-go/server"
 	"github.com/vinicius-gpl/artifact-docs/artifact-docs/src-go/web"
@@ -33,6 +34,20 @@ func main() {
 	}
 }
 
+// authFrom liga o porteiro às chaves da Neon. Sem NEON_AUTH_JWKS_URL o login fica desligado
+// (Tokens nil) e o servidor sobe assim mesmo: em desenvolvimento a tela usa o modo mock.
+func authFrom(cfg config.Config) server.Auth {
+	settings := server.Auth{AllowedEmails: cfg.AllowedEmails, NeonAuthURL: cfg.NeonAuthURL}
+	if cfg.NeonAuthJWKSURL == "" {
+		return settings
+	}
+
+	client := &http.Client{Timeout: 5 * time.Second}
+	settings.Tokens = auth.NewVerifier(auth.NewKeySet(cfg.NeonAuthJWKSURL, client))
+
+	return settings
+}
+
 func run(logger *slog.Logger) error {
 	cfg, err := config.Load(os.Getenv)
 	if err != nil {
@@ -41,7 +56,7 @@ func run(logger *slog.Logger) error {
 
 	srv := &http.Server{
 		Addr:              cfg.Addr(),
-		Handler:           server.New(logger, web.Dist()),
+		Handler:           server.New(logger, web.Dist(), authFrom(cfg)),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 
