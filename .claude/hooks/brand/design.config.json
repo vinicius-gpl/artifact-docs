@@ -1,0 +1,62 @@
+{
+  "brand": "Artifact-docs",
+  "skill": "brand-design",
+  "scan": {
+    "dirs": [
+      "artifact-docs/svelte/src"
+    ],
+    "extensions": [
+      ".svelte",
+      ".tsx",
+      ".jsx",
+      ".vue",
+      ".astro",
+      ".html",
+      ".css"
+    ],
+    "tokenFiles": [
+      "lib/theme/tokens.css"
+    ],
+    "ignore": [
+      "node_modules",
+      ".svelte-kit",
+      "dist/",
+      "build/",
+      "/components/ui/",
+      "/hooks/ui/"
+    ]
+  },
+  "brandRules": {
+    "tokensOnly": true,
+    "noPureBlackWhite": true,
+    "noArbitraryValues": true
+  },
+  "laws": {
+    "hick": {
+      "enabled": true,
+      "maxNavItems": 7,
+      "maxSelectOptions": 10
+    },
+    "fitts": {
+      "enabled": true,
+      "minTargetPx": 40
+    },
+    "jakob": {
+      "enabled": true
+    },
+    "miller": {
+      "enabled": true,
+      "maxUngroupedFields": 7
+    },
+    "vonRestorff": {
+      "enabled": true,
+      "maxPrimaryActions": 1
+    },
+    "uniformConnectedness": {
+      "enabled": true
+    },
+    "tesler": {
+      "enabled": true
+    }
+  }
+}
