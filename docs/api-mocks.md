@@ -26,11 +26,15 @@ A tabela `ROUTES` do `mock-server.ts` é a lista viva. Hoje:
 
 | Método | Rota | Resposta (schema) | Observação |
 |---|---|---|---|
-| `GET` | `/api/auth/me` | `sessionUserSchema` | já existe no contrato do login |
+| `GET` | `/api/auth/setup` | `setupStatusSchema` | pública; ver [`auth.md`](./auth.md) |
+| `GET` | `/api/auth/me` | `sessionUserSchema` | 401 sem token, 403 fora da lista permitida |
 | `GET` | `/api/artifacts?kind=&q=` | `artifactListSchema` | mais recente primeiro; `q` é a busca `tsvector` |
 | `GET` | `/api/artifacts/{label}` | `artifactDetailSchema` | grava `last_viewed_at` (é o que ordena "Recentes") |
 | `PATCH` | `/api/artifacts/{label}` | `artifactSchema` | corpo `artifactPatchSchema` (fixar, privado, situação) |
 | `GET` | `/api/apps` | `appHubSchema` | tipos e apps juntos; a tela agrupa |
+
+As rotas `/api/auth/mock/*` só existem no mock (login, primeiro acesso e sair de mentira); em
+produção isso acontece no Neon Auth.
 
 Erro segue o formato que o `http-client` já lê: status HTTP e corpo
 `{ "message": "texto em português", "details": [] }`.
