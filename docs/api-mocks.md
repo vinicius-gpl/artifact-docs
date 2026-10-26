@@ -24,14 +24,19 @@ e os `*.api.ts` não sabem que o mock existe. Para trocar uma rota:
 
 A tabela `ROUTES` do `mock-server.ts` é a lista viva. Hoje:
 
-| Método | Rota | Resposta (schema) | Observação |
-|---|---|---|---|
-| `GET` | `/api/auth/setup` | `setupStatusSchema` | pública; ver [`auth.md`](./auth.md) |
-| `GET` | `/api/auth/me` | `sessionUserSchema` | 401 sem token, 403 fora da lista permitida |
-| `GET` | `/api/artifacts?kind=&q=` | `artifactListSchema` | mais recente primeiro; `q` é a busca `tsvector` |
-| `GET` | `/api/artifacts/{label}` | `artifactDetailSchema` | grava `last_viewed_at` (é o que ordena "Recentes") |
-| `PATCH` | `/api/artifacts/{label}` | `artifactSchema` | corpo `artifactPatchSchema` (fixar, privado, situação) |
-| `GET` | `/api/apps` | `appHubSchema` | tipos e apps juntos; a tela agrupa |
+| Método | Rota | Resposta (schema) | No Go | Observação |
+|---|---|---|---|---|
+| `GET` | `/api/auth/config` | `{ neonAuthUrl }` | ✅ | pública; a tela só usa quando a URL não veio no build |
+| `GET` | `/api/auth/setup` | `setupStatusSchema` | ✅ | pública; ver [`auth.md`](./auth.md) |
+| `GET` | `/api/auth/me` | `sessionUserSchema` | ✅ | 401 sem token, 403 fora da lista permitida |
+| `GET` | `/api/artifacts?kind=&q=` | `artifactListSchema` | ✅ | mais recente primeiro; `q` é a busca `tsvector` |
+| `GET` | `/api/artifacts/{label}` | `artifactDetailSchema` | ✅ | grava `last_viewed_at` (é o que ordena "Recentes") |
+| `PATCH` | `/api/artifacts/{label}` | `artifactSchema` | ✅ | corpo `artifactPatchSchema` (fixar, privado, situação) |
+| `GET` | `/api/apps` | `appHubSchema` | ✅ | tipos e apps juntos; a tela agrupa |
+
+Com tudo ✅, o próximo passo é conferir a tela com `VITE_API_MOCKS=false` contra um banco de
+verdade e, dando certo, apagar o mock (passo 3 acima). Sem `DATABASE_URL` ou
+`NEON_AUTH_JWKS_URL`, o Go sobe assim mesmo e as rotas que dependem deles respondem 503.
 
 As rotas `/api/auth/mock/*` só existem no mock (login, primeiro acesso e sair de mentira); em
 produção isso acontece no Neon Auth.
