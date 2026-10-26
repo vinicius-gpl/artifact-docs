@@ -1,5 +1,8 @@
 import { type AppHub } from '$lib/contracts/app-link.schema';
 import { type Artifact, type ArtifactVersion } from '$lib/contracts/artifact.schema';
+import { type SessionUser } from '$lib/contracts/user.schema';
+
+import { MOCK_CREDENTIALS } from './auth.api';
 
 /**
  * OS DADOS DE MENTIRA do modo mock (`VITE_API_MOCKS=true`) — inventados, nunca dado real.
@@ -11,6 +14,20 @@ import { type Artifact, type ArtifactVersion } from '$lib/contracts/artifact.sch
  * Os artefatos não têm arquivo servido de verdade: o `url` é um `data:` com uma página HTML
  * mínima, para o preview e o visualizador funcionarem igual funcionariam com `/a/<token>/`.
  */
+
+/**
+ * A senha do usuário de teste. É valor de teste, só do modo mock: em produção quem confere a
+ * senha é o Neon Auth, e esta rota nem existe no Go.
+ */
+export const MOCK_PASSWORD = MOCK_CREDENTIALS.password;
+
+/** O usuário de mentira do modo mock — é com ele que o login de localhost entra. */
+export const MOCK_USER: SessionUser = {
+  id: 'user-mock',
+  email: MOCK_CREDENTIALS.email,
+  name: 'Usuário de teste',
+  image: null,
+};
 
 /** Uma página mínima, no estilo da marca, para servir de artefato publicado. */
 function mockPage(title: string, lines: string[]): string {

@@ -9,6 +9,14 @@ import {
 } from '$lib/contracts/artifact.schema';
 
 import { ApiError, type RequestOptions } from './http-client';
+import {
+  hasMockSession,
+  mockMe,
+  mockSetup,
+  mockSignIn,
+  mockSignUp,
+  setMockSession,
+} from './mock-auth';
 import { createMockDatabase, type MockDatabase } from './mock-fixtures';
 
 /**
@@ -36,6 +44,8 @@ type MockContext = {
 
 type MockRoute = {
   method: NonNullable<RequestOptions['method']>;
+  /** Responde sem sessão — só o próprio login. Todo o resto devolve 401, como o Go. */
+  isPublic?: boolean;
   /** Caminho com `:param`, igual ao padrão do `http.ServeMux` do Go (`{label}`). */
   path: string;
   handle: (context: MockContext) => unknown;
@@ -97,6 +107,26 @@ function patchArtifact({ params, body }: MockContext) {
 }
 
 const ROUTES: MockRoute[] = [
+  { method: 'GET', path: '/auth/me', handle: mockMe },
+  { method: 'GET', path: '/auth/setup', isPublic: true, handle: mockSetup },
+  {
+    method: 'POST',
+    path: '/auth/mock/sign-up',
+    isPublic: true,
+    handle: ({ body }) => mockSignUp(body),
+  },
+  {
+    method: 'POST',
+    path: '/auth/mock/sign-in',
+    isPublic: true,
+    handle: ({ body }) => mockSignIn(body),
+  },
+  {
+    method: 'POST',
+    path: '/auth/mock/sign-out',
+    isPublic: true,
+    handle: () => setMockSession(null),
+  },
   { method: 'GET', path: '/artifacts', handle: listArtifacts },
   { method: 'GET', path: '/artifacts/:label', handle: getArtifact },
   { method: 'PATCH', path: '/artifacts/:label', handle: patchArtifact },
@@ -145,6 +175,7 @@ export async function handleMockRequest<TResponse>(
     if (route.method !== method) continue;
     const params = matchPath(route.path, path);
     if (!params) continue;
+    if (!route.isPublic && !hasMockSession()) throw new ApiError(401, 'Entre para continuar.');
 
     /* Cópia: a tela não pode mexer no "banco" segurando a referência da resposta. */
     const result = route.handle({ db, params, query: toQuery(options.query), body: options.body });

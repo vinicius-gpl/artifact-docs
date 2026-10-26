@@ -6,8 +6,9 @@
    * tema à direita, como um site e não como um painel de empresa.
    *
    * Substitui o menu lateral que veio do acerola-ticket: aquele existia para dezenas de telas,
-   * perfil, papéis e "Sair". O hub tem cinco telas e ninguém para identificar (não tem login),
-   * então uma linha só basta e devolve a largura inteira para a galeria.
+   * perfil e papéis. O hub tem quatro telas e uma pessoa só, então uma linha basta e devolve a
+   * largura inteira para a galeria. De identidade, só o avatar (com nome e e-mail na dica) e o
+   * "Sair" — sem tela de perfil.
    *
    * Fica presa no topo (`sticky`) com o acabamento Vidro: o conteúdo passa por baixo desfocado.
    * A tela aberta é marcada com `aria-current="page"` e um traço na cor da marca embaixo — o
@@ -18,13 +19,19 @@
    * barra. Abrir e fechar é estado visual, mora aqui; clicar num item fecha a lista.
    */
   export type AcerolaTopNavProps = {
-    data: { items: readonly NavItem[]; homeHref: string };
-    state: { activeKey: string | undefined };
+    data: {
+      items: readonly NavItem[];
+      homeHref: string;
+      user: { name: string; email: string; avatarUrl: string | null };
+    };
+    state: { activeKey: string | undefined; isSigningOut?: boolean };
+    actions: { onSignOut: () => void };
     ui?: { className?: string };
   };
 </script>
 
 <script lang="ts">
+  import LogOut from '@lucide/svelte/icons/log-out';
   import Menu from '@lucide/svelte/icons/menu';
   import X from '@lucide/svelte/icons/x';
 
@@ -32,11 +39,12 @@
   import { tick } from 'svelte';
 
   import { BrandMark } from '$lib/components/acerola-brand-mark/acerola-brand-mark';
+  import PersonAvatar from '$lib/components/acerola-person-avatar/acerola-person-avatar.svelte';
   import ThemeToggle from '$lib/components/acerola-theme-toggle/acerola-theme-toggle.svelte';
   import { moveIndicator, slideDown } from '$lib/motion/motion';
   import { cn } from '$lib/utils/cn';
 
-  let { data, state: navState, ui }: AcerolaTopNavProps = $props();
+  let { data, state: navState, actions, ui }: AcerolaTopNavProps = $props();
 
   let isMenuOpen = $state(false);
 
@@ -106,6 +114,15 @@
 
     <div class="ml-auto flex items-center gap-1">
       <ThemeToggle />
+      <span class="mx-1 hidden sm:block" title={`${data.user.name} · ${data.user.email}`}>
+        <PersonAvatar name={data.user.name} avatarUrl={data.user.avatarUrl} ui={{ size: 'md' }} />
+      </span>
+      <ActionButton
+        data={{ label: 'Sair', loadingLabel: 'Saindo…' }}
+        ui={{ variant: 'ghost', size: 'lg', icon: LogOut, isIconOnly: true }}
+        state={{ isLoading: navState.isSigningOut }}
+        actions={{ onClick: actions.onSignOut }}
+      />
       <div class="md:hidden">
         <ActionButton
           data={{ label: isMenuOpen ? 'Fechar menu' : 'Abrir menu' }}

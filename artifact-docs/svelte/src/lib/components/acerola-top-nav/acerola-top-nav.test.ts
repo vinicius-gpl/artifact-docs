@@ -1,13 +1,19 @@
 import { fireEvent, render, screen, within } from '@testing-library/svelte';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { NAV_ITEMS } from '$lib/navigation/navigation';
 
 import TopNav from './acerola-top-nav.svelte';
 
-function renderNav(activeKey: string | undefined = 'artifacts') {
+const USER = { name: 'Você Mesmo', email: 'voce@exemplo.com', avatarUrl: null };
+
+function renderNav(activeKey: string | undefined = 'artifacts', onSignOut = vi.fn()) {
   return render(TopNav, {
-    props: { data: { items: NAV_ITEMS, homeHref: '/apps' }, state: { activeKey } },
+    props: {
+      data: { items: NAV_ITEMS, homeHref: '/apps', user: USER },
+      state: { activeKey },
+      actions: { onSignOut },
+    },
   });
 }
 
@@ -34,10 +40,14 @@ describe('AcerolaTopNav', () => {
     expect(screen.getByRole('button', { name: /Mudar para o tema/ })).toBeInTheDocument();
   });
 
-  it('has no profile, effects or sign-out: the hub has no login', () => {
-    renderNav();
+  it('shows who signed in and signs out, with no profile screen nor effects button', async () => {
+    const onSignOut = vi.fn();
+    renderNav('apps', onSignOut);
 
-    expect(screen.queryByRole('button', { name: /Sair|Efeitos|Perfil/ })).toBeNull();
+    expect(screen.getByTitle('Você Mesmo · voce@exemplo.com')).toBeInTheDocument();
+    await fireEvent.click(screen.getByRole('button', { name: 'Sair' }));
+    expect(onSignOut).toHaveBeenCalled();
+    expect(screen.queryByRole('button', { name: /Efeitos|Perfil/ })).toBeNull();
   });
 
   // triste
