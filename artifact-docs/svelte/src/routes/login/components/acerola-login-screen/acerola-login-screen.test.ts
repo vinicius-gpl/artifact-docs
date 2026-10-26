@@ -1,64 +1,59 @@
-import { render, screen } from '@testing-library/svelte';
-import userEvent from '@testing-library/user-event';
+import { fireEvent, render, screen } from '@testing-library/svelte';
 import { describe, expect, it, vi } from 'vitest';
 
 import LoginScreen, { type AcerolaLoginScreenProps } from './acerola-login-screen.svelte';
 
-const fields = {
-  email: { value: '', error: null },
-  password: { value: '', error: null },
-};
+function renderScreen(overrides: { isMockMode?: boolean; needsSetup?: boolean } = {}) {
+  const idle = { isSubmitting: false, error: null, fieldErrors: {} };
+  const props: AcerolaLoginScreenProps = {
+    data: {
+      isMockMode: overrides.isMockMode ?? false,
+      needsSetup: overrides.needsSetup ?? false,
+      signIn: { values: { email: '', password: '' } },
+      firstAccess: { values: { name: '', email: '', password: '', passwordConfirmation: '' } },
+    },
+    state: { signIn: idle, firstAccess: idle },
+    actions: {
+      signIn: { onChange: vi.fn(), onSubmit: vi.fn() },
+      firstAccess: { onChange: vi.fn(), onSubmit: vi.fn() },
+    },
+  };
+  render(LoginScreen, { props });
 
-function renderScreen(overrides: Partial<AcerolaLoginScreenProps> = {}) {
-  const actions = { onChange: vi.fn(), onBlur: vi.fn(), onSubmit: vi.fn() };
-
-  render(LoginScreen, {
-    props: { data: { fields }, actions, ...overrides },
-  });
-
-  return actions;
+  return props.actions;
 }
 
 describe('AcerolaLoginScreen', () => {
   // feliz
-  it('reports what is typed in each field, naming it', async () => {
-    const actions = renderScreen();
+  it('opens on the sign-in form', () => {
+    renderScreen();
 
-    await userEvent.type(screen.getByLabelText('E-mail'), 'a');
-    await userEvent.type(screen.getByLabelText('Senha'), 'b');
-
-    expect(actions.onChange).toHaveBeenCalledWith('email', 'a');
-    expect(actions.onChange).toHaveBeenCalledWith('password', 'b');
+    expect(screen.getByRole('heading', { name: 'Entrar' })).toBeInTheDocument();
+    expect(screen.getByLabelText('E-mail')).toBeInTheDocument();
   });
 
-  it('submits through the form, so Enter works too', async () => {
-    const actions = renderScreen();
+  it('switches to the first access while there is no account, and back', async () => {
+    const actions = renderScreen({ needsSetup: true });
 
-    await userEvent.click(screen.getByRole('button', { name: 'Entrar' }));
+    await fireEvent.click(screen.getByRole('button', { name: 'Primeiro acesso · Criar a conta' }));
+    expect(screen.getByRole('heading', { name: 'Primeiro acesso' })).toBeInTheDocument();
+    await fireEvent.click(screen.getByRole('button', { name: 'Criar conta e entrar' }));
+    expect(actions.firstAccess.onSubmit).toHaveBeenCalled();
 
-    expect(actions.onSubmit).toHaveBeenCalledOnce();
+    await fireEvent.click(screen.getByRole('button', { name: 'Já tenho conta · Entrar' }));
+    expect(screen.getByRole('heading', { name: 'Entrar' })).toBeInTheDocument();
+  });
+
+  it('says it is local mode in mock mode', () => {
+    renderScreen({ isMockMode: true });
+
+    expect(screen.getByText('Modo local')).toBeInTheDocument();
   });
 
   // triste
-  it('shows the field error next to the field', () => {
-    renderScreen({
-      data: { fields: { ...fields, email: { value: 'ana', error: 'Informe um e-mail válido' } } },
-    });
+  it('hides the first access once the account exists', () => {
+    renderScreen({ needsSetup: false });
 
-    expect(screen.getByLabelText('E-mail')).toHaveAttribute('aria-invalid', 'true');
-    expect(screen.getByText('Informe um e-mail válido')).toBeInTheDocument();
-  });
-
-  it('shows the server refusal without blaming a specific field', () => {
-    renderScreen({ state: { error: 'E-mail ou senha incorretos.' } });
-
-    expect(screen.getByText('E-mail ou senha incorretos.')).toBeInTheDocument();
-  });
-
-  /* Dois cliques em "Entrar" não deveriam mandar duas tentativas de login. */
-  it('locks the submit button while logging in', () => {
-    renderScreen({ state: { isSubmitting: true } });
-
-    expect(screen.getByRole('button', { name: 'Entrando…' })).toBeDisabled();
+    expect(screen.queryByRole('button', { name: /Primeiro acesso/ })).toBeNull();
   });
 });

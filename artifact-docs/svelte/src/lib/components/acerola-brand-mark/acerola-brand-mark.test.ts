@@ -8,7 +8,7 @@ describe('AcerolaBrandMark', () => {
   it('draws the logo of the system', () => {
     render(BrandMark);
 
-    expect(screen.getByRole('img', { name: 'acerola-ticket' })).toHaveAttribute(
+    expect(screen.getByRole('img', { name: 'artifact-docs' })).toHaveAttribute(
       'src',
       '/favicon.svg',
     );
@@ -18,13 +18,13 @@ describe('AcerolaBrandMark', () => {
   it('never writes the name next to the logo', () => {
     render(BrandMark);
 
-    expect(screen.queryByText('acerola-ticket')).not.toBeInTheDocument();
+    expect(screen.queryByText('artifact-docs')).not.toBeInTheDocument();
   });
 
   it('takes the size the screen asked for', () => {
     render(BrandMark, { props: { ui: { size: 'lg' } } });
 
-    expect(screen.getByRole('img', { name: 'acerola-ticket' }).className).toContain('size-20');
+    expect(screen.getByRole('img', { name: 'artifact-docs' }).className).toContain('size-20');
   });
 
   // triste
@@ -32,6 +32,6 @@ describe('AcerolaBrandMark', () => {
   it('falls back to the middle size when nothing was asked (edge case)', () => {
     render(BrandMark, { props: {} });
 
-    expect(screen.getByRole('img', { name: 'acerola-ticket' }).className).toContain('size-12');
+    expect(screen.getByRole('img', { name: 'artifact-docs' }).className).toContain('size-12');
   });
 });

@@ -1,5 +1,7 @@
 import { createAuthClient } from '@neondatabase/neon-js/auth';
 
+import { INVALID_CREDENTIALS } from '$lib/contracts/auth.schema';
+
 /**
  * A LIGAÇÃO COM O NEON AUTH — o único lugar da tela que fala de login.
  *
@@ -112,4 +114,44 @@ export async function readAuthToken(): Promise<string | null> {
        guarda manda para o login, que é exatamente o que a pessoa precisa fazer. */
     return null;
   }
+}
+
+/**
+ * ENTRAR — e-mail e senha, direto do navegador para o Neon Auth. A senha nunca passa pela
+ * nossa API nem fica guardada por nós.
+ *
+ * A biblioteca NÃO lança em credencial errada: devolve `error` preenchido. Sem esta conversão,
+ * senha errada passaria como sucesso. A mensagem é a mesma para "e-mail não existe" e "senha
+ * errada" — mensagens diferentes contariam a quem tenta adivinhar que a conta existe.
+ */
+export async function signInWithEmail(email: string, password: string): Promise<void> {
+  await ensureNeonAuthClient();
+  const result = await neonAuth.signIn.email({ email, password });
+
+  if (result.error) throw new Error(INVALID_CREDENTIALS);
+}
+
+/**
+ * PRIMEIRO ACESSO — cria a conta do dono no Neon Auth e já entra com ela.
+ *
+ * Mesmo que alguém de fora chegue aqui com o cadastro da Neon aberto, a conta nova não passa
+ * da guarda: o Go só aceita os e-mails da lista permitida (403 para o resto).
+ */
+export async function signUpWithEmail(
+  name: string,
+  email: string,
+  password: string,
+): Promise<void> {
+  await ensureNeonAuthClient();
+  const result = await neonAuth.signUp.email({ name, email, password });
+
+  if (result.error) {
+    throw new Error('Não consegui criar a conta. Se ela já existe, entre com e-mail e senha.');
+  }
+}
+
+/** Sai da sessão da Neon. A próxima chamada à API recebe 401 e a guarda manda para o login. */
+export async function signOutOfNeon(): Promise<void> {
+  const client = await ensureNeonAuthClient();
+  await client.signOut();
 }

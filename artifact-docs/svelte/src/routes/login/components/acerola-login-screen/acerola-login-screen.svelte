@@ -1,111 +1,131 @@
 <script lang="ts" module>
-  import { type FormFieldState } from '$lib/types/form-field.type';
-
-  export type LoginField = 'email' | 'password';
+  import type { AcerolaFirstAccessFormProps } from '../acerola-first-access-form/acerola-first-access-form.svelte';
+  import type { AcerolaSignInFormProps } from '../acerola-sign-in-form/acerola-sign-in-form.svelte';
 
   /**
-   * A tela de login inteira, os dois lados — não um formulário genérico dentro de uma casca
-   * de outra tela. É uma rota fora do grupo `(app)` (sem `AppShell`), então ela precisa da
-   * própria estrutura de página.
+   * A TELA DE LOGIN — dividida ao meio: a marca à esquerda (some no celular) e o formulário à
+   * direita.
    *
-   * Função pura de props, igual a qualquer componente (CONTRIBUTING §3): valor e erro de cada
-   * campo chegam prontos, o que abre a tela no Storybook preenchida, com erro ou enviando —
-   * sem servidor e sem biblioteca de formulário no meio.
+   * Dois formulários, um de cada vez: ENTRAR (e-mail e senha) e PRIMEIRO ACESSO (criar a conta
+   * do dono). O botão "Primeiro acesso" só existe enquanto não há conta (`needsSetup`, que vem
+   * de `GET /api/auth/setup`): depois que ela existe, oferecer cadastro seria convidar
+   * estranhos. Qual formulário aparece é estado visual, e por isso mora aqui.
+   *
+   * No modo mock, um selo avisa que é modo local — para ninguém achar que entrou com uma conta
+   * de verdade.
    */
   export type AcerolaLoginScreenProps = {
-    data: { fields: Record<LoginField, FormFieldState> };
-    state?: { isSubmitting?: boolean; error?: string | null };
+    data: {
+      isMockMode: boolean;
+      needsSetup: boolean;
+      signIn: AcerolaSignInFormProps['data'];
+      firstAccess: AcerolaFirstAccessFormProps['data'];
+    };
+    state: {
+      signIn: AcerolaSignInFormProps['state'];
+      firstAccess: AcerolaFirstAccessFormProps['state'];
+    };
     actions: {
-      onChange: (field: LoginField, value: string) => void;
-      onBlur: (field: LoginField) => void;
-      onSubmit: () => void;
+      signIn: AcerolaSignInFormProps['actions'];
+      firstAccess: AcerolaFirstAccessFormProps['actions'];
     };
   };
+
+  export const HIGHLIGHTS = [
+    'Atalhos para os seus apps, com quem está no ar',
+    'Artefatos HTML, Markdown e PDF com preview',
+    'Planejamentos e ideias, versionados',
+  ] as const;
 </script>
 
 <script lang="ts">
-  import BrandMark from '$lib/components/acerola-brand-mark/acerola-brand-mark.svelte';
-  import ErrorState from '$lib/components/acerola-error-state/acerola-error-state.svelte';
-  import SubmitButton from '$lib/components/acerola-submit-button/acerola-submit-button.svelte';
-  import TextField from '$lib/components/acerola-text-field/acerola-text-field.svelte';
+  import FirstAccessForm from '../acerola-first-access-form/acerola-first-access-form.svelte';
+  import SignInForm from '../acerola-sign-in-form/acerola-sign-in-form.svelte';
+  import ActionButton from '$lib/components/acerola-action-button/acerola-action-button.svelte';
+  import { BrandMark } from '$lib/components/acerola-brand-mark/acerola-brand-mark';
+  import StatusBadge from '$lib/components/acerola-status-badge/acerola-status-badge.svelte';
+  import { revealChildren } from '$lib/motion/motion';
 
-  let { data, state, actions }: AcerolaLoginScreenProps = $props();
+  let { data, state: screenState, actions }: AcerolaLoginScreenProps = $props();
 
-  const fields = $derived(data.fields);
-  const isSubmitting = $derived(Boolean(state?.isSubmitting));
-
-  function handleSubmit(event: SubmitEvent): void {
-    event.preventDefault();
-    actions.onSubmit();
-  }
+  let isFirstAccess = $state(false);
 </script>
 
-<div class="bg-background grid min-h-svh lg:grid-cols-2">
-  <div class="flex items-center justify-center p-6 sm:p-10">
-    <div class="flex w-full max-w-sm flex-col gap-6">
-      <BrandMark ui={{ size: 'lg' }} />
+<div class="grid min-h-dvh lg:grid-cols-2">
+  <section
+    class="border-border/70 relative hidden flex-col justify-between border-r p-12 lg:flex"
+    aria-label="Sobre o artifact-docs"
+  >
+    <div class="flex items-center gap-2">
+      <BrandMark ui={{ size: 'sm' }} />
+      <span class="text-lg font-medium">artifact-docs</span>
+    </div>
 
-      <div class="flex flex-col gap-1.5">
-        <h1 class="text-2xl font-semibold">Bem-vindo de volta</h1>
-        <p class="text-muted-foreground text-sm">Entre com seu e-mail e senha para continuar.</p>
+    <div class="flex max-w-md flex-col gap-6" use:revealChildren>
+      <p class="text-5xl leading-tight font-light">
+        Seu hub,
+        <span class="text-primary-strong">num lugar só.</span>
+      </p>
+      <p class="text-muted-foreground text-lg">
+        Apps, documentos, planejamentos e ideias — publicados, versionados e à mão.
+      </p>
+      <ul class="text-muted-foreground flex flex-col gap-2 font-mono text-sm">
+        {#each HIGHLIGHTS as highlight (highlight)}
+          <li><span class="text-primary-strong" aria-hidden="true">+</span> {highlight}</li>
+        {/each}
+      </ul>
+    </div>
+
+    <p class="text-muted-foreground font-mono text-xs">Uso pessoal · acesso só por convite</p>
+  </section>
+
+  <section class="flex items-center justify-center px-4 py-12 sm:px-6">
+    <div class="glass rounded-surface flex w-full max-w-sm flex-col gap-6 p-8" use:revealChildren>
+      <div class="flex items-center gap-2 lg:hidden">
+        <BrandMark ui={{ size: 'sm' }} />
+        <span class="text-lg font-medium">artifact-docs</span>
       </div>
 
-      <form novalidate class="flex flex-col gap-4" onsubmit={handleSubmit}>
-        <TextField
-          data={{
-            label: 'E-mail',
-            name: 'email',
-            value: fields.email.value,
-            placeholder: 'voce@empresa.com',
-          }}
-          ui={{ type: 'email' }}
-          state={{
-            error: fields.email.error,
-            isDisabled: isSubmitting,
-            isAutoFocused: true,
-          }}
-          actions={{
-            onChange: (value: string) => actions.onChange('email', value),
-            onBlur: () => actions.onBlur('email'),
-          }}
+      {#if isFirstAccess && data.needsSetup}
+        <div class="flex flex-col gap-1">
+          <h1 class="text-3xl">Primeiro acesso</h1>
+          <p class="text-muted-foreground text-sm">
+            Crie a conta de quem é dono do hub. Ela é a única que entra.
+          </p>
+        </div>
+        <FirstAccessForm
+          data={data.firstAccess}
+          state={screenState.firstAccess}
+          actions={actions.firstAccess}
         />
-
-        <TextField
-          data={{ label: 'Senha', name: 'password', value: fields.password.value }}
-          ui={{ type: 'password' }}
-          state={{ error: fields.password.error, isDisabled: isSubmitting }}
-          actions={{
-            onChange: (value: string) => actions.onChange('password', value),
-            onBlur: () => actions.onBlur('password'),
-          }}
+        <ActionButton
+          data={{ label: 'Já tenho conta · Entrar' }}
+          ui={{ variant: 'ghost', size: 'lg', className: 'w-full' }}
+          actions={{ onClick: () => (isFirstAccess = false) }}
         />
-
-        <!-- Também é por aqui que entra quem NUNCA teve senha: conta criada no painel da Neon
-             nasce sem senha, e este link é o caminho de definir a primeira. -->
-        <a
-          href="/forgot-password"
-          class="text-muted-foreground hover:text-foreground self-end text-sm underline-offset-4 hover:underline"
-        >
-          Esqueci minha senha
-        </a>
-
-        {#if state?.error}
-          <ErrorState data={{ message: state.error }} ui={{ variant: 'inline' }} />
+      {:else}
+        <div class="flex flex-col gap-1">
+          <h1 class="text-3xl">Entrar</h1>
+          <p class="text-muted-foreground text-sm">Use o e-mail e a senha da sua conta.</p>
+        </div>
+        <SignInForm data={data.signIn} state={screenState.signIn} actions={actions.signIn} />
+        {#if data.needsSetup}
+          <ActionButton
+            data={{ label: 'Primeiro acesso · Criar a conta' }}
+            ui={{ variant: 'secondary', size: 'lg', className: 'w-full' }}
+            actions={{ onClick: () => (isFirstAccess = true) }}
+          />
         {/if}
+      {/if}
 
-        <SubmitButton
-          data={{ label: 'Entrar', loadingLabel: 'Entrando…' }}
-          state={{ isLoading: isSubmitting }}
-        />
-      </form>
+      {#if data.isMockMode}
+        <div class="flex flex-wrap items-center gap-2">
+          <StatusBadge data={{ label: 'Modo local' }} ui={{ tone: 'warning', size: 'sm' }} />
+          <span class="text-muted-foreground text-xs">
+            Usuário de teste já preenchido. Em produção, a conta é a do Neon Auth.
+          </span>
+        </div>
+      {/if}
     </div>
-  </div>
-
-  <!-- Escondido abaixo de `lg`: numa tela pequena o formulário já ocupa o espaço inteiro, e
-       repetir a marca aqui embaixo só empurraria o formulário para fora da vista. -->
-  <div class="bg-foreground text-background relative hidden flex-col justify-end p-14 lg:flex">
-    <p class="text-2xl leading-snug font-semibold">
-      Organize o trabalho do seu jeito, sem perder de vista o que importa.
-    </p>
-  </div>
+  </section>
 </div>

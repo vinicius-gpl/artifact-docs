@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { loginPathFor, safeReturnPath } from './login-return';
+import { deniedLoginPath, loginPathFor, safeReturnPath } from './login-return';
 
 describe('loginPathFor', () => {
   // feliz
@@ -37,5 +37,12 @@ describe('safeReturnPath', () => {
     expect(safeReturnPath(null)).toBe('/');
     expect(safeReturnPath('')).toBe('/');
     expect(safeReturnPath('/login?next=%2F')).toBe('/');
+  });
+});
+
+describe('deniedLoginPath', () => {
+  // feliz
+  it('carries the forbidden warning to the login', () => {
+    expect(deniedLoginPath()).toBe('/login?error=forbidden');
   });
 });

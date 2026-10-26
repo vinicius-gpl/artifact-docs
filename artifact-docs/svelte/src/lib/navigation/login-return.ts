@@ -26,3 +26,12 @@ export function safeReturnPath(raw: string | null | undefined): string {
 
   return raw;
 }
+
+/** O motivo que a guarda manda ao login quando a conta entrou mas não está na lista. */
+export const LOGIN_ERROR_PARAM = 'error';
+export const FORBIDDEN_ERROR = 'forbidden';
+
+/** O login com o aviso de "esta conta não tem acesso" (a API respondeu 403). */
+export function deniedLoginPath(): string {
+  return `/login?${new URLSearchParams({ [LOGIN_ERROR_PARAM]: FORBIDDEN_ERROR }).toString()}`;
+}

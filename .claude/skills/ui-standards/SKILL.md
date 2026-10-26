@@ -370,11 +370,11 @@ lista vira cartão (§6).
   linha de colunas iguais — acima disso vira a lista que abre, com busca. Pastilha não escala
   dentro de um modal: com muitas opções ela quebra em várias fileiras.
 - **Quem rola é a caixa da tabela, não a página.** A área de conteúdo tem `min-w-0` (no
-  `SidebarInset` do `app-shell`); sem isso o `overflow-x-auto` da tabela não funciona.
+  `<main>` do layout de `routes/(app)`); sem isso o `overflow-x-auto` da tabela não funciona.
 - **Texto quebra, não corta.** `break-words` em nome, e-mail e descrição.
-- **A barra lateral não come a largura do tablet.** Corte gaveta/fixa em 1024px (vem do
-  `sidebar` do shadcn, `lib/hooks/ui/`); o resto mede largura com `use-media-query` passando o
-  breakpoint. Abaixo de `xl` gráfico usa a forma compacta.
+- **A navegação é a barra do topo** (`acerola-top-nav`): itens em linha a partir de `md`;
+  abaixo disso, um botão "Menu" abre a lista. O resto mede largura com `use-media-query`
+  passando o breakpoint. Abaixo de `xl` gráfico usa a forma compacta.
 - Breakpoint em JS só para o que CSS não resolve (gráfico, gaveta). Troca tabela/cartão é CSS.
 
 ---

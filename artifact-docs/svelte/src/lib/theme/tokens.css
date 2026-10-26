@@ -18,16 +18,16 @@
  * A IDENTIDADE VISUAL DO SISTEMA, EM UM ARQUIVO SÓ.
  *
  * No Tailwind v4 a configuração é o próprio CSS: não existe mais `tailwind.config.ts`. Um
- * token declarado em `@theme` vira classe utilitária sozinho — `--color-surface` dá
- * `bg-surface`, `text-surface`, `border-surface`.
+ * token declarado em `@theme` vira classe utilitária sozinho — `--color-primary-soft` dá
+ * `bg-primary-soft`, `text-primary-soft`, `border-primary-soft`.
  *
  * Isso não é só arrumação: no arranjo anterior a cor morava num `.ts` que o Vite não
- * observava, e um token novo só aparecia depois de derrubar o servidor à mão. Foi assim que
- * a barra lateral ficou branca com o azul já definido — a classe `bg-sidebar` nunca chegou
- * a ser gerada, e `background` sem regra é transparente.
+ * observava, e um token novo só aparecia depois de derrubar o servidor à mão.
  *
- * A paleta é o Catppuccin, a mesma do agente (`acerola/agent`). Trocar a identidade de um
- * MVP é trocar os valores desta seção — e só desta seção.
+ * A marca é a do kit de design (skill `brand-design`): padrão **Carbon**, paleta
+ * **Personalizada**, acabamento **Vidro**, IBM Plex, neutros **Grafite puro**. Os valores vêm
+ * do `tailwind.css` do kit sem alteração — mudar a marca é gerar o kit de novo e trocar os
+ * valores desta seção, e só desta seção. Este é o único arquivo onde cor crua é permitida.
  */
 
 /**
@@ -38,104 +38,48 @@
 @custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
 
 /* ==========================================================================
-   A PALETA — Catppuccin, a mesma do agente.
+   A PALETA — a do kit de design, claro e escuro.
 
-   Os valores vêm de `acerola/agent/svelte/src/theme/catppuccin.css`, sem alteração:
-   Latte no tema claro, Mocha no escuro. Os dois sistemas passaram a ser a mesma
-   identidade visual, e copiar os valores (em vez de inventar equivalentes) é o que
-   garante que continuem iguais quando um dos dois mudar.
+   Os tokens do kit (`background`, `card`, `muted`, `primary-strong`, `accent-strong`,
+   `tertiary`…) vêm primeiro. Os nomes que o shadcn espera (`popover`, `secondary`, `accent`,
+   `input`, `sidebar-*`) e os apelidos antigos (`ink-*`, `surface`…) só APONTAM para eles: os
+   componentes baixados não se editam, e as telas antigas passam a seguir a marca sem serem
+   reescritas uma a uma.
    ========================================================================== */
 :root {
-  /* Tons de fundo, do mais fundo ao mais alto. `surface` é o que sobe acima do fundo. */
-  --crust: #e2e8f0;
-  --mantle: #f1f5f9;
-  --base: #f8fafc;
-  --surface: #e2e8f0;
-
-  /* O agente não tem um terceiro tom de texto: só `foreground` e `muted-foreground`. Em vez
-     de inventar um degrau que não existe na fonte, `subtext` aponta pro mesmo valor de
-     `muted-foreground` — é a cópia fiel, não uma aproximação. */
-  --subtext: #64748b;
-
-  --radius: 0.625rem;
-
-  /* ---- Semântica da PÁGINA ---- */
-  --background: #f8fafc;
-  --foreground: #0f172a;
-  --card: #ffffff;
-  --card-foreground: #0f172a;
-  --popover: #ffffff;
-  --popover-foreground: #0f172a;
-  --primary: #7c3aed;
-  --primary-foreground: #ffffff;
-  --secondary: #f1f5f9;
-  --secondary-foreground: #0f172a;
-  --muted: #f1f5f9;
-  --muted-foreground: #64748b;
-  --accent: #f1f5f9;
-  --accent-foreground: #0f172a;
-  --accent-hero: #ea76cb;
-  --accent-hero-foreground: var(--primary-foreground);
-  --destructive: #e11d48;
-  --destructive-foreground: var(--primary-foreground);
-  --border: #e2e8f0;
-  --input: #e2e8f0;
-  --ring: #7c3aed;
-
-  /* Os tons de ESTADO. `danger` é o `destructive` acima; estes três não existem na paleta
-     do agente, então nascem aqui. No claro são os tons 700 (texto pequeno legível sobre
-     branco); no escuro, os 400.
-
-     `-soft` é o fundo SÓLIDO do tom (selo, cartão de indicador): os tons 100 no claro e 950
-     no escuro. Sólido de propósito — com opacidade, o cartão de indicador mudava de cor
-     conforme o que estivesse atrás dele. */
-  --success: #047857;
-  --success-soft: #d1fae5;
-  --warning: #b45309;
-  --warning-soft: #fef3c7;
+  /* ---- Do kit ---- */
+  --background: #f4f4f3;
+  --card: #fafaf9;
+  --muted: #ebebe9;
+  --border: #dcdcd8;
+  --foreground: #141416;
+  --muted-foreground: #626267;
+  --sidebar: #efefed;
+  --primary: #ffa58a;
+  --primary-foreground: #121214;
+  --primary-strong: #d13200;
+  --primary-soft: #fbebe5;
+  --accent-hero: #ecb00e;
+  --accent-hero-foreground: #121214;
+  --accent-strong: #8c6909;
+  --tertiary: #f88ca8;
+  --tertiary-strong: #d90d42;
+  --ring: #ffa58a;
+  --shadow: #121214;
+  --success-soft: #d1e4d7;
+  --success: #126e35;
+  --warning-soft: #eddcce;
+  --warning: #9c4808;
+  --info-soft: #d2dbf3;
   --info: #1d4ed8;
-  --info-soft: #dbeafe;
-  --destructive-soft: #ffe4e6;
-  --primary-soft: #ede9fe;
-
-  /* As cores de categoria dos gráficos. Ver utils/chart-slice.ts. */
-  --chart-1: #e11d48;
-  --chart-2: #f97316;
-  --chart-3: #eab308;
-  --chart-4: #10b981;
-  --chart-5: #0ea5e9;
-
-  /**
-   * ---- Semântica da BARRA LATERAL ----
-   *
-   * Ela SEGUE o tema, como no agente. Antes era azul fixa nos dois temas para dar
-   * identidade; a identidade agora vem da paleta inteira, e uma barra que ignora o tema
-   * seria a única parte da tela a ignorá-lo.
-   */
-  --sidebar: #f8fafc;
-  --sidebar-foreground: #0f172a;
-  --sidebar-primary: #7c3aed;
-  --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #f1f5f9;
-  --sidebar-accent-foreground: #0f172a;
-  --sidebar-border: #e2e8f0;
-  --sidebar-ring: #7c3aed;
-
-  /**
-   * ---- Apelidos da paleta antiga ----
-   *
-   * `ink-*` era uma escala de cinzas FIXA, igual nos dois temas. Agora aponta para os
-   * tokens semânticos: as 44 telas que já usam `text-ink-700` ou `border-ink-300`
-   * passaram a acompanhar o tema sem precisar ser reescritas uma a uma.
-   *
-   * A escala `brand-*` foi embora: quem a usava agora usa `primary`, porque os pares que
-   * fixavam `text-white` sobre azul ficariam ilegíveis sobre o roxo do Catppuccin.
-   */
-  --ink-900: var(--foreground);
-  --ink-700: var(--subtext);
-  --ink-500: var(--muted-foreground);
-  --ink-300: var(--border);
-  --ink-100: var(--surface);
+  --destructive-soft: #f5d4d3;
+  --destructive: #bb1e1e;
+  --destructive-foreground: #f4f4f3;
+  --chart-1: #ff5824;
+  --chart-2: #b7890b;
+  --chart-3: #f55780;
+  --chart-4: #1d4ed8;
+  --chart-5: #dc2626;
 
   color-scheme: light;
 }
@@ -145,58 +89,83 @@
  * existe cor que só valha no escuro — que é como uma tela nasce ilegível em um dos dois.
  */
 :root[data-theme='dark'] {
-  --crust: #0e0e15;
-  --mantle: #13131c;
-  --base: #181824;
-  --surface: #222332;
-
-  --subtext: #94a3b8;
-
-  --background: #11111a;
-  --foreground: #f1f5f9;
-  --card: #181824;
-  --card-foreground: #f1f5f9;
-  --popover: #181824;
-  --popover-foreground: #f1f5f9;
-  --primary: #cba6f7;
-  --primary-foreground: #11111a;
-  --secondary: #222332;
-  --secondary-foreground: #f1f5f9;
-  --muted: #1e1e2d;
-  --muted-foreground: #94a3b8;
-  --accent: #222332;
-  --accent-foreground: #f1f5f9;
-  --accent-hero: #f5c2e7;
-  --destructive: #f38ba8;
-  --border: #2b2c3d;
-  --input: #222332;
-  --ring: #cba6f7;
-
-  --success: #34d399;
-  --success-soft: #022c22;
+  --background: #121214;
+  --card: #19191c;
+  --muted: #202024;
+  --border: #2c2c31;
+  --foreground: #f2f2f0;
+  --muted-foreground: #a1a1a6;
+  --sidebar: #141417;
+  --primary: #ffb59e;
+  --primary-foreground: #121214;
+  --primary-strong: #ffb59e;
+  --primary-soft: #3e3231;
+  --accent-hero: #f8db8c;
+  --accent-hero-foreground: #121214;
+  --accent-strong: #f8db8c;
+  --tertiary: #f88ca8;
+  --tertiary-strong: #f88ca8;
+  --ring: #ffb59e;
+  --shadow: #121214;
+  --success-soft: #21392c;
+  --success: #4ade80;
+  --warning-soft: #3d341d;
   --warning: #fbbf24;
-  --warning-soft: #451a03;
+  --info-soft: #242f40;
   --info: #60a5fa;
-  --info-soft: #172554;
-  --destructive-soft: #4c0519;
-  --primary-soft: #2e1065;
-
-  --chart-1: #f38ba8;
-  --chart-2: #fab387;
-  --chart-3: #f9e2af;
-  --chart-4: #a6e3a1;
-  --chart-5: #74c7ec;
-
-  --sidebar: #13131c;
-  --sidebar-foreground: #f1f5f9;
-  --sidebar-primary: #cba6f7;
-  --sidebar-primary-foreground: #11111a;
-  --sidebar-accent: #222332;
-  --sidebar-accent-foreground: #f1f5f9;
-  --sidebar-border: #2b2c3d;
-  --sidebar-ring: #cba6f7;
+  --destructive-soft: #3d272a;
+  --destructive: #f87171;
+  --destructive-foreground: #121214;
+  --chart-1: #ffb59e;
+  --chart-2: #f8db8c;
+  --chart-3: #f88ca8;
+  --chart-4: #60a5fa;
+  --chart-5: #f87171;
 
   color-scheme: dark;
+}
+
+/* ---- Os nomes do shadcn e os apelidos antigos: só apontam para o kit, nos dois temas ---- */
+:root {
+  --card-foreground: var(--foreground);
+  --popover: var(--card);
+  --popover-foreground: var(--foreground);
+  --secondary: var(--muted);
+  --secondary-foreground: var(--foreground);
+  /* `accent` no shadcn é o fundo de hover de item de menu, não a cor de destaque da marca
+     (essa é `accent-hero`). Carbon marca hover por tom, então é o `muted`. */
+  --accent: var(--muted);
+  --accent-foreground: var(--foreground);
+  --input: var(--border);
+
+  --sidebar-foreground: var(--foreground);
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: var(--primary-foreground);
+  --sidebar-accent: var(--primary-soft);
+  --sidebar-accent-foreground: var(--foreground);
+  --sidebar-border: var(--border);
+  --sidebar-ring: var(--ring);
+
+  /* Sem `base`: como cor ele virava `text-base`, que o Tailwind já usa para o TAMANHO de
+     16px — e a classe passava a pintar o texto em vez de dimensioná-lo. */
+  --crust: var(--border);
+  --mantle: var(--sidebar);
+  --surface: var(--muted);
+  --subtext: var(--muted-foreground);
+  --ink-900: var(--foreground);
+  --ink-700: var(--subtext);
+  --ink-500: var(--muted-foreground);
+  --ink-300: var(--border);
+  --ink-100: var(--surface);
+
+  /* ---- Padrão Carbon: forma, movimento e fonte ---- */
+  --radius: 0;
+  --shape-square: 0;
+  --shape-pill: 9999px;
+  --motion-duration: 110ms;
+  --motion-easing: cubic-bezier(0.2, 0, 0.38, 0.9);
+  --brand-font-sans: 'IBM Plex Sans', system-ui, sans-serif;
+  --brand-font-mono: 'IBM Plex Mono', ui-monospace, monospace;
 }
 
 /* ==========================================================================
@@ -204,39 +173,32 @@
    assim a troca de tema muda a variável, e não a classe gerada.
    ========================================================================== */
 @theme inline {
-  --color-crust: var(--crust);
-  --color-mantle: var(--mantle);
-  --color-base: var(--base);
-  --color-surface: var(--surface);
-  --color-subtext: var(--subtext);
-
-  --color-ink-900: var(--ink-900);
-  --color-ink-700: var(--ink-700);
-  --color-ink-500: var(--ink-500);
-  --color-ink-300: var(--ink-300);
-  --color-ink-100: var(--ink-100);
-
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
   --color-popover: var(--popover);
   --color-popover-foreground: var(--popover-foreground);
-  --color-primary: var(--primary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-secondary: var(--secondary);
-  --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
-  --color-accent: var(--accent);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-accent-hero: var(--accent-hero);
-  --color-accent-hero-foreground: var(--accent-hero-foreground);
-  --color-destructive: var(--destructive);
-  --color-destructive-foreground: var(--destructive-foreground);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  --color-shadow: var(--shadow);
+
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-strong: var(--primary-strong);
+  --color-primary-soft: var(--primary-soft);
+  --color-accent-hero: var(--accent-hero);
+  --color-accent-hero-foreground: var(--accent-hero-foreground);
+  --color-accent-strong: var(--accent-strong);
+  --color-tertiary: var(--tertiary);
+  --color-tertiary-strong: var(--tertiary-strong);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
 
   --color-success: var(--success);
   --color-success-soft: var(--success-soft);
@@ -244,8 +206,9 @@
   --color-warning-soft: var(--warning-soft);
   --color-info: var(--info);
   --color-info-soft: var(--info-soft);
+  --color-destructive: var(--destructive);
   --color-destructive-soft: var(--destructive-soft);
-  --color-primary-soft: var(--primary-soft);
+  --color-destructive-foreground: var(--destructive-foreground);
 
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
@@ -262,33 +225,49 @@
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
 
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
+  --color-crust: var(--crust);
+  --color-mantle: var(--mantle);
+  --color-surface: var(--surface);
+  --color-subtext: var(--subtext);
+  --color-ink-900: var(--ink-900);
+  --color-ink-700: var(--ink-700);
+  --color-ink-500: var(--ink-500);
+  --color-ink-300: var(--ink-300);
+  --color-ink-100: var(--ink-100);
 
-  /* ---- O ARREDONDAMENTO POR PAPEL ----
+  /* ---- O ARREDONDAMENTO ----
 
-     Os quatro acima são a escala do Tailwind, por TAMANHO: quem escreve escolhe `lg` ou
-     `xl` no olho, e o mesmo papel acaba com raios diferentes em telas diferentes — o cartão
-     de indicador estava com raio de botão, e o seletor com um raio só dele.
+     Carbon é de canto reto. A escala por TAMANHO do Tailwind (`rounded-md`, `rounded-lg`…)
+     vai a zero porque os componentes baixados (`ui/*`) a usam e não se editam: zerar aqui é
+     o que deixa o card, o diálogo e o select do shadcn retos sem tocar neles.
+     `rounded-full` continua redondo — avatar, ponto de status, pílula. */
+  --radius-xs: var(--shape-square);
+  --radius-sm: var(--shape-square);
+  --radius-md: var(--shape-square);
+  --radius-lg: var(--shape-square);
+  --radius-xl: var(--shape-square);
+  --radius-2xl: var(--shape-square);
+  --radius-3xl: var(--shape-square);
 
-     Estes quatro são a escala por PAPEL: `rounded-surface` num cartão, `rounded-control` num
-     campo. O valor de cada um é o que os componentes baixados já usavam (`ui/card`,
-     `ui/dialog` e `ui/table` em 2xl; `ui/popover` em lg) — eles não se editam, então a régua
-     é a deles, e o que estava fora é que veio para cá. */
+  /* A escala por PAPEL. As quatro primeiras são do projeto (`rounded-surface` num cartão,
+     `rounded-control` num campo); `button`, `card` e `dialog` são os nomes do kit para os
+     mesmos papéis. Só `badge` (selo, tag, pastilha de filtro) é pílula, como manda o Carbon.
+     `chip` aqui é a miudeza DENTRO de um bloco (item de lista, quadradinho de ícone), e por
+     isso fica reto — a pílula do kit é o `badge`. */
+  --radius-surface: var(--shape-square);
+  --radius-control: var(--shape-square);
+  --radius-box: var(--shape-square);
+  --radius-chip: var(--shape-square);
+  --radius-button: var(--shape-square);
+  --radius-card: var(--shape-square);
+  --radius-dialog: var(--shape-square);
+  --radius-badge: var(--shape-pill);
 
-  /** O que pousa sobre o fundo: cartão, diálogo, tabela. */
-  --radius-surface: calc(var(--radius) + 6px);
-  /** O que se clica ou se digita: campo, botão, pastilha, combobox. */
-  --radius-control: calc(var(--radius) + 4px);
-  /** Bloco dentro de um cartão, aviso, balão. */
-  --radius-box: var(--radius);
-  /** Miudeza dentro de um bloco: item de lista de balão, quadradinho de ícone. */
-  --radius-chip: calc(var(--radius) - 2px);
+  --ease-brand: var(--motion-easing);
 
-  /* A mesma do agente: nenhuma fonte baixada, a do sistema. */
-  --font-sans: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-sans: var(--brand-font-sans);
+  --font-heading: var(--brand-font-sans);
+  --font-mono: var(--brand-font-mono);
 }
 
 /* ==========================================================================
@@ -469,6 +448,27 @@
    uma `<tr>` ignora `overflow: hidden`, então a camada circular conta como conteúdo da tabela,
    estica a área de rolagem e a tabela ganha barra para os lados. Foi testado e retirado. */
 
+/* ==========================================================================
+   O ACABAMENTO VIDRO — superfície translúcida e desfocada sobre manchas de cor.
+
+   É efeito POR CIMA do Carbon: não muda forma nem borda. As manchas moram no `body` (abaixo)
+   e valem para o produto inteiro; `glass` é a superfície que deixa elas aparecerem. Use em
+   cartão e painel, nunca em campo de texto — texto digitado sobre fundo que se mexe cansa.
+
+   No modo leve (`data-effects='lite'`) o desfoque sai: ele é o que mais pesa para a placa de
+   vídeo, e a superfície continua legível só com a transparência.
+   ========================================================================== */
+@utility glass {
+  background-color: color-mix(in oklab, var(--card) 55%, transparent);
+  border: 1px solid color-mix(in oklab, var(--foreground) 12%, transparent);
+  backdrop-filter: blur(24px);
+
+  :root[data-effects='lite'] & {
+    backdrop-filter: none;
+    background-color: var(--card);
+  }
+}
+
 @layer base {
   * {
     @apply border-border;
@@ -476,6 +476,32 @@
 
   body {
     @apply bg-background text-foreground font-sans antialiased;
+  }
+
+  /* As manchas do Vidro: fixas atrás de tudo, nas três cores da marca. `pointer-events: none`
+     e `z-index: -1` — é papel de parede, não conteúdo. */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    opacity: 0.35;
+    filter: blur(64px);
+    background:
+      radial-gradient(30% 40% at 85% 10%, var(--primary), transparent 70%),
+      radial-gradient(28% 35% at 10% 60%, var(--accent-hero), transparent 70%),
+      radial-gradient(30% 30% at 60% 100%, var(--tertiary), transparent 70%);
+  }
+
+  :root[data-theme='dark'] body::before {
+    opacity: 0.18;
+  }
+
+  /* Títulos em peso normal, como o Carbon: a hierarquia vem do tamanho, não do negrito. */
+  :where(h1, h2, h3) {
+    font-family: var(--font-heading);
+    font-weight: 400;
   }
 
   /* Foco visível SEMPRE: o sistema é operado no teclado o dia inteiro, e um contorno que

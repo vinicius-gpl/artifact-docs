@@ -3,34 +3,25 @@ import { redirect } from '@sveltejs/kit';
 import { authApi } from '$lib/api/auth.api';
 import { ApiError } from '$lib/api/http-client';
 import { type SessionUser } from '$lib/contracts/user.schema';
-import { loginPathFor } from '$lib/navigation/login-return';
-import { sidebarOpenFromCookie } from '$lib/utils/sidebar-state.util';
+import { deniedLoginPath, loginPathFor } from '$lib/navigation/login-return';
 
 /**
- * A GUARDA de sessão: todo o resto do sistema mora dentro deste grupo de rota, e ninguém
- * chega em nenhuma tela dele sem sessão válida.
+ * A GUARDA de sessão: as telas do hub moram dentro deste grupo de rota, e ninguém chega nelas
+ * sem sessão válida.
  *
- * `/api/auth/me` é a mesma origem de verdade que o backend usa para tudo o mais — não existe
- * um segundo lugar guardando "está logado" que pudesse divergir dele.
+ * `/api/auth/me` é a mesma fonte de verdade que a API usa para tudo o mais (no modo mock,
+ * quem responde é o `mock-server`, com o usuário de mentira).
  *
- * Quem chega sem sessão vai para o LOGIN, levando o endereço em que estava (`?next=`): todo
- * depois de entrar a pessoa volta para a tela que pediu.
- *
- * Só 401 vira redirecionamento. Qualquer outro erro (rede caída, servidor fora) sobe para a
- * tela de erro padrão do SvelteKit — confundir "API fora do ar" com "não estou logado"
- * tiraria a pessoa da tela por um problema que login nenhum resolve.
+ * - 401 (sem sessão): login, levando o endereço em que estava (`?next=`).
+ * - 403 (entrou no GitHub, mas a conta não está na lista): login, com o aviso de acesso negado.
+ * - Qualquer outro erro sobe para a tela de erro: API fora do ar não é "não estou logado".
  */
-export async function load({
-  url,
-}: {
-  url: URL;
-}): Promise<{ user: SessionUser; sidebarOpen: boolean }> {
+export async function load({ url }: { url: URL }): Promise<{ user: SessionUser }> {
   try {
-    /* A barra lateral lembra se estava aberta pelo cookie do `SidebarProvider` — lido no
-       navegador, porque a tela é um SPA estático, sem servidor do SvelteKit. */
-    return { user: await authApi.me(), sidebarOpen: sidebarOpenFromCookie(document.cookie) };
+    return { user: await authApi.me() };
   } catch (error) {
     if (error instanceof ApiError && error.status === 401) redirect(307, loginPathFor(url));
+    if (error instanceof ApiError && error.status === 403) redirect(307, deniedLoginPath());
     throw error;
   }
 }

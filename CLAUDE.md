@@ -4,12 +4,12 @@ Instruções para o Claude Code neste repositório. Leia inteiro antes da primei
 
 ## O projeto
 
-Hub pessoal: central de documentos e artefatos HTML/MD/PDF com galeria e preview, planejamentos,
-banco de ideias, hub de apps e casa da marca. O porquê e o como estão em
+Hub pessoal: hub de apps (a tela inicial), central de documentos e artefatos HTML/MD/PDF com
+galeria e preview, planejamentos e banco de ideias. O porquê e o como estão em
 [`docs/briefing.md`](./docs/briefing.md).
 
 - **Stack:** SPA SvelteKit (`artifact-docs/svelte/`, `adapter-static`) embutida num binário Go (`artifact-docs/main.go` +
-  `artifact-docs/src-go/`). Neon (Postgres) para dados e login, R2 (API S3) para arquivos, Caddy na frente.
+  `artifact-docs/src-go/`). Neon (Postgres) para dados e login (Neon Auth, e-mail e senha — ver `docs/auth.md`), R2 (API S3) para arquivos, Caddy na frente.
 - **RAM é o limite:** a VPS tem 1 GB. Nada de Node em produção, biblioteca padrão do Go
   primeiro, nada de processo extra no servidor.
 - **A infra do front foi copiada do acerola-ticket** — libs, versões, componentes, tokens e
@@ -60,6 +60,8 @@ O padrão está em **`CONTRIBUTING.md`**, e ele manda. Os pontos que mais quebra
 | **Criar, mover ou renomear qualquer arquivo**; "isso está no lugar certo?" | `design-system` | `/sistema-de-design` |
 | Componente visual novo ou alterado | `ui-component` (e `ui-standards` como referência) | `/componente-ui` |
 | Desenhar ou revisar tela, texto de tela | `ui-standards` | `/ui-padrao` |
+| Cor, fonte, forma, "segue a marca?" (padrão Carbon, acabamento Vidro) | `brand-design` | `/design-da-marca` |
+| Quantidade de opções, tamanho de alvo, agrupamento, fluxo | `ux-laws` | `/leis-de-ux` |
 | "Salva", "commita" | `git-commit` | `/commitar` |
 | **Qualquer mudança de código** (começar, terminar, juntar, enviar) | `git-flow` | `/git-fluxo` |
 | Conflito de merge | `resolve-conflict` | `/resolver-conflito` |
@@ -73,7 +75,7 @@ artifact-docs/                                  o app (como acerola/dashboard no
 ├── src-go/<pacote>/                            Go (config, server, web…)
 ├── src-go/web/dist/                            cópia da SPA compilada (gerada)
 └── svelte/src/
-    ├── routes/(app)/<feature>/                 tela (só composição): artifacts, plans, ideas, apps, brand
+    ├── routes/(app)/<feature>/                 tela (só composição): apps, artifacts, plans, ideas
     ├── routes/(app)/<feature>/components/acerola-<nome>/  componente da feature
     ├── lib/hooks/use-<nome>/                   estado e dados das telas
     ├── lib/components/acerola-<nome>/          componente genérico
@@ -85,9 +87,9 @@ docs/                                           briefing e decisões
 mise.toml                                       ferramentas, setup, design e atalhos para o app
 ```
 
-A casca (`acerola-app-shell`) é uma só, montada em `routes/(app)/+layout.svelte`, que também
-guarda a sessão. A margem do conteúdo é dela: a tela define só a largura máxima
-(`mx-auto w-full max-w-6xl`).
+A casca é uma só: a barra do topo (`acerola-top-nav`), montada em `routes/(app)/+layout.svelte`.
+Ela mostra o avatar e o "Sair"; a guarda de sessão é o `(app)/+layout.ts`. A margem do conteúdo é do layout: a tela
+define só a largura máxima (`mx-auto w-full max-w-6xl`).
 
 ## Comandos
 
@@ -99,11 +101,15 @@ mise run setup          # uma vez: hooks do git, Git-Flow e dependências do fro
 mise run dev            # API Go :3010 + SPA :5010 (em segundo plano: não termina)
 mise run check          # tudo o que o CI roda — para quem quiser à mão; o Claude não roda (ver Git)
 mise run design:check   # regras de design — só reprova violação nova
+mise run brand:check    # regras da marca e das leis de UX (kit de design)
 mise run build          # binário único em artifact-docs/bin/artifact-docs
 mise tasks              # lista tudo
 ```
 
-Para conferir a tela, use o navegador em http://localhost:5010.
+Para conferir a tela, use o navegador em http://localhost:5010. O `dev` sobe a tela com o
+**modo mock** ligado: as rotas que o Go ainda não tem são respondidas por
+`svelte/src/lib/api/mock-server.ts` (ver [`docs/api-mocks.md`](./docs/api-mocks.md)). Rota nova
+nasce no mock e no contrato Zod; quando o Go a implementa, o mock dela sai.
 
 ## O que SEMPRE pede confirmação antes
 

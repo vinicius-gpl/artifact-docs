@@ -1,124 +1,106 @@
-import { createForm } from '@tanstack/svelte-form';
-import { createMutation } from '@tanstack/svelte-query';
-import { loginRequestSchema, type LoginInput } from '$lib/contracts/auth.schema';
 import { goto } from '$app/navigation';
 
-import { neonAuth } from '$lib/auth/neon-auth.client';
-import { toFieldState } from '$lib/hooks/use-form-projection/use-form-projection.svelte';
-import { mirrorStore } from '$lib/hooks/use-mirror-store/use-mirror-store.svelte';
-import { type FormFieldState } from '$lib/types/form-field.type';
+import { authApi, MOCK_CREDENTIALS } from '$lib/api/auth.api';
+import { readError, USE_MOCKS } from '$lib/api/http-client';
+import { signInWithEmail } from '$lib/auth/neon-auth.client';
+import { loginRequestSchema, type LoginInput } from '$lib/contracts/auth.schema';
+import { FORBIDDEN_ERROR } from '$lib/navigation/login-return';
 
-export type LoginField = 'email' | 'password';
+export type LoginField = keyof LoginInput;
 
 export type LoginModel = {
-  data: { fields: Record<LoginField, FormFieldState> };
-  state: { isSubmitting: boolean; error: string | null };
+  data: { values: LoginInput; isMockMode: boolean };
+  state: {
+    isSubmitting: boolean;
+    error: string | null;
+    fieldErrors: Partial<Record<LoginField, string>>;
+  };
   actions: {
     onChange: (field: LoginField, value: string) => void;
-    onBlur: (field: LoginField) => void;
     onSubmit: () => void;
   };
 };
 
-/**
- * A MESMA mensagem para "e-mail não existe" e "senha errada" — de propósito.
- *
- * Mensagens diferentes confirmariam para quem está tentando adivinhar que um e-mail
- * específico tem conta no sistema. É a diferença entre "senha errada" (vaza que a conta
- * existe) e "e-mail ou senha incorretos" (não vaza nada).
- */
-const INVALID_CREDENTIALS = 'E-mail ou senha incorretos.';
+const FORBIDDEN_MESSAGE = 'Esta conta não tem acesso a este hub. Entre com a conta cadastrada.';
 
-const UNAVAILABLE =
-  'Não consegui falar com o serviço de login. Confira sua internet e tente de novo.';
+/** No modo mock o formulário já vem com o usuário de teste; em produção, vazio. */
+function initialValues(): LoginInput {
+  return USE_MOCKS ? { ...MOCK_CREDENTIALS } : { email: '', password: '' };
+}
 
-/**
- * O login: e-mail, senha, entrar.
- *
- * Quem confere a senha é o **Neon Auth**, direto daqui — a nossa API não participa e nunca vê
- * a senha de ninguém. Deu certo, a sessão passa a existir no navegador e o sistema já abre;
- * a guarda de rota confirma com `/api/auth/me` e é ali que o papel da pessoa aparece.
- *
- * Mesmo padrão do `usePartFormModel`: o MESMO schema que valida o formulário, TanStack Form
- * para o estado dos campos, `mirrorStore` para a mutação virar runes. E o `goto` mora aqui,
- * não no componente (CONTRIBUTING §3) — navegação é decisão do hook.
- */
-export function useLoginModel({ returnTo = '/' }: { returnTo?: string } = {}): LoginModel {
-  const login = mirrorStore(
-    createMutation({
-      mutationFn: async (values: LoginInput) => {
-        const result = await neonAuth.signIn.email({
-          email: values.email.trim(),
-          password: values.password,
-        });
+/** O primeiro erro de cada campo, no formato que o `TextField` mostra embaixo dele. */
+export function fieldErrorsOf(values: LoginInput): Partial<Record<LoginField, string>> {
+  const result = loginRequestSchema.safeParse(values);
+  if (result.success) return {};
 
-        /* A biblioteca NÃO lança em credencial errada: ela devolve `error` preenchido. Sem
-           esta conversão, senha errada passaria como sucesso e a tela navegaria para uma
-           rota que a guarda devolveria para cá — um pisca-pisca sem explicação. */
-        if (result.error) throw new Error(readSignInError(result.error.status));
-      },
-      onSuccess: () => goto(returnTo),
-    }),
-  );
+  const errors: Partial<Record<LoginField, string>> = {};
+  for (const issue of result.error.issues) {
+    const field = issue.path[0] as LoginField;
+    errors[field] ??= issue.message;
+  }
 
-  const form = createForm(() => ({
-    defaultValues: { email: '', password: '' } as LoginInput,
-    /* Um validador só, em `onChange` — ver o comentário em `use-part-form.svelte.ts` sobre por
-       que também validar em `onSubmit` prendia o erro na tela depois de um envio vazio. */
-    validators: { onChange: loginRequestSchema },
-    onSubmit: ({ value }: { value: LoginInput }) => {
-      login.current.mutate(value);
-    },
-  }));
-
-  const values = form.useSelector((state) => state.values);
-  const fieldMeta = form.useSelector((state) => state.fieldMeta);
-  const isSubmitted = form.useSelector((state) => state.submissionAttempts > 0);
-
-  return {
-    get data() {
-      return {
-        fields: {
-          email: toFieldState(values.current.email, fieldMeta.current.email, isSubmitted.current),
-          password: toFieldState(
-            values.current.password,
-            fieldMeta.current.password,
-            isSubmitted.current,
-          ),
-        },
-      };
-    },
-    get state() {
-      return {
-        isSubmitting: login.current.isPending,
-        error: login.current.error ? login.current.error.message : null,
-      };
-    },
-    actions: {
-      onChange: (field, value) => form.setFieldValue(field, value as never),
-      /* `validateField` só marca "tocado" quando existe um `form.Field` montado — este hook
-         chama `setFieldValue`/`validateField` direto, sem montar um. Sem marcar aqui, o erro
-         nunca aparecia ao SAIR do campo (ver `toFieldState`, em form-projection.svelte.ts). */
-      onBlur: (field) => {
-        form.setFieldMeta(field, (prev) => ({ ...prev, isTouched: true }));
-        void form.validateField(field, 'change');
-      },
-      onSubmit: () => {
-        void form.handleSubmit();
-      },
-    },
-  };
+  return errors;
 }
 
 /**
- * Serviço fora do ar não é senha errada.
+ * O LOGIN: e-mail e senha.
  *
- * Mandar a pessoa "conferir a senha" quando o problema é a internet faz ela digitar de novo
- * três vezes antes de desconfiar. Só o que o Neon Auth recusa por credencial vira
- * `INVALID_CREDENTIALS`.
+ * - Em produção, as credenciais vão do navegador direto para o **Neon Auth** — a nossa API não
+ *   vê a senha. Depois, a guarda de rota confirma com `/api/auth/me`, onde o Go confere o
+ *   token e se o e-mail está na lista permitida.
+ * - No modo mock (localhost), quem confere é o `mock-server`, com o usuário de teste. Os campos
+ *   já vêm preenchidos com ele: em desenvolvimento ninguém precisa decorar senha de mentira.
+ *
+ * O formulário valida com o MESMO schema do contrato, e só depois de tentar enviar: erro
+ * vermelho antes de a pessoa terminar de digitar é bronca, não ajuda.
  */
-function readSignInError(status: number | undefined): string {
-  if (status === 401 || status === 403 || status === 400) return INVALID_CREDENTIALS;
+export function useLoginModel(input: {
+  returnTo: string;
+  error?: string | null;
+  initialValues?: LoginInput;
+}): LoginModel {
+  const values = $state<LoginInput>(input.initialValues ?? initialValues());
+  let isSubmitted = $state(false);
+  let isSubmitting = $state(false);
+  let error = $state<string | null>(input.error === FORBIDDEN_ERROR ? FORBIDDEN_MESSAGE : null);
 
-  return UNAVAILABLE;
+  async function signIn(credentials: LoginInput) {
+    if (USE_MOCKS) await authApi.mockSignIn(credentials);
+    else await signInWithEmail(credentials.email, credentials.password);
+
+    await goto(input.returnTo);
+  }
+
+  return {
+    get data() {
+      return { values, isMockMode: USE_MOCKS };
+    },
+    get state() {
+      return {
+        isSubmitting,
+        error,
+        fieldErrors: isSubmitted ? fieldErrorsOf(values) : {},
+      };
+    },
+    actions: {
+      onChange: (field, value) => {
+        values[field] = value;
+      },
+      onSubmit: () => {
+        isSubmitted = true;
+        const parsed = loginRequestSchema.safeParse(values);
+        if (!parsed.success || isSubmitting) return;
+
+        isSubmitting = true;
+        error = null;
+        signIn(parsed.data)
+          .catch((failure: unknown) => {
+            error = failure instanceof Error ? failure.message : readError(failure);
+          })
+          .finally(() => {
+            isSubmitting = false;
+          });
+      },
+    },
+  };
 }

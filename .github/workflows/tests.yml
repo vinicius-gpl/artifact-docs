@@ -31,6 +31,9 @@ jobs:
       # baseline em .claude/hooks/design/design-baseline.json). Moram na raiz.
       - run: mise run design:test
       - run: mise run design:check
+      # Marca (cores só por token) e leis de UX — skills brand-design e ux-laws.
+      - run: mise run brand:test
+      - run: mise run brand:check
       - run: mise run web:test
         working-directory: artifact-docs
 

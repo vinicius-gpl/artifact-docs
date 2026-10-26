@@ -22,7 +22,7 @@
   )}
 >
   <div class="min-w-0">
-    <h1 class="text-ink-900 text-xl font-bold">{data.title}</h1>
+    <h1 class="text-ink-900 text-2xl font-normal">{data.title}</h1>
     {#if data.description}
       <p class="text-ink-500 mt-0.5 text-sm">{data.description}</p>
     {/if}
