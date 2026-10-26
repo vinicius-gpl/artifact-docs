@@ -40,6 +40,7 @@
     TableHeader,
     TableRow,
   } from '$lib/components/acerola-table/acerola-table';
+  import { revealChildren } from '$lib/motion/motion';
   import { cn } from '$lib/utils/cn';
 
   let { data, ui, state, actions }: AcerolaPreviewGalleryProps = $props();
@@ -48,7 +49,12 @@
 </script>
 
 <div class={cn('flex flex-col gap-3', ui?.className)}>
-  <div class={cn('card-grid', !forceCards && 'xl:hidden')} data-slot="preview-cards-mobile">
+  <!-- Os cartões entram em cascata quando a lista aparece (GSAP, `revealChildren`). -->
+  <div
+    class={cn('card-grid', !forceCards && 'xl:hidden')}
+    data-slot="preview-cards-mobile"
+    use:revealChildren
+  >
     {#each data.items as item (item.id)}
       <PreviewCard
         data={{ item }}

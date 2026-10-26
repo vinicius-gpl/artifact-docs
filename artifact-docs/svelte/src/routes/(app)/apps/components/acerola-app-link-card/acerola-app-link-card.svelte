@@ -31,6 +31,7 @@
 
   import StatusBadge from '$lib/components/acerola-status-badge/acerola-status-badge.svelte';
   import { fillColorOf, fillFromPointer } from '$lib/motion/hover-fill';
+  import { hoverLift } from '$lib/motion/motion';
   import { cn } from '$lib/utils/cn';
 
   let { data, ui }: AcerolaAppLinkCardProps = $props();
@@ -48,6 +49,7 @@
   class={cn('glass hover-fill rounded-surface flex min-h-10 flex-col gap-3 p-4', ui?.className)}
   style:--fill-color={fillColorOf(app.status.tone === 'danger' ? 'danger' : 'neutral')}
   use:fillFromPointer
+  use:hoverLift
 >
   <div class="flex items-center gap-3">
     <span class="bg-muted rounded-box flex size-10 shrink-0 items-center justify-center overflow-hidden">

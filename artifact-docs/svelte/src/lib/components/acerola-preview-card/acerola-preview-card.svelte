@@ -51,6 +51,7 @@
   import ActionButton from '$lib/components/acerola-action-button/acerola-action-button.svelte';
   import StatusBadge from '$lib/components/acerola-status-badge/acerola-status-badge.svelte';
   import { fillColorOf, fillFromPointer } from '$lib/motion/hover-fill';
+  import { hoverLift } from '$lib/motion/motion';
   import { cn } from '$lib/utils/cn';
 
   let { data, ui, state, actions }: AcerolaPreviewCardProps = $props();
@@ -62,6 +63,7 @@
   class={cn('glass hover-fill rounded-surface flex flex-col', ui?.className)}
   style:--fill-color={fillColorOf('brand')}
   use:fillFromPointer
+  use:hoverLift
   data-slot="preview-card"
 >
   <div class="bg-background relative aspect-[16/10] overflow-hidden border-b" aria-hidden="true">
