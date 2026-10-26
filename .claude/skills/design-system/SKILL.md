@@ -75,7 +75,7 @@ artifact-docs/                              o app (como acerola/dashboard no ace
 ```
 
 **`<feature>` é a primeira pasta de `(app)/`** — uma por item do menu
-(`lib/navigation/navigation.ts`): `artifacts`, `plans`, `ideas`, `apps`, `brand`. O hub é um
+(`lib/navigation/navigation.ts`): `apps`, `artifacts`, `plans`, `ideas`. O hub é um
 módulo só, com uma casca só, montada em `routes/(app)/+layout.svelte`. A margem do conteúdo é da
 casca (`routes/(app)/+layout.svelte`, com a barra `acerola-top-nav`): o elemento raiz da tela não leva `px-*`/`pt-*`/`pb-*`.
 
