@@ -17,7 +17,9 @@ import (
 
 	"github.com/vinicius-gpl/artifact-docs/artifact-docs/src-go/auth"
 	"github.com/vinicius-gpl/artifact-docs/artifact-docs/src-go/config"
+	"github.com/vinicius-gpl/artifact-docs/artifact-docs/src-go/migrations"
 	"github.com/vinicius-gpl/artifact-docs/artifact-docs/src-go/server"
+	"github.com/vinicius-gpl/artifact-docs/artifact-docs/src-go/store"
 	"github.com/vinicius-gpl/artifact-docs/artifact-docs/src-go/web"
 )
 
@@ -48,20 +50,62 @@ func authFrom(cfg config.Config) server.Auth {
 	return settings
 }
 
+// openDatabase conecta ao Neon e aplica as migrations que faltam. Migration que falha
+// derruba a partida: subir com o banco pela metade espalharia o erro por todas as telas.
+func openDatabase(ctx context.Context, logger *slog.Logger, databaseURL string) (*store.Store, error) {
+	database, err := store.Open(ctx, databaseURL)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := migrate(ctx, logger, database); err != nil {
+		database.Close()
+		return nil, err
+	}
+
+	return database, nil
+}
+
+func migrate(ctx context.Context, logger *slog.Logger, database *store.Store) error {
+	pending, err := migrations.Embedded()
+	if err != nil {
+		return err
+	}
+
+	applied, err := migrations.Apply(ctx, database, pending)
+	if err != nil {
+		return err
+	}
+	logger.Info("migrations applied", "names", applied)
+
+	return nil
+}
+
 func run(logger *slog.Logger) error {
 	cfg, err := config.Load(os.Getenv)
 	if err != nil {
 		return err
 	}
 
-	srv := &http.Server{
-		Addr:              cfg.Addr(),
-		Handler:           server.New(logger, web.Dist(), authFrom(cfg)),
-		ReadHeaderTimeout: 5 * time.Second,
-	}
-
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
+
+	deps := server.Dependencies{Auth: authFrom(cfg)}
+	if cfg.DatabaseURL != "" {
+		database, err := openDatabase(ctx, logger, cfg.DatabaseURL)
+		if err != nil {
+			return err
+		}
+		defer database.Close()
+
+		deps.Setup, deps.Artifacts, deps.Apps = database, database, database
+	}
+
+	srv := &http.Server{
+		Addr:              cfg.Addr(),
+		Handler:           server.New(logger, web.Dist(), deps),
+		ReadHeaderTimeout: 5 * time.Second,
+	}
 
 	errs := make(chan error, 1)
 	go func() {

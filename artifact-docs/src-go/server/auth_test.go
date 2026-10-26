@@ -42,7 +42,7 @@ func getWithToken(test *testing.T, cfg Auth, target, token string) *http.Respons
 		req.Header.Set("Authorization", "Bearer "+token)
 	}
 	rec := httptest.NewRecorder()
-	New(slog.New(slog.NewTextHandler(io.Discard, nil)), builtSPA, cfg).ServeHTTP(rec, req)
+	New(slog.New(slog.NewTextHandler(io.Discard, nil)), builtSPA, Dependencies{Auth: cfg}).ServeHTTP(rec, req)
 
 	return rec.Result()
 }
@@ -110,4 +110,15 @@ func TestTheGateKeepsOutWhoCannotProveOrIsNotAllowed(test *testing.T) {
 			test.Errorf("%s: want a JSON error with a message, got %v", testCase.name, err)
 		}
 	}
+}
+
+// getWithDeps faz um GET sem token — para as rotas públicas.
+func getWithDeps(test *testing.T, deps Dependencies, target string) *http.Response {
+	test.Helper()
+
+	recorder := httptest.NewRecorder()
+	New(slog.New(slog.NewTextHandler(io.Discard, nil)), builtSPA, deps).
+		ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, target, nil))
+
+	return recorder.Result()
 }
