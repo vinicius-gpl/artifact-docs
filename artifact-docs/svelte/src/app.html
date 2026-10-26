@@ -6,6 +6,14 @@
     <meta name="color-scheme" content="light dark" />
     <link rel="icon" type="image/svg+xml" href="%sveltekit.assets%/favicon.svg" />
     <title>artifact-docs</title>
+    <!-- IBM Plex, a fonte da marca (skill brand-design). Pelo Google Fonts, e não por pacote
+         npm: é só CSS e fonte, sem nada para manter, e o navegador guarda em cache. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap"
+    />
     <script>
       // Aplica o tema salvo ANTES da primeira pintura da tela — sem isso, quem usa o modo
       // escuro veria um flash branco toda vez que abrisse o sistema, até o JavaScript carregar.

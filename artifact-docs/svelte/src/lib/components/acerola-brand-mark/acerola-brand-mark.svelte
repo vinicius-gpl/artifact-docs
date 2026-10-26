@@ -19,6 +19,6 @@
 <!-- O nome vai no texto alternativo: quem usa leitor de tela continua ouvindo qual é o sistema. -->
 <img
   src="/favicon.svg"
-  alt="acerola-ticket"
+  alt="artifact-docs"
   class={cn('shrink-0 object-contain', LOGO_SIZES[ui?.size ?? 'md'], ui?.className)}
 />
