@@ -7,7 +7,10 @@ import TopNav from './acerola-top-nav.svelte';
 
 const USER = { name: 'Você Mesmo', email: 'voce@exemplo.com', avatarUrl: null };
 
-function renderNav(activeKey: string | undefined = 'artifacts', onSignOut = vi.fn()) {
+/* `null` (e não `undefined`) para "nada aceso": `undefined` num parâmetro com padrão faz o
+   JavaScript usar o padrão, e o teste de "nada aceso" acabava com "Artefatos" aceso. */
+function renderNav(active: string | null = 'artifacts', onSignOut = vi.fn()) {
+  const activeKey = active ?? undefined;
   return render(TopNav, {
     props: {
       data: { items: NAV_ITEMS, homeHref: '/apps', user: USER },
@@ -63,7 +66,7 @@ describe('AcerolaTopNav', () => {
   });
 
   it('lights nothing on an address outside the menu (edge case)', () => {
-    const { container } = renderNav(undefined);
+    const { container } = renderNav(null);
 
     expect(container.querySelector('[aria-current="page"]')).toBeNull();
   });
