@@ -6,11 +6,14 @@ import { ApiError } from '$lib/api/http-client';
 
 import { load } from './+layout';
 
-const at = (path: string) => ({ url: new URL(`https://hub.exemplo.com${path}`) });
-
 vi.mock('$lib/api/auth.api', () => ({ authApi: { me: vi.fn() } }));
 
 const me = vi.mocked(authApi.me);
+const at = (path: string) => ({ url: new URL(`https://hub.exemplo.com${path}`) });
+
+async function thrownBy(path: string): Promise<unknown> {
+  return load(at(path)).catch((error: unknown) => error);
+}
 
 describe('a guarda de sessão', () => {
   beforeEach(() => {
@@ -19,33 +22,31 @@ describe('a guarda de sessão', () => {
 
   // feliz
   it('hands the signed-in person to the screens', async () => {
-    const user = { id: 'user-1', name: 'Pessoa de Teste' } as Awaited<
-      ReturnType<typeof authApi.me>
-    >;
+    const user = { id: 'u1', email: 'voce@exemplo.com', name: 'Você', image: null };
     me.mockResolvedValue(user);
 
-    await expect(load(at('/artifacts'))).resolves.toEqual({ user, sidebarOpen: true });
+    await expect(load(at('/apps'))).resolves.toEqual({ user });
   });
 
   // triste
-  /* Depois de entrar, a pessoa volta para a tela que pediu. */
   it('sends who has no session to the login, remembering where they were', async () => {
-    me.mockRejectedValue(new ApiError(401, 'Unauthorized'));
+    me.mockRejectedValue(new ApiError(401, 'Entre para continuar.'));
 
-    const thrown: unknown = await load(at('/artifacts/7')).catch((error: unknown) => error);
+    const thrown = await thrownBy('/artifacts/briefing');
 
     expect(isRedirect(thrown)).toBe(true);
-    expect(thrown).toMatchObject({
-      status: 307,
-      location: '/login?next=%2Fartifacts%2F7',
-    });
+    expect(thrown).toMatchObject({ location: '/login?next=%2Fartifacts%2Fbriefing' });
   });
 
-  /* API fora do ar não é "sem sessão": o erro sobe, em vez de tirar a pessoa da tela. */
-  it('lets any other failure through instead of redirecting', async () => {
-    const failure = new ApiError(500, 'Internal Server Error');
-    me.mockRejectedValue(failure);
+  it('sends an account outside the allow list back to the login, with the warning', async () => {
+    me.mockRejectedValue(new ApiError(403, 'Sem acesso.'));
 
-    await expect(load(at('/artifacts'))).rejects.toBe(failure);
+    expect(await thrownBy('/apps')).toMatchObject({ location: '/login?error=forbidden' });
+  });
+
+  it('lets any other failure reach the error page', async () => {
+    me.mockRejectedValue(new ApiError(503, 'A API está fora do ar.'));
+
+    expect(await thrownBy('/apps')).toBeInstanceOf(ApiError);
   });
 });

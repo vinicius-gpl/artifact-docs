@@ -75,9 +75,9 @@ artifact-docs/                              o app (como acerola/dashboard no ace
 ```
 
 **`<feature>` é a primeira pasta de `(app)/`** — uma por item do menu
-(`lib/navigation/navigation.ts`): `artifacts`, `plans`, `ideas`, `apps`, `brand`. O hub é um
+(`lib/navigation/navigation.ts`): `apps`, `artifacts`, `plans`, `ideas`. O hub é um
 módulo só, com uma casca só, montada em `routes/(app)/+layout.svelte`. A margem do conteúdo é da
-casca (`acerola-app-shell`): o elemento raiz da tela não leva `px-*`/`pt-*`/`pb-*`.
+casca (`routes/(app)/+layout.svelte`, com a barra `acerola-top-nav`): o elemento raiz da tela não leva `px-*`/`pt-*`/`pb-*`.
 
 **Pasta que não está neste mapa não é criada.** Precisa de uma pasta nova em `lib/`? Pare e
 pergunte. Pasta fora deste mapa (um `lib/table-view/`, um `lib/context/`) é violação — o check reprova.
@@ -178,7 +178,7 @@ Tudo em `kebab-case`, inglês, singular para componente/hook, plural para módul
 | Schema Zod | `lib/contracts/<entity>.schema.ts` | `artifact.schema.ts` |
 | Pacote Go | `artifact-docs/src-go/<pacote>/<arquivo>.go` · teste `_test.go` | `artifact-docs/src-go/server/spa.go` |
 | Migration | `artifact-docs/src-go/migrations/<NNNN>_<nome>.sql` | `0001_artifacts.sql` |
-| E2E | `<fluxo>.e2e.ts` | `login.e2e.ts` |
+| E2E | `<fluxo>.e2e.ts` | `artifact-gallery.e2e.ts` |
 | Doc | `docs/<nome-kebab>.md` | `docs/briefing.md` |
 | Branch | `feature/<nome-kebab>` · `bugfix/<nome-kebab>` | |
 

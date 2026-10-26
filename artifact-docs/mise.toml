@@ -18,7 +18,10 @@ description = "API Go em :3010"
 run = "go run ."
 
 [tasks."dev:web"]
-description = "SPA (Vite) em :5010, com /api encaminhado para o Go"
+description = "SPA (Vite) em :5010, com /api encaminhado para o Go — ou para o mock"
+# Modo mock ligado por padrão enquanto o Go não tem as rotas (src/lib/api/mock-server.ts).
+# Para falar com o Go de verdade: `VITE_API_MOCKS=false mise run dev`.
+env = { VITE_API_MOCKS = "{{ env.VITE_API_MOCKS | default(value='true') }}" }
 run = "npm run dev --prefix svelte"
 
 # ── Build ────────────────────────────────────────────────────────────────────
@@ -81,7 +84,7 @@ description = "Testes da SPA (Vitest)"
 run = "npm test --prefix svelte"
 
 [tasks."web:e2e"]
-description = "E2E da SPA (Playwright) — precisa da conta de teste no src-go/.env"
+description = "E2E da SPA (Playwright) — precisa da TEST_DATABASE_URL no src-go/.env"
 run = "npm run test:e2e --prefix svelte"
 
 [tasks."web:storybook"]

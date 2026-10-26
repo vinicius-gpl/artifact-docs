@@ -6,7 +6,6 @@ import { apiDownload, ApiError, apiRequest, readError, uploadFile } from './http
    internet — e contar uma chamada de `fetch` que não é a que está sendo medida. */
 vi.mock('$lib/auth/neon-auth.client', () => ({
   readAuthToken: vi.fn().mockResolvedValue('token-de-teste'),
-  neonAuth: {},
 }));
 
 const { readAuthToken } = await import('$lib/auth/neon-auth.client');
@@ -30,9 +29,10 @@ describe('apiRequest', () => {
     const fetchMock = respond(200, { id: 1 });
     vi.stubGlobal('fetch', fetchMock);
 
-    await apiRequest('/tickets/1');
+    await apiRequest('/artifacts/briefing', { method: 'PATCH', body: { isPinned: true } });
 
-    expect(fetchMock.mock.calls[0]?.[1]?.headers).toMatchObject({
+    expect(fetchMock.mock.calls[0]?.[1]?.headers).toEqual({
+      'Content-Type': 'application/json',
       Authorization: 'Bearer token-de-teste',
     });
   });
@@ -44,7 +44,7 @@ describe('apiRequest', () => {
     const fetchMock = respond(200, { id: 1 });
     vi.stubGlobal('fetch', fetchMock);
 
-    await apiRequest('/tickets/1');
+    await apiRequest('/artifacts');
 
     expect(fetchMock.mock.calls[0]?.[1]?.headers).not.toHaveProperty('Authorization');
   });

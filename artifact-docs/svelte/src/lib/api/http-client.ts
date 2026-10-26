@@ -12,6 +12,22 @@ import { type ApiErrorBody } from './api-error.type';
  */
 const BASE_URL = import.meta.env.PROD ? `${import.meta.env.VITE_API_URL ?? ''}/api` : '/api';
 
+/**
+ * O MODO MOCK: com `VITE_API_MOCKS=true`, toda chamada é respondida por `mock-server.ts`, que
+ * imita as rotas que o Go ainda não tem. É o único desvio do sistema inteiro — trocar pelo Go
+ * é desligar a variável, sem mexer em tela nem em hook.
+ *
+ * O `import()` é dinâmico para o mock (e os dados de mentira) nem entrarem no bundle quando a
+ * variável está desligada: o Vite troca a comparação por `false` no build e descarta o ramo.
+ */
+export const USE_MOCKS = import.meta.env.VITE_API_MOCKS === 'true';
+
+async function requestMock<TResponse>(path: string, options: RequestOptions): Promise<TResponse> {
+  const { handleMockRequest } = await import('./mock-server');
+
+  return handleMockRequest<TResponse>(path, options);
+}
+
 export class ApiError extends Error {
   readonly status: number;
   readonly details: { field: string; message: string }[];
@@ -33,19 +49,19 @@ export type RequestOptions = {
 };
 
 /**
- * A WEB NUNCA AFIRMA QUEM É — ela APRESENTA uma prova.
+ * Uma chamada à API, com o corpo em JSON e a falha convertida em `ApiError` com o motivo.
  *
- * O que vai no cabeçalho é o token assinado pelo Neon Auth, e o servidor confere a assinatura
- * antes de acreditar em qualquer coisa. É a diferença entre dizer "sou administrador" (o que
- * qualquer pessoa poderia escrever) e mostrar um crachá que só a Neon consegue emitir.
- *
- * Requisição sem token sai assim mesmo, sem cabeçalho: a API responde 401 e a guarda de rota
- * manda para o login. Barrar aqui só esconderia o motivo.
+ * A WEB NUNCA AFIRMA QUEM É — ela APRESENTA uma prova: o token assinado pelo Neon Auth, que o
+ * Go confere (JWKS) antes de acreditar em qualquer coisa. Requisição sem token sai assim
+ * mesmo: a API responde 401 e a guarda de rota manda para o login. No modo mock não há token —
+ * quem responde é o `mock-server`, que guarda a sessão de mentira.
  */
 export async function apiRequest<TResponse>(
   path: string,
   options: RequestOptions = {},
 ): Promise<TResponse> {
+  if (USE_MOCKS) return requestMock<TResponse>(path, options);
+
   const response = await fetch(`${BASE_URL}${path}${buildQuery(options.query)}`, {
     credentials: options.credentials,
     method: options.method ?? 'GET',

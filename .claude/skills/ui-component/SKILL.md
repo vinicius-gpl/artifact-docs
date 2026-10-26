@@ -45,7 +45,7 @@ Catálogo genérico (nome-alvo; o backlog de renomeação está em `design-syste
 | `acerola-donut-chart` / `acerola-column-chart` / `acerola-area-chart` / `acerola-radar-chart` | Gráficos (clique vira filtro) |
 | `acerola-page-header` | Topo de toda tela |
 | `acerola-empty-state` / `acerola-error-state` | Vazio e erro |
-| `acerola-app-shell` | A casca com menu (não mexa sem motivo) |
+| `acerola-top-nav` | A barra do topo, a casca do hub (não mexa sem motivo) |
 | `acerola-confirm-dialog` | Confirmar o que não tem volta |
 
 ## 2. Genérico ou de feature?
@@ -108,7 +108,7 @@ Não nomeie story de `Error` (sombra o global) — use `LoadFailed`.
 rótulo (`getByRole('button', { name: 'Salvar' })`), como a pessoa enxerga. Teste: o que
 aparece, o callback chamado com o valor certo, o estado travado, o erro anunciado. Quando o
 componente precisa de um contexto Svelte pra montar (provider, slot), use um arquivo auxiliar
-`acerola-<nome>-harness.test.svelte` do lado (veja `app-shell-nav-entry` como modelo).
+`acerola-<nome>-harness.test.svelte` do lado (veja `acerola-table-harness.test.svelte` como modelo).
 
 ## 7. Verificar
 

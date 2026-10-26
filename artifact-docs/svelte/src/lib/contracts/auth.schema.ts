@@ -3,13 +3,12 @@ import { z } from 'zod';
 /**
  * O CONTRATO do formulário de login: e-mail e senha, nada mais.
  *
- * Quem recebe essas credenciais é o **Neon Auth**, não a nossa API — por isso aqui não há DTO
- * de servidor, só a validação do formulário. O schema continua em `shared/` porque o que a
- * tela valida é o que o serviço de login espera receber, e esses dois precisam combinar.
+ * Quem recebe as credenciais é o **Neon Auth**, direto do navegador — não a nossa API. No modo
+ * mock, quem confere é o `mock-server`, com o usuário de teste.
  *
  * Sem `min` de tamanho na senha: a política de senha é do Neon Auth, e repeti-la aqui criaria
- * duas regras para a mesma coisa. Senha curta ou errada volta como credencial inválida, com a
- * mesma mensagem genérica de "e-mail ou senha incorretos".
+ * duas regras para a mesma coisa. Senha curta ou errada volta como "e-mail ou senha
+ * incorretos" — a mesma mensagem nos dois casos, para não contar que o e-mail existe.
  */
 export const loginRequestSchema = z.object({
   email: z
@@ -22,56 +21,42 @@ export const loginRequestSchema = z.object({
 
 export type LoginInput = z.input<typeof loginRequestSchema>;
 
-/**
- * O CONTRATO de "esqueci minha senha": só o e-mail.
- *
- * A resposta é sempre a mesma, exista a conta ou não — dizer "esse e-mail não está cadastrado"
- * contaria a quem está tentando adivinhar quais e-mails existem no sistema.
- */
-export const forgotPasswordSchema = z.object({
-  email: z
-    .string({ required_error: 'Informe o e-mail' })
-    .trim()
-    .min(1, 'Informe o e-mail')
-    .email('Informe um e-mail válido'),
-});
-
-export type ForgotPasswordInput = z.input<typeof forgotPasswordSchema>;
+export const INVALID_CREDENTIALS = 'E-mail ou senha incorretos.';
 
 /** O tamanho mínimo de senha do Neon Auth. Repetido aqui para o erro aparecer ANTES do envio. */
 export const PASSWORD_MIN_LENGTH = 8;
 
 /**
- * O CONTRATO de "definir nova senha": a senha e a confirmação.
+ * O CONTRATO do PRIMEIRO ACESSO: criar a conta de quem é dono do hub.
  *
- * A confirmação existe porque a pessoa não vê o que digita. Sem ela, um dedo errado vira uma
- * senha que ninguém conhece — e a única saída seria repetir o processo inteiro do e-mail.
- *
- * O erro da confirmação aponta para o campo da confirmação, não para o da senha: é nele que a
- * pessoa precisa mexer.
+ * A confirmação existe porque a pessoa não vê o que digita: sem ela, um dedo errado vira uma
+ * senha que ninguém conhece. O erro da confirmação aponta para o campo da confirmação — é nele
+ * que a pessoa precisa mexer.
  */
-export const resetPasswordSchema = z
+export const firstAccessSchema = z
   .object({
+    name: z.string({ required_error: 'Informe o nome' }).trim().min(1, 'Informe o nome'),
+    email: z
+      .string({ required_error: 'Informe o e-mail' })
+      .trim()
+      .min(1, 'Informe o e-mail')
+      .email('Informe um e-mail válido'),
     password: z
-      .string({ required_error: 'Informe a nova senha' })
+      .string({ required_error: 'Informe a senha' })
       .min(PASSWORD_MIN_LENGTH, `A senha precisa de pelo menos ${PASSWORD_MIN_LENGTH} caracteres`),
-    passwordConfirmation: z
-      .string({ required_error: 'Repita a nova senha' })
-      .min(1, 'Repita a nova senha'),
+    passwordConfirmation: z.string({ required_error: 'Repita a senha' }).min(1, 'Repita a senha'),
   })
   .refine((values) => values.password === values.passwordConfirmation, {
+    message: 'As senhas não são iguais',
     path: ['passwordConfirmation'],
-    message: 'As duas senhas precisam ser iguais',
   });
 
-export type ResetPasswordInput = z.input<typeof resetPasswordSchema>;
+export type FirstAccessInput = z.input<typeof firstAccessSchema>;
 
 /**
- * A configuração pública de autenticação entregue pelo backend.
- * Permite ao frontend inicializar o cliente de login quando a URL não foi embutida no build.
+ * `GET /api/auth/setup` — pública. `needsSetup` é verdade enquanto não existe conta com um dos
+ * e-mails permitidos: só aí a tela de login oferece o "Primeiro acesso".
  */
-export const authConfigSchema = z.object({
-  neonAuthUrl: z.string().url('A URL do Neon Auth precisa ser válida'),
-});
+export const setupStatusSchema = z.object({ needsSetup: z.boolean() });
 
-export type AuthConfig = z.infer<typeof authConfigSchema>;
+export type SetupStatus = z.infer<typeof setupStatusSchema>;

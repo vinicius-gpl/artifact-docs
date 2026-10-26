@@ -65,6 +65,8 @@ export const GENERIC_BY_DESIGN = [
   'area-chart',
   'progress-bar',
   'usage-meter',
+  // O botão de enviar de TODO formulário (skill `ui-component`, catálogo): hoje só o login usa.
+  'submit-button',
   /^chart-/,
   // Invólucros de `ui/<x>`: a feature não pode importar `ui/` direto, então eles moram em lib.
   'dialog',

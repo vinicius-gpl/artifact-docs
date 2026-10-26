@@ -20,12 +20,6 @@ function readServerEnv(name: string): string | undefined {
 const testDatabaseUrl = readServerEnv('TEST_DATABASE_URL');
 if (testDatabaseUrl) process.env.TEST_DATABASE_URL = testDatabaseUrl;
 
-/* A conta que o teste usa para entrar. Vive no Neon Auth, não no banco — ver `e2e/e2e-user.ts`. */
-for (const name of ['E2E_USER_EMAIL', 'E2E_USER_PASSWORD']) {
-  const value = readServerEnv(name);
-  if (value) process.env[name] = value;
-}
-
 /**
  * E2E da WEB: o navegador de verdade, a API de verdade e um banco descartável.
  *
@@ -34,8 +28,8 @@ for (const name of ['E2E_USER_EMAIL', 'E2E_USER_PASSWORD']) {
  * quem está desenvolvendo, que perderia os dados a cada execução.
  *
  * Sem `TEST_DATABASE_URL` no `src-go/.env`, o teste em si é pulado (ver os testes em `e2e/`) em
- * vez de arriscar rodar contra o banco de trabalho. O login acontece no Neon Auth, então o
- * teste também precisa de uma conta de teste de verdade (`E2E_USER_EMAIL`/`E2E_USER_PASSWORD`).
+ * vez de arriscar rodar contra o banco de trabalho. O hub não tem login: o teste abre as telas
+ * direto.
  *
  * Na primeira vez, baixe o navegador:  npx playwright install chromium
  */
@@ -50,8 +44,7 @@ export default defineConfig({
    *
    * Em desenvolvimento o Vite compila os módulos de cada rota NA PRIMEIRA VEZ que alguém a
    * abre. A primeira navegação de uma execução leva alguns segundos antes de a tela reagir, e
-   * com cinco segundos a asserção estourava ali — parecendo defeito da guarda de sessão, que
-   * está certa (ela redireciona ao receber 401 de `/api/auth/me`).
+   * com cinco segundos a asserção estourava ali — parecendo defeito da tela, que está certa.
    *
    * Aumentar o teto não deixa teste ruim passar: quem falha de verdade falha igual, só demora
    * mais para desistir.

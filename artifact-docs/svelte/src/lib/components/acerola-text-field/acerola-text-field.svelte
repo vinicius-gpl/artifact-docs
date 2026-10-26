@@ -11,7 +11,7 @@
    */
   /* `date` entra aqui, e não num componente separado, porque só o `type` do `input` muda —
      rótulo, erro e acessibilidade são exatamente os mesmos. */
-  export type TextFieldType = 'text' | 'email' | 'password' | 'date' | 'time' | 'tel';
+  export type TextFieldType = 'text' | 'email' | 'password' | 'date' | 'time' | 'tel' | 'search';
 
   export type AcerolaTextFieldProps = {
     data: {
@@ -76,7 +76,8 @@
   const inputClass = $derived(
     cn(
       'control-lg rounded-control',
-      'bg-card text-foreground w-full border text-sm transition-colors',
+      /* Carbon: campo preenchido, só com a linha de baixo (skill `brand-design` §3). */
+      'bg-muted text-foreground w-full border-0 border-b text-sm transition-colors',
       'placeholder:text-ink-500 disabled:cursor-not-allowed disabled:opacity-60',
       isPassword && 'pr-11',
       hasError ? 'border-destructive' : 'border-input',

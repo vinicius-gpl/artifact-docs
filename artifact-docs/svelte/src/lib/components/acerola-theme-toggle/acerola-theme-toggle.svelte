@@ -16,6 +16,6 @@
 
 <ActionButton
   data={{ label: theme.theme === 'dark' ? 'Mudar para o tema claro' : 'Mudar para o tema escuro' }}
-  ui={{ variant: 'ghost', size: 'sm', icon: theme.theme === 'dark' ? Moon : Sun, isIconOnly: true }}
+  ui={{ variant: 'ghost', size: 'lg', icon: theme.theme === 'dark' ? Moon : Sun, isIconOnly: true }}
   actions={{ onClick: theme.actions.onToggle }}
 />
