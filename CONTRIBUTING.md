@@ -195,9 +195,9 @@ O que não precisa:
 | Componente genérico | `lib/components/acerola-<nome>/acerola-<nome>.svelte` | `lib/components/acerola-text-field/acerola-text-field.svelte` |
 | Componente de feature | `routes/(app)/<feature>/components/acerola-<nome>/acerola-<nome>.svelte` | `routes/(app)/artifacts/components/acerola-artifact-card/acerola-artifact-card.svelte` |
 | Story          | `acerola-<nome>.stories.svelte`             | `acerola-artifact-card.stories.svelte`                 |
-| Hook (view-model) | `lib/hooks/use-<nome>/use-<nome>.svelte.ts` — pasta própria, prefixo `use-`, nunca arquivo solto | `lib/hooks/use-app-shell/use-app-shell.svelte.ts` |
+| Hook (view-model) | `lib/hooks/use-<nome>/use-<nome>.svelte.ts` — pasta própria, prefixo `use-`, nunca arquivo solto | `lib/hooks/use-top-nav/use-top-nav.svelte.ts` |
 | Teste          | `<arquivo>.test.ts` · Go: `<arquivo>_test.go` | `format-date.test.ts` · `spa_test.go`                 |
-| E2E            | `<fluxo>.e2e.ts`                            | `login.e2e.ts`                                         |
+| E2E            | `<fluxo>.e2e.ts`                            | `artifact-gallery.e2e.ts`                                      |
 | Contrato Zod   | `lib/contracts/<nome>.schema.ts`            | `user.schema.ts`                                       |
 | Pacote Go      | `artifact-docs/src-go/<pacote>/<arquivo>.go`              | `artifact-docs/src-go/server/spa.go`                                 |
 | Migration      | `artifact-docs/src-go/migrations/<NNNN>_<nome>.sql`       | `0001_artifacts.sql`                                   |
