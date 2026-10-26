@@ -17,14 +17,19 @@ describe('AcerolaShortcutList', () => {
     });
 
     expect(screen.getByRole('heading', { name: 'Fixados' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /Briefing/ })).toHaveAttribute('href', '/artifacts/briefing');
+    expect(screen.getByRole('link', { name: /Briefing/ })).toHaveAttribute(
+      'href',
+      '/artifacts/briefing',
+    );
     expect(screen.getByText('Documento')).toBeInTheDocument();
   });
 
   // triste
   it('says how the block fills up when it is empty', () => {
     render(ShortcutList, {
-      props: { data: { title: 'Recentes', emptyLabel: 'Abra um item para ele aparecer aqui.', items: [] } },
+      props: {
+        data: { title: 'Recentes', emptyLabel: 'Abra um item para ele aparecer aqui.', items: [] },
+      },
     });
 
     expect(screen.getByText('Abra um item para ele aparecer aqui.')).toBeInTheDocument();

@@ -104,7 +104,11 @@ const ROUTES: MockRoute[] = [
   { method: 'GET', path: '/artifacts/:label', handle: getArtifact },
   { method: 'PATCH', path: '/artifacts/:label', handle: patchArtifact },
   { method: 'GET', path: '/apps', handle: () => appHubSchema.parse(db.appHub) },
-  { method: 'GET', path: '/palettes', handle: () => paletteListSchema.parse({ items: db.palettes }) },
+  {
+    method: 'GET',
+    path: '/palettes',
+    handle: () => paletteListSchema.parse({ items: db.palettes }),
+  },
 ];
 
 /** Casa `/artifacts/abertura-cnpj` com `/artifacts/:label` e devolve `{ label }`. */

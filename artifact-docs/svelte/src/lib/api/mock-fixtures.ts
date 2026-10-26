@@ -262,12 +262,21 @@ const APP_HUB_SEED: AppHub = {
   ],
 };
 
+/** O `.css` que o Go geraria, como `data:` — o botão de baixar funciona igual sem o Go. */
+function paletteCss(colors: Palette['colors']): string {
+  const light = colors.map((color) => `  --${color.token}: ${color.light};`).join('\n');
+  const dark = colors.map((color) => `  --${color.token}: ${color.dark};`).join('\n');
+  const css = `:root {\n${light}\n}\n\n:root[data-theme='dark'] {\n${dark}\n}\n`;
+
+  return `data:text/css;charset=utf-8,${encodeURIComponent(css)}`;
+}
+
 const PALETTE_SEEDS: Palette[] = [
   {
     id: 'palette-brand',
     name: 'Artifact-docs · Carbon',
     isBrand: true,
-    outputUrl: '/api/palettes/palette-brand/output.css',
+    outputUrl: '',
     createdAt: '2026-10-25T12:00:00.000Z',
     colors: [
       { token: 'primary', light: '#ffa58a', dark: '#ffb59e' },
@@ -284,7 +293,7 @@ const PALETTE_SEEDS: Palette[] = [
     id: 'palette-azuos',
     name: 'Grupo Azuos · rascunho',
     isBrand: false,
-    outputUrl: '/api/palettes/palette-azuos/output.css',
+    outputUrl: '',
     createdAt: '2026-10-20T09:30:00.000Z',
     colors: [
       { token: 'primary', light: '#1d4ed8', dark: '#60a5fa' },
@@ -309,7 +318,12 @@ export function createMockDatabase(now: number = Date.now()): MockDatabase {
     artifacts.map((artifact) => [artifact.id, versionsOf(artifact)]),
   );
 
-  return { artifacts, versions, appHub: structuredClone(APP_HUB_SEED), palettes: structuredClone(PALETTE_SEEDS) };
+  const palettes = PALETTE_SEEDS.map((palette) => ({
+    ...structuredClone(palette),
+    outputUrl: paletteCss(palette.colors),
+  }));
+
+  return { artifacts, versions, appHub: structuredClone(APP_HUB_SEED), palettes };
 }
 
 /** Uma versão por número até a atual, uma semana entre cada uma, a mais nova primeiro. */

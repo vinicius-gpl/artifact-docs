@@ -20,7 +20,11 @@ import {
 import { mirrorStore } from '$lib/hooks/use-mirror-store/use-mirror-store.svelte';
 import { formatTimeAgo } from '$lib/utils/format-machine';
 
-export type GalleryFilters = { search: string; kind: ArtifactKind | ''; status: ArtifactStatus | '' };
+export type GalleryFilters = {
+  search: string;
+  kind: ArtifactKind | '';
+  status: ArtifactStatus | '';
+};
 
 export type FilterOption = { value: string; label: string; tone?: StatusBadgeTone };
 
@@ -67,7 +71,10 @@ const RECENT_LIMIT = 5;
 export function toPreviewItem(artifact: Artifact, withKind: boolean, now: number): PreviewItem {
   const badges: PreviewBadge[] = [];
   if (artifact.status) {
-    badges.push({ label: ARTIFACT_STATUS_LABELS[artifact.status], tone: STATUS_TONES[artifact.status] });
+    badges.push({
+      label: ARTIFACT_STATUS_LABELS[artifact.status],
+      tone: STATUS_TONES[artifact.status],
+    });
   }
   if (withKind) badges.push({ label: ARTIFACT_KIND_LABELS[artifact.kind], tone: 'brand' });
   badges.push({ label: ARTIFACT_FORMAT_LABELS[artifact.format], tone: 'neutral' });
@@ -128,7 +135,10 @@ export function recentOf(items: Artifact[], now: number): ShortcutLink[] {
 }
 
 function kindOptions(): FilterOption[] {
-  return artifactKindSchema.options.map((kind) => ({ value: kind, label: ARTIFACT_KIND_LABELS[kind] }));
+  return artifactKindSchema.options.map((kind) => ({
+    value: kind,
+    label: ARTIFACT_KIND_LABELS[kind],
+  }));
 }
 
 function statusOptions(): FilterOption[] {
