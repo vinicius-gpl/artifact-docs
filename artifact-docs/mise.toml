@@ -84,7 +84,7 @@ description = "Testes da SPA (Vitest)"
 run = "npm test --prefix svelte"
 
 [tasks."web:e2e"]
-description = "E2E da SPA (Playwright) — precisa da conta de teste no src-go/.env"
+description = "E2E da SPA (Playwright) — precisa da TEST_DATABASE_URL no src-go/.env"
 run = "npm run test:e2e --prefix svelte"
 
 [tasks."web:storybook"]
