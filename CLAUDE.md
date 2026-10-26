@@ -9,7 +9,7 @@ banco de ideias, hub de apps e casa da marca. O porquê e o como estão em
 [`docs/briefing.md`](./docs/briefing.md).
 
 - **Stack:** SPA SvelteKit (`artifact-docs/svelte/`, `adapter-static`) embutida num binário Go (`artifact-docs/main.go` +
-  `artifact-docs/src-go/`). Neon (Postgres) para dados e login, R2 (API S3) para arquivos, Caddy na frente.
+  `artifact-docs/src-go/`). Neon (Postgres) para dados, R2 (API S3) para arquivos, Caddy na frente.
 - **RAM é o limite:** a VPS tem 1 GB. Nada de Node em produção, biblioteca padrão do Go
   primeiro, nada de processo extra no servidor.
 - **A infra do front foi copiada do acerola-ticket** — libs, versões, componentes, tokens e
@@ -87,9 +87,9 @@ docs/                                           briefing e decisões
 mise.toml                                       ferramentas, setup, design e atalhos para o app
 ```
 
-A casca (`acerola-app-shell`) é uma só, montada em `routes/(app)/+layout.svelte`, que também
-guarda a sessão. A margem do conteúdo é dela: a tela define só a largura máxima
-(`mx-auto w-full max-w-6xl`).
+A casca é uma só: a barra do topo (`acerola-top-nav`), montada em `routes/(app)/+layout.svelte`.
+O hub não tem login, perfil nem guarda de sessão. A margem do conteúdo é do layout: a tela
+define só a largura máxima (`mx-auto w-full max-w-6xl`).
 
 ## Comandos
 
