@@ -1,6 +1,5 @@
 import { type AppHub } from '$lib/contracts/app-link.schema';
 import { type Artifact, type ArtifactVersion } from '$lib/contracts/artifact.schema';
-import { type Palette } from '$lib/contracts/palette.schema';
 
 /**
  * OS DADOS DE MENTIRA do modo mock (`VITE_API_MOCKS=true`) — inventados, nunca dado real.
@@ -253,53 +252,10 @@ const APP_HUB_SEED: AppHub = {
   ],
 };
 
-/** O `.css` que o Go geraria, como `data:` — o botão de baixar funciona igual sem o Go. */
-function paletteCss(colors: Palette['colors']): string {
-  const light = colors.map((color) => `  --${color.token}: ${color.light};`).join('\n');
-  const dark = colors.map((color) => `  --${color.token}: ${color.dark};`).join('\n');
-  const css = `:root {\n${light}\n}\n\n:root[data-theme='dark'] {\n${dark}\n}\n`;
-
-  return `data:text/css;charset=utf-8,${encodeURIComponent(css)}`;
-}
-
-const PALETTE_SEEDS: Palette[] = [
-  {
-    id: 'palette-brand',
-    name: 'Artifact-docs · Carbon',
-    isBrand: true,
-    outputUrl: '',
-    createdAt: '2026-10-25T12:00:00.000Z',
-    colors: [
-      { token: 'primary', light: '#ffa58a', dark: '#ffb59e' },
-      { token: 'primary-strong', light: '#d13200', dark: '#ffb59e' },
-      { token: 'accent-hero', light: '#ecb00e', dark: '#f8db8c' },
-      { token: 'tertiary', light: '#f88ca8', dark: '#f88ca8' },
-      { token: 'background', light: '#f4f4f3', dark: '#121214' },
-      { token: 'foreground', light: '#141416', dark: '#f2f2f0' },
-      { token: 'success', light: '#126e35', dark: '#4ade80' },
-      { token: 'destructive', light: '#bb1e1e', dark: '#f87171' },
-    ],
-  },
-  {
-    id: 'palette-azuos',
-    name: 'Grupo Azuos · rascunho',
-    isBrand: false,
-    outputUrl: '',
-    createdAt: '2026-10-20T09:30:00.000Z',
-    colors: [
-      { token: 'primary', light: '#1d4ed8', dark: '#60a5fa' },
-      { token: 'accent-hero', light: '#e82527', dark: '#f87171' },
-      { token: 'background', light: '#f8fafc', dark: '#11111a' },
-      { token: 'foreground', light: '#0f172a', dark: '#f1f5f9' },
-    ],
-  },
-];
-
 export type MockDatabase = {
   artifacts: Artifact[];
   versions: Record<string, ArtifactVersion[]>;
   appHub: AppHub;
-  palettes: Palette[];
 };
 
 /** Um banco novo, com as datas relativas a `now` — o teste passa um `now` fixo. */
@@ -309,12 +265,7 @@ export function createMockDatabase(now: number = Date.now()): MockDatabase {
     artifacts.map((artifact) => [artifact.id, versionsOf(artifact)]),
   );
 
-  const palettes = PALETTE_SEEDS.map((palette) => ({
-    ...structuredClone(palette),
-    outputUrl: paletteCss(palette.colors),
-  }));
-
-  return { artifacts, versions, appHub: structuredClone(APP_HUB_SEED), palettes };
+  return { artifacts, versions, appHub: structuredClone(APP_HUB_SEED) };
 }
 
 /** Uma versão por número até a atual, uma semana entre cada uma, a mais nova primeiro. */

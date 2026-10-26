@@ -18,8 +18,8 @@ describe('useTopNavModel', () => {
     openScreen('/artifacts/abertura-cnpj');
     expect(model.state.activeKey).toBe('artifacts');
 
-    openScreen('/brand');
-    expect(model.state.activeKey).toBe('brand');
+    openScreen('/apps');
+    expect(model.state.activeKey).toBe('apps');
     expect(model.data).toEqual({ items: NAV_ITEMS, homeHref: HOME_PATH });
   });
 

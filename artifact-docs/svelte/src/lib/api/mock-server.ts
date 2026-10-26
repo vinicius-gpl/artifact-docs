@@ -7,7 +7,6 @@ import {
   artifactSchema,
   type Artifact,
 } from '$lib/contracts/artifact.schema';
-import { paletteListSchema } from '$lib/contracts/palette.schema';
 
 import { ApiError, type RequestOptions } from './http-client';
 import { createMockDatabase, type MockDatabase } from './mock-fixtures';
@@ -102,11 +101,6 @@ const ROUTES: MockRoute[] = [
   { method: 'GET', path: '/artifacts/:label', handle: getArtifact },
   { method: 'PATCH', path: '/artifacts/:label', handle: patchArtifact },
   { method: 'GET', path: '/apps', handle: () => appHubSchema.parse(db.appHub) },
-  {
-    method: 'GET',
-    path: '/palettes',
-    handle: () => paletteListSchema.parse({ items: db.palettes }),
-  },
 ];
 
 /** Casa `/artifacts/abertura-cnpj` com `/artifacts/:label` e devolve `{ label }`. */

@@ -7,7 +7,7 @@ import TopNav from './acerola-top-nav.svelte';
 
 function renderNav(activeKey: string | undefined = 'artifacts') {
   return render(TopNav, {
-    props: { data: { items: NAV_ITEMS, homeHref: '/artifacts' }, state: { activeKey } },
+    props: { data: { items: NAV_ITEMS, homeHref: '/apps' }, state: { activeKey } },
   });
 }
 
@@ -30,10 +30,7 @@ describe('AcerolaTopNav', () => {
   it('takes the brand back home and offers the theme switch', () => {
     renderNav();
 
-    expect(screen.getByRole('link', { name: /artifact-docs/ })).toHaveAttribute(
-      'href',
-      '/artifacts',
-    );
+    expect(screen.getByRole('link', { name: /artifact-docs/ })).toHaveAttribute('href', '/apps');
     expect(screen.getByRole('button', { name: /Mudar para o tema/ })).toBeInTheDocument();
   });
 

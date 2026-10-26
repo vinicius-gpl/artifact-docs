@@ -3,7 +3,6 @@ import AppWindow from '@lucide/svelte/icons/app-window';
 import Lightbulb from '@lucide/svelte/icons/lightbulb';
 import LayoutGrid from '@lucide/svelte/icons/layout-grid';
 import ListTodo from '@lucide/svelte/icons/list-todo';
-import Palette from '@lucide/svelte/icons/palette';
 
 /**
  * O MENU LATERAL — uma lista só, porque o hub é um módulo só.
@@ -26,19 +25,18 @@ function navItem(key: string, label: string, icon: LucideIcon): NavItem {
 }
 
 /**
- * A ORDEM É A DO USO: começa no que se abre todo dia (Artefatos, Planejamentos, Ideias), passa
- * pelos atalhos (Apps) e termina na marca, que se mexe de vez em quando.
+ * A ORDEM É A DO USO: começa nos Apps, a página inicial — o hub é antes de tudo o ponto de
+ * partida para os outros apps —, e segue pelo que se publica (Artefatos, Planejamentos, Ideias).
  */
 export const NAV_ITEMS: readonly NavItem[] = [
+  navItem('apps', 'Apps', AppWindow),
   navItem('artifacts', 'Artefatos', LayoutGrid),
   navItem('plans', 'Planejamentos', ListTodo),
   navItem('ideas', 'Ideias', Lightbulb),
-  navItem('apps', 'Apps', AppWindow),
-  navItem('brand', 'Marca', Palette),
 ];
 
-/** A tela em que o sistema abre. */
-export const HOME_PATH = '/artifacts';
+/** A tela em que o sistema abre: a primeira do menu. */
+export const HOME_PATH = '/apps';
 
 /**
  * O item aceso, DENTRO DOS ITENS QUE A CASCA RECEBEU — o prefixo mais longo que casar vence,
