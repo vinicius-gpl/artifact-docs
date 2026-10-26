@@ -60,6 +60,8 @@ O padrão está em **`CONTRIBUTING.md`**, e ele manda. Os pontos que mais quebra
 | **Criar, mover ou renomear qualquer arquivo**; "isso está no lugar certo?" | `design-system` | `/sistema-de-design` |
 | Componente visual novo ou alterado | `ui-component` (e `ui-standards` como referência) | `/componente-ui` |
 | Desenhar ou revisar tela, texto de tela | `ui-standards` | `/ui-padrao` |
+| Cor, fonte, forma, "segue a marca?" (padrão Carbon, acabamento Vidro) | `brand-design` | `/design-da-marca` |
+| Quantidade de opções, tamanho de alvo, agrupamento, fluxo | `ux-laws` | `/leis-de-ux` |
 | "Salva", "commita" | `git-commit` | `/commitar` |
 | **Qualquer mudança de código** (começar, terminar, juntar, enviar) | `git-flow` | `/git-fluxo` |
 | Conflito de merge | `resolve-conflict` | `/resolver-conflito` |
@@ -99,11 +101,15 @@ mise run setup          # uma vez: hooks do git, Git-Flow e dependências do fro
 mise run dev            # API Go :3010 + SPA :5010 (em segundo plano: não termina)
 mise run check          # tudo o que o CI roda — para quem quiser à mão; o Claude não roda (ver Git)
 mise run design:check   # regras de design — só reprova violação nova
+mise run brand:check    # regras da marca e das leis de UX (kit de design)
 mise run build          # binário único em artifact-docs/bin/artifact-docs
 mise tasks              # lista tudo
 ```
 
-Para conferir a tela, use o navegador em http://localhost:5010.
+Para conferir a tela, use o navegador em http://localhost:5010. O `dev` sobe a tela com o
+**modo mock** ligado: as rotas que o Go ainda não tem são respondidas por
+`svelte/src/lib/api/mock-server.ts` (ver [`docs/api-mocks.md`](./docs/api-mocks.md)). Rota nova
+nasce no mock e no contrato Zod; quando o Go a implementa, o mock dela sai.
 
 ## O que SEMPRE pede confirmação antes
 
