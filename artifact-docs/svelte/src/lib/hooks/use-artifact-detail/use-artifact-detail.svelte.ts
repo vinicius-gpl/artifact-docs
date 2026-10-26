@@ -53,7 +53,7 @@ export function toArtifactView(artifact: ArtifactDetail): ArtifactView {
       { label: 'Label', value: artifact.label },
       { label: 'Formato', value: ARTIFACT_FORMAT_LABELS[artifact.format] },
       { label: 'Tamanho', value: formatBytes(artifact.sizeBytes) },
-      { label: 'Acesso', value: artifact.isPrivate ? 'Exige login' : 'Quem tiver o link' },
+      { label: 'Acesso', value: artifact.isPrivate ? 'Privado' : 'Qualquer um com o link' },
       { label: 'Editado em', value: formatDateTime(artifact.updatedAt) },
       { label: 'Criado em', value: formatDateTime(artifact.createdAt) },
     ],
