@@ -14,7 +14,7 @@
 
 <Story name="Default" args={{ data, state: { activeKey: 'artifacts' } }} />
 
-<Story name="AnotherScreen" args={{ data, state: { activeKey: 'brand' } }} />
+<Story name="AnotherScreen" args={{ data, state: { activeKey: 'ideas' } }} />
 
 <!-- Caso limite: endereço fora do menu, nada aceso. -->
 <Story name="NothingActive" args={{ data, state: { activeKey: undefined } }} />
