@@ -177,9 +177,18 @@ O que não precisa:
 
 - Biblioteca padrão primeiro. Dependência nova só quando a padrão não resolve — a VPS tem 1 GB,
   e cada pacote é binário e memória a mais.
-- Código em `artifact-docs/src-go/<pacote>/`, nome de pacote curto e em inglês. `artifact-docs/main.go`, na raiz do app, só liga as
-  peças (o `go:embed` da SPA é o motivo de ele ficar lá).
-- Configuração só por variável de ambiente (`artifact-docs/src-go/config`). Valor inválido derruba a partida;
+- Código em `artifact-docs/src-go/`, no mesmo desenho do agent do acerola-ticket:
+  - `app/<entrada>/` **compõe** — liga os módulos às rotas e cuida da vida do processo;
+  - `modules/<feature>/` é a **funcionalidade inteira** — tipos (`<feature>.go`), `handlers.go`,
+    `repository.go` e o SQL em `queries/<consulta>.sql`, um arquivo por consulta, lido com
+    `go:embed`. Nada de `server/`, `store/` ou `service/` cortando as features por camada;
+  - `lib/` é a **infraestrutura técnica** — `infra/<integração>/` (config, database, neonauth) e
+    o que é de todos (`httpjson`, `web`).
+  Nome de pacote curto e em inglês. `artifact-docs/main.go` só cria o log e chama o `app/server`.
+- SQL: palavra-chave em MAIÚSCULA, uma coluna por linha, alias com nome inteiro (`AS artifact`,
+  nunca `a`), parâmetro com tipo quando ele pode ser vazio ou nulo (`$2::TEXT`). JOIN que se
+  repete vira view (`migrations/views/`). Consulta nunca é montada com `Sprintf`.
+- Configuração só por variável de ambiente (`artifact-docs/src-go/lib/infra/config`). Valor inválido derruba a partida;
   nunca cai num padrão em silêncio.
 - Erro da API tem um formato só, `{"message": "..."}` em pt-BR — o mesmo que a SPA lê em
   `lib/api/api-error.type.ts`. Endereço de API que não existe é 404 em JSON, nunca o `index.html`.
@@ -199,8 +208,9 @@ O que não precisa:
 | Teste          | `<arquivo>.test.ts` · Go: `<arquivo>_test.go` | `format-date.test.ts` · `spa_test.go`                 |
 | E2E            | `<fluxo>.e2e.ts`                            | `artifact-gallery.e2e.ts`                                      |
 | Contrato Zod   | `lib/contracts/<nome>.schema.ts`            | `user.schema.ts`                                       |
-| Pacote Go      | `artifact-docs/src-go/<pacote>/<arquivo>.go`              | `artifact-docs/src-go/server/spa.go`                                 |
-| Migration      | `artifact-docs/src-go/migrations/<NNNN>_<nome>.sql`       | `0001_artifacts.sql`                                   |
+| Pacote Go      | `artifact-docs/src-go/{app,modules,lib}/<pacote>/<arquivo>.go` | `artifact-docs/src-go/modules/artifacts/handlers.go`     |
+| Consulta SQL   | `artifact-docs/src-go/modules/<feature>/queries/<verbo>_<coisa>.sql` | `list_artifacts.sql`                          |
+| Migration      | `…/lib/infra/database/migrations/models/<domínio>/<NNNN>_create_<tabela>.sql` · views em `migrations/views/` | `0001_create_artifacts.sql` |
 | Util puro      | `<nome>.util.ts`                            | `download-file.util.ts`                                |
 
 Export nomeado sempre. `export default` só onde o framework exige.
@@ -249,7 +259,7 @@ Local:
 | --------- | --------------------------------------------------------------------- |
 | `backend` | `artifact-docs/src-go/`, `artifact-docs/main.go`, `artifact-docs/go.mod`, `artifact-docs/go.sum`                              |
 | `web`     | `artifact-docs/svelte/`                                                             |
-| `db`      | `artifact-docs/src-go/migrations/`                                                  |
+| `db`      | `artifact-docs/src-go/lib/infra/database/migrations/`                               |
 | `infra`   | `deploy/` (Caddy, systemd, VPS)                                       |
 | `tooling` | `mise.toml`, `artifact-docs/mise.toml`, `artifact-docs/.golangci.yml`, `.vscode/` |
 | `git`     | `.githooks/`, `scripts/git/`, `.gitmessage`, `.gitattributes`, `.gitignore` |
