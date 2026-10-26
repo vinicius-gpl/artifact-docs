@@ -1,132 +1,23 @@
 // Command artifact-docs sobe o hub: a API em /api e a SPA embutida em todo o resto.
 //
 // Um binário só, sem Node em produção: a VPS tem 1 GB de RAM, e cada processo a menos é
-// memória a mais para o resto. Todo o código Go mora em src-go/; aqui só se liga as peças e
-// se cuida da vida do processo (subir, parar com Ctrl+C ou SIGTERM do systemd).
+// memória a mais para o resto. Todo o código Go mora em src-go/ (app/ compõe, modules/ tem
+// as funcionalidades, lib/ a infraestrutura); aqui só se cria o log e se chama o servidor.
 package main
 
 import (
-	"context"
-	"errors"
 	"log/slog"
-	"net/http"
 	"os"
-	"os/signal"
-	"syscall"
-	"time"
 
-	"github.com/vinicius-gpl/artifact-docs/artifact-docs/src-go/auth"
-	"github.com/vinicius-gpl/artifact-docs/artifact-docs/src-go/config"
-	"github.com/vinicius-gpl/artifact-docs/artifact-docs/src-go/migrations"
-	"github.com/vinicius-gpl/artifact-docs/artifact-docs/src-go/server"
-	"github.com/vinicius-gpl/artifact-docs/artifact-docs/src-go/store"
-	"github.com/vinicius-gpl/artifact-docs/artifact-docs/src-go/web"
+	"github.com/vinicius-gpl/artifact-docs/artifact-docs/src-go/app/server"
+	"github.com/vinicius-gpl/artifact-docs/artifact-docs/src-go/lib/web"
 )
-
-// shutdownTimeout é quanto as requisições em andamento têm para terminar quando o processo
-// recebe ordem de parar. Passou disso, a conexão é cortada.
-const shutdownTimeout = 10 * time.Second
 
 func main() {
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 
-	if err := run(logger); err != nil {
+	if err := server.Run(logger, web.Dist()); err != nil {
 		logger.Error("server stopped", "error", err)
 		os.Exit(1)
 	}
-}
-
-// authFrom liga o porteiro às chaves da Neon. Sem NEON_AUTH_JWKS_URL o login fica desligado
-// (Tokens nil) e o servidor sobe assim mesmo: em desenvolvimento a tela usa o modo mock.
-func authFrom(cfg config.Config) server.Auth {
-	settings := server.Auth{AllowedEmails: cfg.AllowedEmails, NeonAuthURL: cfg.NeonAuthURL}
-	if cfg.NeonAuthJWKSURL == "" {
-		return settings
-	}
-
-	client := &http.Client{Timeout: 5 * time.Second}
-	settings.Tokens = auth.NewVerifier(auth.NewKeySet(cfg.NeonAuthJWKSURL, client))
-
-	return settings
-}
-
-// openDatabase conecta ao Neon e aplica as migrations que faltam. Migration que falha
-// derruba a partida: subir com o banco pela metade espalharia o erro por todas as telas.
-func openDatabase(ctx context.Context, logger *slog.Logger, databaseURL string) (*store.Store, error) {
-	database, err := store.Open(ctx, databaseURL)
-	if err != nil {
-		return nil, err
-	}
-
-	if err := migrate(ctx, logger, database); err != nil {
-		database.Close()
-		return nil, err
-	}
-
-	return database, nil
-}
-
-func migrate(ctx context.Context, logger *slog.Logger, database *store.Store) error {
-	pending, err := migrations.Embedded()
-	if err != nil {
-		return err
-	}
-
-	applied, err := migrations.Apply(ctx, database, pending)
-	if err != nil {
-		return err
-	}
-	logger.Info("migrations applied", "names", applied)
-
-	return nil
-}
-
-func run(logger *slog.Logger) error {
-	cfg, err := config.Load(os.Getenv)
-	if err != nil {
-		return err
-	}
-
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-	defer stop()
-
-	deps := server.Dependencies{Auth: authFrom(cfg)}
-	if cfg.DatabaseURL != "" {
-		database, err := openDatabase(ctx, logger, cfg.DatabaseURL)
-		if err != nil {
-			return err
-		}
-		defer database.Close()
-
-		deps.Setup, deps.Artifacts, deps.Apps = database, database, database
-	}
-
-	srv := &http.Server{
-		Addr:              cfg.Addr(),
-		Handler:           server.New(logger, web.Dist(), deps),
-		ReadHeaderTimeout: 5 * time.Second,
-	}
-
-	errs := make(chan error, 1)
-	go func() {
-		logger.Info("server listening", "addr", srv.Addr)
-		errs <- srv.ListenAndServe()
-	}()
-
-	select {
-	case err := <-errs:
-		return err
-	case <-ctx.Done():
-	}
-
-	shutdownCtx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
-	defer cancel()
-
-	if err := srv.Shutdown(shutdownCtx); err != nil && !errors.Is(err, http.ErrServerClosed) {
-		return err
-	}
-
-	logger.Info("server stopped")
-
-	return nil
 }

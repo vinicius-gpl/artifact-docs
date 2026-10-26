@@ -1,4 +1,4 @@
-package server
+package web
 
 import (
 	"errors"
@@ -13,12 +13,12 @@ import (
 const notBuilt = "A tela ainda não foi compilada. Em desenvolvimento, use a do Vite " +
 	"(mise run dev → http://localhost:5010); para o binário, rode mise run build."
 
-// spaHandler serve a SPA embutida.
+// Handler serve a SPA embutida.
 //
 // Arquivo que existe (JS, CSS, favicon) é servido como está. Qualquer outro caminho recebe o
 // index.html: o SvelteKit está em modo SPA (adapter-static com fallback), e é o roteador dele,
 // no navegador, que decide se /artifacts/briefing existe.
-func spaHandler(dist fs.FS) http.Handler {
+func Handler(dist fs.FS) http.Handler {
 	files := http.FileServerFS(dist)
 
 	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {

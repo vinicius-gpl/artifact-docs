@@ -1,4 +1,4 @@
-package auth
+package neonauth
 
 import (
 	"context"
@@ -16,7 +16,7 @@ import (
 // ErrInvalidToken é todo token que não prova nada: malformado, assinatura errada, algoritmo
 // que não aceitamos ou vencido. Quem chama não precisa saber qual — para a tela é sempre
 // "entre de novo", e detalhar o motivo só ajudaria quem tenta forjar.
-var ErrInvalidToken = errors.New("auth: invalid token")
+var ErrInvalidToken = errors.New("neonauth: invalid token")
 
 // User é quem o token diz que é. Os campos são os que o Neon Auth (Better Auth) põe no JWT.
 type User struct {
