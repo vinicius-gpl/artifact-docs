@@ -13,9 +13,9 @@ test-results/
 # Binário do Go e a cópia da SPA que entra nele por embed (`mise run build:web`). O `.gitkeep`
 # fica: sem nenhum arquivo na pasta, o `go:embed` não compila antes do primeiro build.
 artifact-docs/bin/
-!artifact-docs/src-go/web/dist/
-artifact-docs/src-go/web/dist/*
-!artifact-docs/src-go/web/dist/.gitkeep
+!artifact-docs/src-go/lib/web/dist/
+artifact-docs/src-go/lib/web/dist/*
+!artifact-docs/src-go/lib/web/dist/.gitkeep
 *.test
 *.out
 
@@ -34,3 +34,7 @@ desktop.ini
 
 # Ajuste local do Claude Code — é de quem programa, não do projeto.
 .claude/settings.local.json
+
+# Inventário e segredos do deploy: o workflow monta os dois a partir das secrets.
+deploy/ansible/hosts.ini
+deploy/ansible/vars.json

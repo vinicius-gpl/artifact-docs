@@ -117,3 +117,54 @@ export const artifactPatchSchema = z
   .partial();
 
 export type ArtifactPatch = z.infer<typeof artifactPatchSchema>;
+
+/** O que se publica (briefing, módulo 1): HTML solto, um site em .zip, Markdown ou PDF. */
+export const PUBLISH_ACCEPT = '.html,.htm,.zip,.md,.markdown,.pdf';
+
+/** O maior envio que a API aceita — o `maxUploadBytes` do Go. */
+export const MAX_PUBLISH_BYTES = 100 * 1024 * 1024;
+
+const publishFileSchema = z
+  .instanceof(File, { message: 'Escolha o arquivo a publicar' })
+  .refine((file) => /\.(html?|zip|md|markdown|pdf)$/i.test(file.name), {
+    message: 'Envie um arquivo .html, .zip, .md ou .pdf',
+  })
+  .refine((file) => file.size > 0, { message: 'O arquivo está vazio' })
+  .refine((file) => file.size <= MAX_PUBLISH_BYTES, { message: 'O arquivo passa de 100 MB' });
+
+/**
+ * O formulário de PUBLICAR UM ARTEFATO NOVO — `PUT /api/artifacts/<label>` em multipart. O Go
+ * confere o mesmo (`modules/artifacts/publish.go`); mudou aqui, muda lá.
+ */
+export const artifactPublishSchema = z.object({
+  file: publishFileSchema,
+  title: z
+    .string()
+    .trim()
+    .min(1, 'Informe o título')
+    .max(200, 'O título tem no máximo 200 caracteres'),
+  label: artifactLabelSchema,
+  kind: artifactKindSchema,
+  description: z.string().trim().max(1000, 'A descrição tem no máximo 1000 caracteres'),
+  /** Separadas por vírgula, como a pessoa digita. */
+  tags: z.string().trim(),
+});
+
+export type ArtifactPublishInput = z.infer<typeof artifactPublishSchema>;
+
+/**
+ * UMA VERSÃO NOVA de um artefato que já existe: só o arquivo é obrigatório. Título,
+ * descrição e tags vazios mantêm o que já está publicado — e o tipo nem vai: no Go, `kind`
+ * preenchido troca o tipo do artefato.
+ */
+export const artifactVersionPublishSchema = artifactPublishSchema.extend({
+  title: z.string().trim().max(200, 'O título tem no máximo 200 caracteres'),
+  kind: artifactKindSchema.optional(),
+});
+
+export type ArtifactVersionPublishInput = z.infer<typeof artifactVersionPublishSchema>;
+
+/** O corpo do rollback: `POST /api/artifacts/<label>/restore`. */
+export const artifactRestoreSchema = z.object({ version: z.number().int().positive() });
+
+export type ArtifactRestore = z.infer<typeof artifactRestoreSchema>;

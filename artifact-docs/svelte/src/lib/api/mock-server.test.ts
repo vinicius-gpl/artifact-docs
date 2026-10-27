@@ -1,14 +1,29 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { type AppHub } from '$lib/contracts/app-link.schema';
 import { type ArtifactDetail, type ArtifactList } from '$lib/contracts/artifact.schema';
 
 import { ApiError } from './http-client';
-import { MOCK_PASSWORD, MOCK_USER } from './mock-fixtures';
+import { htmlUrl, MOCK_PASSWORD, MOCK_USER } from './mock-fixtures';
 import { resetMockAccount, setMockSession } from './mock-auth';
 import { handleMockRequest, matchPath, resetMockDatabase } from './mock-server';
 
 /* Sem atraso: o teste mede a resposta, não a espera. */
+/**
+ * Tira o `URL.createObjectURL` durante um teste, para o mock cair no `data:` — que dá para ler
+ * no próprio teste. O ambiente NÃO decide isso sozinho: o Node do CI tem `blob:` e o jsdom
+ * local às vezes não, e um teste que dependia disso passava aqui e falhava lá.
+ */
+const originalCreateObjectURL = URL.createObjectURL;
+
+function withoutBlobUrls(): void {
+  URL.createObjectURL = undefined as unknown as typeof URL.createObjectURL;
+}
+
+afterEach(() => {
+  URL.createObjectURL = originalCreateObjectURL;
+});
+
 const request = <T>(path: string, options = {}) => handleMockRequest<T>(path, options, 0);
 
 beforeEach(() => {
@@ -124,5 +139,129 @@ describe('mock sign-in', () => {
     await request('/auth/mock/sign-out', { method: 'POST' });
 
     await expect(request('/auth/me')).rejects.toMatchObject({ status: 401 });
+  });
+});
+
+describe('handleMockRequest — publishing', () => {
+  beforeEach(withoutBlobUrls);
+
+  function publishForm(fields: Record<string, string>, file?: File): FormData {
+    const form = new FormData();
+    if (file) form.append('file', file, file.name);
+    for (const [field, value] of Object.entries(fields)) form.append(field, value);
+
+    return form;
+  }
+
+  // feliz
+  it('publishes a new artifact and then a second version of it', async () => {
+    const html = new File(['<h1>Guia</h1>'], 'guia.html', { type: 'text/html' });
+    const created = await request<{ currentVersion: number; url: string }>('/artifacts/guia-novo', {
+      method: 'PUT',
+      body: publishForm({ title: 'Guia novo', kind: 'document' }, html),
+    });
+    const updated = await request<{ currentVersion: number; title: string }>(
+      '/artifacts/guia-novo',
+      {
+        method: 'PUT',
+        body: publishForm({}, new File(['# Guia'], 'guia.md')),
+      },
+    );
+
+    expect(created.currentVersion).toBe(1);
+    expect(created.url).toContain(encodeURIComponent('<h1>Guia</h1>'));
+    expect(updated).toMatchObject({ currentVersion: 2, title: 'Guia novo' });
+  });
+
+  // triste
+  it('refuses a new artifact without title, like the Go', async () => {
+    const html = new File(['<p>x</p>'], 'x.html');
+
+    await expect(
+      request('/artifacts/sem-titulo', {
+        method: 'PUT',
+        body: publishForm({ kind: 'idea' }, html),
+      }),
+    ).rejects.toMatchObject({ status: 400 });
+  });
+
+  // feliz
+  it('restores an older version and deletes an artifact', async () => {
+    const list = await request<ArtifactList>('/artifacts');
+    const withVersions = list.items.find((item) => item.currentVersion > 1);
+    if (!withVersions) throw new Error('the fixtures need an artifact with versions');
+
+    const restored = await request<{ currentVersion: number }>(
+      `/artifacts/${withVersions.label}/restore`,
+      { method: 'POST', body: { version: 1 } },
+    );
+    await request(`/artifacts/${withVersions.label}`, { method: 'DELETE' });
+
+    expect(restored.currentVersion).toBe(1);
+    await expect(request(`/artifacts/${withVersions.label}`)).rejects.toMatchObject({
+      status: 404,
+    });
+  });
+
+  // triste
+  it('answers 404 when restoring a version that does not exist', async () => {
+    const list = await request<ArtifactList>('/artifacts');
+    const label = list.items[0]?.label ?? '';
+
+    await expect(
+      request(`/artifacts/${label}/restore`, { method: 'POST', body: { version: 999 } }),
+    ).rejects.toMatchObject({ status: 404 });
+  });
+});
+
+describe('handleMockRequest — apps', () => {
+  const input = { name: 'Immich', url: 'https://fotos.exemplo.com', typeName: 'Mídia' };
+
+  // feliz
+  it('creates an app in a new type, then moves it and drops the empty type', async () => {
+    const created = await request<{ id: string; typeId: string }>('/apps', {
+      method: 'POST',
+      body: input,
+    });
+    const hub = await request<AppHub>('/apps');
+    expect(hub.types.some((type) => type.id === created.typeId && type.name === 'Mídia')).toBe(
+      true,
+    );
+
+    await request(`/apps/${created.id}`, {
+      method: 'PATCH',
+      body: { ...input, typeName: hub.types[0]!.name.toUpperCase() },
+    });
+
+    const after = await request<AppHub>('/apps');
+    expect(after.types.some((type) => type.name === 'Mídia')).toBe(false);
+  });
+
+  // triste
+  it('refuses an address without http and answers 404 for an app that does not exist', async () => {
+    await expect(
+      request('/apps', { method: 'POST', body: { ...input, url: 'fotos.exemplo.com' } }),
+    ).rejects.toMatchObject({ status: 400 });
+    await expect(request('/apps/nao-existe', { method: 'DELETE' })).rejects.toMatchObject({
+      status: 404,
+    });
+  });
+});
+
+describe('htmlUrl', () => {
+  // feliz
+  it('falls back to a data: page where the browser has no blob URLs', () => {
+    withoutBlobUrls();
+
+    expect(htmlUrl('<h1>Oi</h1>')).toBe(
+      `data:text/html;charset=utf-8,${encodeURIComponent('<h1>Oi</h1>')}`,
+    );
+  });
+
+  // triste
+  it('uses a blob: page when the browser can open it in a new tab', () => {
+    URL.createObjectURL = () => 'blob:http://localhost/1';
+
+    expect(htmlUrl('<h1>Oi</h1>')).toBe('blob:http://localhost/1');
   });
 });

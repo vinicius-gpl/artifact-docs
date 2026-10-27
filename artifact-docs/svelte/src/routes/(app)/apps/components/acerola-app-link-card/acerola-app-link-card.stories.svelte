@@ -1,5 +1,6 @@
 <script module lang="ts">
   import { defineMeta } from '@storybook/addon-svelte-csf';
+  import { fn } from 'storybook/test';
 
   import { type AppTile } from '$lib/hooks/use-app-hub/use-app-hub.svelte';
   import AppLinkCard from './acerola-app-link-card.svelte';
@@ -44,3 +45,5 @@
     ui: { className: 'w-60' },
   }}
 />
+
+<Story name="Editable" args={{ data: { app }, ui: { className: 'w-72' }, actions: { onEdit: fn() } }} />

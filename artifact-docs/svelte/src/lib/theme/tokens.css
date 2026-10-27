@@ -478,6 +478,16 @@
     @apply bg-background text-foreground font-sans antialiased;
   }
 
+  /* A mãozinha em tudo que se clica. O Tailwind v4 deixou o botão com o cursor padrão (a
+     seta), e o resultado era um sistema onde o link mostra a mão e o botão ao lado não — a
+     pessoa fica sem saber o que é clicável (Jakob). Desabilitado continua com a seta: não há o
+     que clicar. */
+  button:not(:disabled),
+  [role='button']:not([aria-disabled='true']),
+  summary {
+    cursor: pointer;
+  }
+
   /* As manchas do Vidro: fixas atrás de tudo, nas três cores da marca. `pointer-events: none`
      e `z-index: -1` — é papel de parede, não conteúdo. */
   body::before {

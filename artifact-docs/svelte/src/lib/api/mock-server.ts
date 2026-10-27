@@ -1,11 +1,20 @@
-import { appHubSchema } from '$lib/contracts/app-link.schema';
+import {
+  appHubSchema,
+  appLinkInputSchema,
+  appLinkSchema,
+  type AppLink,
+  type AppLinkInput,
+} from '$lib/contracts/app-link.schema';
 import {
   artifactDetailSchema,
   artifactKindSchema,
+  artifactLabelSchema,
   artifactListSchema,
   artifactPatchSchema,
+  artifactRestoreSchema,
   artifactSchema,
   type Artifact,
+  type ArtifactFormat,
 } from '$lib/contracts/artifact.schema';
 
 import { ApiError, type RequestOptions } from './http-client';
@@ -17,7 +26,7 @@ import {
   mockSignUp,
   setMockSession,
 } from './mock-auth';
-import { createMockDatabase, type MockDatabase } from './mock-fixtures';
+import { createMockDatabase, htmlUrl, mockPage, type MockDatabase } from './mock-fixtures';
 
 /**
  * O BACKEND DE MENTIRA — responde às mesmas rotas `/api/...` que o Go vai responder.
@@ -106,6 +115,222 @@ function patchArtifact({ params, body }: MockContext) {
   return artifactSchema.parse(artifact);
 }
 
+/** O formato pelo nome do arquivo — a mesma regra do `buildBundle` do Go. */
+function formatOf(fileName: string): ArtifactFormat | null {
+  if (/\.html?$/i.test(fileName) || /\.zip$/i.test(fileName)) return 'html';
+  if (/\.(md|markdown)$/i.test(fileName)) return 'md';
+  if (/\.pdf$/i.test(fileName)) return 'pdf';
+
+  return null;
+}
+
+function formText(form: FormData, field: string): string | null {
+  const value = form.get(field);
+
+  return typeof value === 'string' && value.trim() ? value.trim() : null;
+}
+
+/**
+ * O que o mock serve no lugar de `/a/<token>/`: o próprio HTML enviado (`htmlUrl`). Markdown,
+ * .zip e PDF viram uma página dizendo o que foi publicado — o mock não converte nem descompacta.
+ */
+async function servedUrlOf(file: File, title: string, format: ArtifactFormat): Promise<string> {
+  if (format === 'html' && /\.html?$/i.test(file.name)) {
+    return htmlUrl(await file.text());
+  }
+
+  return mockPage(title, [`Arquivo publicado: ${file.name}.`, 'No Go, ele é servido de verdade.']);
+}
+
+function newArtifact(label: string, form: FormData, format: ArtifactFormat): Artifact {
+  const title = formText(form, 'title');
+  const kind = artifactKindSchema.safeParse(form.get('kind'));
+  if (!title || !kind.success) {
+    throw new ApiError(400, 'Artefato novo precisa de título e tipo (title e kind).');
+  }
+
+  const now = new Date().toISOString();
+  const artifact: Artifact = {
+    id: `artifact-${crypto.randomUUID()}`,
+    label,
+    title,
+    description: null,
+    kind: kind.data,
+    format,
+    status: null,
+    isPrivate: false,
+    isPinned: false,
+    url: '',
+    thumbUrl: null,
+    currentVersion: 0,
+    sizeBytes: 0,
+    tags: [],
+    createdAt: now,
+    updatedAt: now,
+    lastViewedAt: null,
+  };
+  db.artifacts.push(artifact);
+  db.versions[artifact.id] = [];
+
+  return artifact;
+}
+
+type PublishBody = { label: string; form: FormData; file: File; format: ArtifactFormat };
+
+/** Confere o PUT na mesma ordem e com as mesmas mensagens do Go. */
+function readPublishBody(params: Record<string, string>, body: unknown): PublishBody {
+  const label = artifactLabelSchema.safeParse(params.label);
+  if (!label.success) {
+    throw new ApiError(400, 'Use só letras minúsculas, números e hífen na label (até 80).');
+  }
+
+  const file = body instanceof FormData ? body.get('file') : null;
+  if (!(body instanceof FormData) || !(file instanceof File)) {
+    throw new ApiError(400, 'Envie o arquivo no campo file.');
+  }
+
+  const format = formatOf(file.name);
+  if (!format) throw new ApiError(400, 'Envie um arquivo .html, .zip, .md ou .pdf.');
+
+  return { label: label.data, form: body, file, format };
+}
+
+/** Campo que não veio mantém o valor — o "nil é não veio" do Go. */
+function publishedFields(artifact: Artifact, form: FormData): Partial<Artifact> {
+  const tags = formText(form, 'tags') ?? '';
+
+  return {
+    title: formText(form, 'title') ?? artifact.title,
+    description: form.has('description') ? formText(form, 'description') : artifact.description,
+    tags: form.has('tags')
+      ? tags
+          .split(',')
+          .map((tag) => tag.trim())
+          .filter(Boolean)
+      : artifact.tags,
+  };
+}
+
+/** O PUT de publicação: cria o artefato ou sobe a versão seguinte, como o Go. */
+async function publishArtifact({ params, body }: MockContext) {
+  const { label, form, file, format } = readPublishBody(params, body);
+  const artifact =
+    db.artifacts.find((item) => item.label === label) ?? newArtifact(label, form, format);
+  const versions = db.versions[artifact.id] ?? [];
+  const version = Math.max(0, ...versions.map((item) => item.version)) + 1;
+  const now = new Date().toISOString();
+
+  Object.assign(artifact, publishedFields(artifact, form), {
+    format,
+    currentVersion: version,
+    sizeBytes: file.size,
+    updatedAt: now,
+  });
+  artifact.url = await servedUrlOf(file, artifact.title, format);
+  versions.unshift({ version, sizeBytes: file.size, hasThumb: false, createdAt: now });
+  db.versions[artifact.id] = versions;
+
+  return artifactSchema.parse(artifact);
+}
+
+function restoreArtifact({ params, body }: MockContext) {
+  const artifact = findArtifact(params.label ?? '');
+  const restore = artifactRestoreSchema.safeParse(body);
+  if (!restore.success) throw new ApiError(400, 'Informe a versão a restaurar.');
+  const exists = (db.versions[artifact.id] ?? []).some(
+    (item) => item.version === restore.data.version,
+  );
+  if (!exists) throw new ApiError(404, 'Versão não encontrada.');
+
+  artifact.currentVersion = restore.data.version;
+  artifact.updatedAt = new Date().toISOString();
+
+  return artifactSchema.parse(artifact);
+}
+
+function deleteArtifact({ params }: MockContext) {
+  const artifact = findArtifact(params.label ?? '');
+  db.artifacts = db.artifacts.filter((item) => item.id !== artifact.id);
+  delete db.versions[artifact.id];
+
+  return undefined;
+}
+
+function readAppInput(body: unknown): AppLinkInput {
+  const input = appLinkInputSchema.safeParse(body);
+  if (!input.success)
+    throw new ApiError(400, input.error.issues[0]?.message ?? 'Cadastro inválido.');
+
+  return input.data;
+}
+
+/** O tipo pelo nome, sem diferença de maiúscula — o `upsert_app_type.sql` do Go. */
+function typeIdFor(name: string): string {
+  const existing = db.appHub.types.find((type) => type.name.toLowerCase() === name.toLowerCase());
+  if (existing) return existing.id;
+
+  const position = Math.max(-1, ...db.appHub.types.map((type) => type.position)) + 1;
+  const created = { id: `type-${crypto.randomUUID()}`, name, position };
+  db.appHub.types.push(created);
+
+  return created.id;
+}
+
+/** O tipo que ficou sem nenhum app some, como no Go. */
+function dropEmptyTypes(): void {
+  db.appHub.types = db.appHub.types.filter((type) =>
+    db.appHub.apps.some((app) => app.typeId === type.id),
+  );
+}
+
+function findApp(id: string): AppLink {
+  const app = db.appHub.apps.find((item) => item.id === id);
+  if (!app) throw new ApiError(404, 'App não encontrado. Ele pode ter sido apagado.');
+
+  return app;
+}
+
+function createApp({ body }: MockContext) {
+  const input = readAppInput(body);
+  const app: AppLink = {
+    id: `app-${crypto.randomUUID()}`,
+    typeId: typeIdFor(input.typeName),
+    name: input.name,
+    url: input.url,
+    logoUrl: null,
+    status: 'unknown',
+    checkedAt: null,
+  };
+  db.appHub.apps.push(app);
+
+  return appLinkSchema.parse(app);
+}
+
+function updateApp({ params, body }: MockContext) {
+  const app = findApp(params.id ?? '');
+  const input = readAppInput(body);
+  const isNewAddress = app.url !== input.url;
+
+  Object.assign(app, {
+    typeId: typeIdFor(input.typeName),
+    name: input.name,
+    url: input.url,
+    status: isNewAddress ? 'unknown' : app.status,
+    checkedAt: isNewAddress ? null : app.checkedAt,
+  });
+  dropEmptyTypes();
+
+  return appLinkSchema.parse(app);
+}
+
+function deleteApp({ params }: MockContext) {
+  const app = findApp(params.id ?? '');
+  db.appHub.apps = db.appHub.apps.filter((item) => item.id !== app.id);
+  dropEmptyTypes();
+
+  return undefined;
+}
+
 const ROUTES: MockRoute[] = [
   { method: 'GET', path: '/auth/me', handle: mockMe },
   { method: 'GET', path: '/auth/setup', isPublic: true, handle: mockSetup },
@@ -130,7 +355,13 @@ const ROUTES: MockRoute[] = [
   { method: 'GET', path: '/artifacts', handle: listArtifacts },
   { method: 'GET', path: '/artifacts/:label', handle: getArtifact },
   { method: 'PATCH', path: '/artifacts/:label', handle: patchArtifact },
+  { method: 'PUT', path: '/artifacts/:label', handle: publishArtifact },
+  { method: 'POST', path: '/artifacts/:label/restore', handle: restoreArtifact },
+  { method: 'DELETE', path: '/artifacts/:label', handle: deleteArtifact },
   { method: 'GET', path: '/apps', handle: () => appHubSchema.parse(db.appHub) },
+  { method: 'POST', path: '/apps', handle: createApp },
+  { method: 'PATCH', path: '/apps/:id', handle: updateApp },
+  { method: 'DELETE', path: '/apps/:id', handle: deleteApp },
 ];
 
 /** Casa `/artifacts/abertura-cnpj` com `/artifacts/:label` e devolve `{ label }`. */
@@ -178,7 +409,12 @@ export async function handleMockRequest<TResponse>(
     if (!route.isPublic && !hasMockSession()) throw new ApiError(401, 'Entre para continuar.');
 
     /* Cópia: a tela não pode mexer no "banco" segurando a referência da resposta. */
-    const result = route.handle({ db, params, query: toQuery(options.query), body: options.body });
+    const result = await route.handle({
+      db,
+      params,
+      query: toQuery(options.query),
+      body: options.body,
+    });
     return structuredClone(result) as TResponse;
   }
 

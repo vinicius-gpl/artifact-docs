@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{.Title}}</title>
+<!-- O template da marca para o Markdown publicado (briefing, módulo 1). As cores são os
+     tokens de svelte/src/lib/theme/tokens.css — padrão Carbon: canto reto, IBM Plex, a cor
+     da marca só nos destaques. Mudou lá, muda aqui. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+  :root {
+    --background: #f4f4f3;
+    --card: #fafaf9;
+    --muted: #ebebe9;
+    --border: #dcdcd8;
+    --foreground: #141416;
+    --muted-foreground: #626267;
+    --primary: #ffa58a;
+    --primary-strong: #d13200;
+    color-scheme: light dark;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --background: #121214;
+      --card: #19191c;
+      --muted: #202024;
+      --border: #2c2c31;
+      --foreground: #f2f2f0;
+      --muted-foreground: #a1a1a6;
+      --primary: #ffb59e;
+      --primary-strong: #ffb59e;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--background);
+    color: var(--foreground);
+    font: 400 1.0625rem/1.7 'IBM Plex Sans', system-ui, sans-serif;
+  }
+  main { max-width: 72ch; margin: 0 auto; padding: 3rem 1rem 6rem; }
+  h1, h2, h3, h4 { font-weight: 500; line-height: 1.25; margin: 2.5rem 0 1rem; }
+  h1 { font-size: 2.5rem; font-weight: 400; margin-top: 0; padding-left: 1rem; border-left: 0.5rem solid var(--primary); }
+  h2 { font-size: 1.75rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border); }
+  h3 { font-size: 1.25rem; }
+  p, ul, ol, table, pre, blockquote { margin: 0 0 1.25rem; }
+  a { color: var(--primary-strong); text-underline-offset: 0.2em; }
+  code, pre { font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 0.9em; }
+  :not(pre) > code { background: var(--muted); padding: 0.1em 0.35em; }
+  pre { background: var(--card); border: 1px solid var(--border); padding: 1rem; overflow-x: auto; }
+  blockquote { margin-left: 0; padding: 0.25rem 1rem; border-left: 0.25rem solid var(--border); color: var(--muted-foreground); }
+  table { width: 100%; border-collapse: collapse; display: block; overflow-x: auto; }
+  th, td { text-align: left; padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--border); }
+  th { font-weight: 500; background: var(--muted); }
+  img { max-width: 100%; height: auto; }
+  hr { border: 0; border-top: 1px solid var(--border); margin: 2.5rem 0; }
+</style>
+</head>
+<body>
+<main>
+{{.Body}}
+</main>
+</body>
+</html>

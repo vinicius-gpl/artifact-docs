@@ -30,8 +30,8 @@ run = "npm run dev --prefix svelte"
 description = "Build da SPA e cópia para dentro do pacote Go que a embute"
 run = """
 npm run build --prefix svelte
-find src-go/web/dist -mindepth 1 ! -name .gitkeep -delete
-cp -r svelte/dist/. src-go/web/dist/
+find src-go/lib/web/dist -mindepth 1 ! -name .gitkeep -delete
+cp -r svelte/dist/. src-go/lib/web/dist/
 """
 
 [tasks.build]
