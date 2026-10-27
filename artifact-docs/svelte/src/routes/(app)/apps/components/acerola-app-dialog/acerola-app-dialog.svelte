@@ -67,7 +67,7 @@
     </DialogHeader>
 
     <form
-      class="-mx-1 flex flex-col gap-4 px-1 pb-1"
+      class="flex flex-col gap-4 px-1 pb-1"
       novalidate
       onsubmit={(event) => {
         event.preventDefault();
