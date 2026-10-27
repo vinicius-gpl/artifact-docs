@@ -9,8 +9,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
-
-	"github.com/vinicius-gpl/artifact-docs/artifact-docs/src-go/lib/infra/neonauth"
 )
 
 type fakeOwners struct {
@@ -38,15 +36,15 @@ func serve(handler http.HandlerFunc, request *http.Request) *http.Response {
 
 // feliz
 func TestMeAnswersWhoIsLoggedIn(test *testing.T) {
-	request := WithUser(httptest.NewRequest(http.MethodGet, "/api/auth/me", nil),
-		neonauth.User{ID: "u1", Email: "dono@exemplo.com", Name: "Dono"})
-	response := serve(newTestHandlers(&fakeOwners{}).Me, request)
+	request := httptest.NewRequest(http.MethodGet, "/api/auth/me", nil)
+	request.Header.Set("Authorization", "Bearer owner")
+	response := serve(RequireUser(ownerSettings, newTestHandlers(&fakeOwners{}).Me), request)
 
 	var body map[string]any
 	if err := json.NewDecoder(response.Body).Decode(&body); err != nil {
 		test.Fatalf("decode: %v", err)
 	}
-	if body["id"] != "u1" || body["email"] != "dono@exemplo.com" || body["name"] != "Dono" {
+	if body["id"] != "u1" || body["email"] != "Dono@Exemplo.com" || body["name"] != "Dono" {
 		test.Fatalf("body = %v", body)
 	}
 	if image, ok := body["image"]; !ok || image != nil {
@@ -93,5 +91,19 @@ func TestSetupExplainsWhenItCannotCheck(test *testing.T) {
 
 	if response.StatusCode != http.StatusInternalServerError {
 		test.Fatalf("status = %d, want 500", response.StatusCode)
+	}
+}
+
+// feliz
+func TestSetupInTestModeSkipsFirstAccessWithoutTheDatabase(test *testing.T) {
+	handlers := NewHandlers(Settings{TestMode: true}, nil, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	response := serve(handlers.Setup, httptest.NewRequest(http.MethodGet, "/api/auth/setup", nil))
+
+	var body map[string]bool
+	if err := json.NewDecoder(response.Body).Decode(&body); err != nil {
+		test.Fatalf("decode: %v", err)
+	}
+	if response.StatusCode != http.StatusOK || body["needsSetup"] {
+		test.Fatalf("status = %d, needsSetup = %v; want 200 and false", response.StatusCode, body["needsSetup"])
 	}
 }

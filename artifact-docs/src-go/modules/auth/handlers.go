@@ -56,7 +56,14 @@ func (handlers *Handlers) Config(writer http.ResponseWriter, _ *http.Request) {
 // Setup é GET /api/auth/setup, pública: a tela de login pergunta, antes de qualquer sessão,
 // se deve oferecer o "Primeiro acesso" (setupStatusSchema em
 // svelte/src/lib/contracts/auth.schema.ts).
+//
+// No modo de teste a conta "já existe": é o usuário de teste, e o e2e entra direto.
 func (handlers *Handlers) Setup(writer http.ResponseWriter, request *http.Request) {
+	if handlers.settings.TestMode {
+		httpjson.Write(writer, http.StatusOK, map[string]bool{"needsSetup": false})
+		return
+	}
+
 	hasOwner, err := handlers.owners.HasOwner(request.Context(), handlers.settings.AllowedEmails)
 	if err != nil {
 		httpjson.Fail(handlers.logger, writer, request, err, "Não consegui conferir as contas. Tente de novo em instantes.")

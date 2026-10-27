@@ -65,6 +65,18 @@ func TestTheGateLetsTheOwnerThroughWithTheUserInTheRequest(test *testing.T) {
 	}
 }
 
+// feliz
+func TestTestModeLetsTheTestUserInWithoutToken(test *testing.T) {
+	response, reached := guarded(test, Settings{TestMode: true}, "")
+
+	if response.StatusCode != http.StatusNoContent {
+		test.Fatalf("status = %d, want the next handler (204)", response.StatusCode)
+	}
+	if reached != TestUser {
+		test.Fatalf("user = %+v, want the test user", reached)
+	}
+}
+
 // triste
 func TestTheGateKeepsOutWhoCannotProveOrIsNotAllowed(test *testing.T) {
 	cases := []struct {
