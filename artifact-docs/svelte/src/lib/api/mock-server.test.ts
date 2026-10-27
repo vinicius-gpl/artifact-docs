@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { type AppHub } from '$lib/contracts/app-link.schema';
 import { type ArtifactDetail, type ArtifactList } from '$lib/contracts/artifact.schema';
@@ -9,6 +9,21 @@ import { resetMockAccount, setMockSession } from './mock-auth';
 import { handleMockRequest, matchPath, resetMockDatabase } from './mock-server';
 
 /* Sem atraso: o teste mede a resposta, não a espera. */
+/**
+ * Tira o `URL.createObjectURL` durante um teste, para o mock cair no `data:` — que dá para ler
+ * no próprio teste. O ambiente NÃO decide isso sozinho: o Node do CI tem `blob:` e o jsdom
+ * local às vezes não, e um teste que dependia disso passava aqui e falhava lá.
+ */
+const originalCreateObjectURL = URL.createObjectURL;
+
+function withoutBlobUrls(): void {
+  URL.createObjectURL = undefined as unknown as typeof URL.createObjectURL;
+}
+
+afterEach(() => {
+  URL.createObjectURL = originalCreateObjectURL;
+});
+
 const request = <T>(path: string, options = {}) => handleMockRequest<T>(path, options, 0);
 
 beforeEach(() => {
@@ -128,6 +143,8 @@ describe('mock sign-in', () => {
 });
 
 describe('handleMockRequest — publishing', () => {
+  beforeEach(withoutBlobUrls);
+
   function publishForm(fields: Record<string, string>, file?: File): FormData {
     const form = new FormData();
     if (file) form.append('file', file, file.name);
@@ -234,6 +251,8 @@ describe('handleMockRequest — apps', () => {
 describe('htmlUrl', () => {
   // feliz
   it('falls back to a data: page where the browser has no blob URLs', () => {
+    withoutBlobUrls();
+
     expect(htmlUrl('<h1>Oi</h1>')).toBe(
       `data:text/html;charset=utf-8,${encodeURIComponent('<h1>Oi</h1>')}`,
     );
@@ -241,10 +260,8 @@ describe('htmlUrl', () => {
 
   // triste
   it('uses a blob: page when the browser can open it in a new tab', () => {
-    const original = URL.createObjectURL;
     URL.createObjectURL = () => 'blob:http://localhost/1';
 
     expect(htmlUrl('<h1>Oi</h1>')).toBe('blob:http://localhost/1');
-    URL.createObjectURL = original;
   });
 });
