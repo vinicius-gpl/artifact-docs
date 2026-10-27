@@ -29,7 +29,15 @@ type Settings struct {
 	AllowedEmails []string
 	// NeonAuthURL é o endereço do login, entregue à tela em /api/auth/config.
 	NeonAuthURL string
+	// TestMode é o APP_ENV=test (o e2e): toda requisição entra como o TestUser, sem token e
+	// sem Neon Auth. A config recusa ligar isto junto com o Neon Auth.
+	TestMode bool
 }
+
+// TestUser é quem entra no modo de teste — o MESMO usuário do modo mock da tela
+// (MOCK_USER em svelte/src/lib/api/mock-fixtures.ts), para o e2e ver na tela o que a
+// tela mockada já mostra. Mudou lá, muda aqui.
+var TestUser = neonauth.User{ID: "user-mock", Email: "voce@exemplo.com", Name: "Usuário de teste"}
 
 type userKey struct{}
 
@@ -39,6 +47,10 @@ type userKey struct{}
 // impede é o servidor.
 func RequireUser(settings Settings, next http.HandlerFunc) http.HandlerFunc {
 	return func(writer http.ResponseWriter, request *http.Request) {
+		if settings.TestMode {
+			next(writer, withUser(request, TestUser))
+			return
+		}
 		if settings.Tokens == nil {
 			httpjson.Error(writer, http.StatusServiceUnavailable, "O login ainda não foi configurado no servidor.")
 			return
@@ -61,7 +73,7 @@ func RequireUser(settings Settings, next http.HandlerFunc) http.HandlerFunc {
 			return
 		}
 
-		next(writer, request.WithContext(context.WithValue(request.Context(), userKey{}, user)))
+		next(writer, withUser(request, user))
 	}
 }
 
@@ -72,9 +84,7 @@ func CurrentUser(request *http.Request) neonauth.User {
 	return user
 }
 
-// WithUser põe o usuário na requisição como o porteiro poria. Existe para os testes dos
-// outros módulos, que testam a rota sem passar pela criptografia do token.
-func WithUser(request *http.Request, user neonauth.User) *http.Request {
+func withUser(request *http.Request, user neonauth.User) *http.Request {
 	return request.WithContext(context.WithValue(request.Context(), userKey{}, user))
 }
 
