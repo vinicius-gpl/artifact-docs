@@ -18,10 +18,21 @@ export type NavItem = {
   label: string;
   to: string;
   icon: LucideIcon;
+  /** O grupo do item. A barra separa os grupos (uma linha no desktop, um título no menu do
+   * celular); item sem grupo fica sozinho. */
+  group?: string;
 };
 
-function navItem(key: string, label: string, icon: LucideIcon): NavItem {
-  return { key, label, to: `/${key}`, icon };
+/** O grupo das abas de publicação — cada uma um tipo de artefato. */
+export const PUBLISH_GROUP = 'Publicações';
+
+function navItem(key: string, label: string, icon: LucideIcon, group?: string): NavItem {
+  return { key, label, to: `/${key}`, icon, group };
+}
+
+/** Diz se o item abre um grupo novo — é antes dele que a barra põe a separação. */
+export function startsGroup(items: readonly NavItem[], index: number): boolean {
+  return index > 0 && items[index]?.group !== items[index - 1]?.group;
 }
 
 /**
@@ -35,9 +46,9 @@ function navItem(key: string, label: string, icon: LucideIcon): NavItem {
  */
 export const NAV_ITEMS: readonly NavItem[] = [
   navItem('apps', 'Apps', AppWindow),
-  navItem('artifacts', 'Documentos', FileText),
-  navItem('plans', 'Planejamentos', ListTodo),
-  navItem('ideas', 'Ideias', Lightbulb),
+  navItem('artifacts', 'Documentos', FileText, PUBLISH_GROUP),
+  navItem('plans', 'Planejamentos', ListTodo, PUBLISH_GROUP),
+  navItem('ideas', 'Ideias', Lightbulb, PUBLISH_GROUP),
 ];
 
 /** A tela em que o sistema abre: a primeira do menu. */

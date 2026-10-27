@@ -1,7 +1,14 @@
 import ListChecks from '@lucide/svelte/icons/list-checks';
 import { describe, expect, it } from 'vitest';
 
-import { activeNavKeyOf, HOME_PATH, NAV_ITEMS, type NavItem } from './navigation';
+import {
+  activeNavKeyOf,
+  HOME_PATH,
+  NAV_ITEMS,
+  PUBLISH_GROUP,
+  startsGroup,
+  type NavItem,
+} from './navigation';
 
 const items: readonly NavItem[] = [
   { key: 'artifacts', label: 'Artefatos', to: '/artifacts', icon: ListChecks },
@@ -39,5 +46,21 @@ describe('activeNavKeyOf', () => {
   it('lights nothing on a path outside the menu, or on a mere name prefix', () => {
     expect(activeNavKeyOf('/login', items)).toBeUndefined();
     expect(activeNavKeyOf('/artifactsx', items)).toBeUndefined();
+  });
+});
+
+describe('startsGroup', () => {
+  // feliz
+  it('separates Apps from the publishing tabs, and only there', () => {
+    const starts = NAV_ITEMS.map((_, index) => startsGroup(NAV_ITEMS, index));
+
+    expect(starts).toEqual([false, true, false, false]);
+    expect(NAV_ITEMS.slice(1).every((item) => item.group === PUBLISH_GROUP)).toBe(true);
+  });
+
+  // triste
+  it('never separates before the first item or between items of the same group', () => {
+    expect(startsGroup(items, 0)).toBe(false);
+    expect(startsGroup(items, 1)).toBe(false);
   });
 });

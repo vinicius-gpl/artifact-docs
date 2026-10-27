@@ -36,6 +36,13 @@ describe('AcerolaTopNav', () => {
     );
   });
 
+  // feliz
+  it('draws one divider between Apps and the publishing tabs', () => {
+    const { container } = renderNav();
+
+    expect(container.querySelectorAll('[data-slot="top-nav-divider"]')).toHaveLength(1);
+  });
+
   it('takes the brand back home and offers the theme switch', () => {
     renderNav();
 
