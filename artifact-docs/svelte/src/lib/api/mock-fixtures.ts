@@ -30,7 +30,7 @@ export const MOCK_USER: SessionUser = {
 };
 
 /** Uma página mínima, no estilo da marca, para servir de artefato publicado. */
-function mockPage(title: string, lines: string[]): string {
+export function mockPage(title: string, lines: string[]): string {
   const body = lines.map((line) => `<p>${line}</p>`).join('');
   const html = `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>${title}</title>
 <style>body{margin:0;padding:48px;font-family:'IBM Plex Sans',system-ui,sans-serif;background:#f4f4f3;color:#141416}
