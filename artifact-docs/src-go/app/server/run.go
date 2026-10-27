@@ -50,7 +50,12 @@ func Run(logger *slog.Logger, spa fs.FS) error {
 
 		deps.Owners = auth.NewOwnerRepository(pool)
 		deps.Artifacts = artifacts.NewRepository(pool)
-		deps.Apps = apps.NewRepository(pool)
+		appRepository := apps.NewRepository(pool)
+		deps.Apps = appRepository
+
+		monitor := apps.NewMonitor(appRepository, logger)
+		deps.AppChecker = monitor
+		go monitor.Run(ctx)
 	}
 	if cfg.Storage.Configured() {
 		bucket, err := storage.Open(storage.Settings(cfg.Storage))

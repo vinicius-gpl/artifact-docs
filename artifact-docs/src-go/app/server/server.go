@@ -24,6 +24,9 @@ type Dependencies struct {
 	Owners    auth.OwnerChecker
 	Artifacts artifacts.Store
 	Apps      apps.Store
+	// AppChecker confere um app logo depois de cadastrado (o monitor). Nil, ele espera a
+	// próxima rodada.
+	AppChecker apps.Checker
 	// Files é o R2. Nil (sem R2_*), publicar, apagar e abrir artefato respondem 503.
 	Files artifacts.Files
 	// LinkSecret assina os links dos artefatos privados.
@@ -55,8 +58,12 @@ func New(logger *slog.Logger, spa fs.FS, deps Dependencies) http.Handler {
 	mux.HandleFunc("GET /a/{access}", gallery.RedirectToFolder)
 	mux.HandleFunc("GET /a/{access}/{path...}", withFiles(gallery.Serve))
 
-	hub := apps.NewHandlers(deps.Apps, logger)
-	mux.HandleFunc("GET /api/apps", guard(needsDatabase(deps.Apps != nil, hub.Hub)))
+	hub := apps.NewHandlers(deps.Apps, deps.AppChecker, logger)
+	withApps := func(next http.HandlerFunc) http.HandlerFunc { return guard(needsDatabase(deps.Apps != nil, next)) }
+	mux.HandleFunc("GET /api/apps", withApps(hub.Hub))
+	mux.HandleFunc("POST /api/apps", withApps(hub.Create))
+	mux.HandleFunc("PATCH /api/apps/{id}", withApps(hub.Update))
+	mux.HandleFunc("DELETE /api/apps/{id}", withApps(hub.Delete))
 
 	// Endereço de API que não existe é 404 em JSON — nunca o index.html da SPA, que chegaria
 	// à tela como "resposta que não é JSON" e esconderia o erro de verdade.
