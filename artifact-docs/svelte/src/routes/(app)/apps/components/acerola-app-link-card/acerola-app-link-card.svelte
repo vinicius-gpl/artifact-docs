@@ -48,15 +48,17 @@
   const app = $derived(data.app);
 </script>
 
-<!-- O link e o lápis dividem a MESMA célula de grid: o lápis se alinha ao canto de baixo do
-     próprio card, sem depender da altura da caixa em volta (com `absolute`, ele vazava pela
-     borda de baixo). -->
-<div class={cn('grid', ui?.className)}>
-<a
-  href={app.url}
-  target="_blank"
-  rel="noopener noreferrer"
-  class="glass hover-fill rounded-surface col-start-1 row-start-1 flex min-h-10 flex-col gap-3 p-4"
+<!-- O CARD é o filho da grade (`card-grid` faz de cada filho uma coluna com o rodapé no fundo),
+     e o link é ESTICADO: o nome do app é o `<a>`, e o `after:` dele cobre o card inteiro — clicar
+     em qualquer ponto abre o app. O lápis mora no rodapé, acima dessa camada (`relative z-10`):
+     fica dentro do card, alinhado à linha de situação, e fora do link — botão dentro de `<a>` é
+     HTML inválido, e o clique abriria o app em vez de editar. -->
+<div
+  class={cn(
+    'glass hover-fill rounded-surface relative flex min-h-10 flex-col gap-3 p-4',
+    'has-[a:focus-visible]:ring-ring has-[a:focus-visible]:ring-2',
+    ui?.className,
+  )}
   style:--fill-color={fillColorOf(app.status.tone === 'danger' ? 'danger' : 'neutral')}
   use:fillFromPointer
   use:hoverLift
@@ -72,23 +74,29 @@
       {/if}
     </span>
     <div class="min-w-0 flex-1">
-      <p class="truncate font-medium">{app.name}</p>
+      <a
+        href={app.url}
+        target="_blank"
+        rel="noopener noreferrer"
+        class="block truncate font-medium outline-none after:absolute after:inset-0 after:content-['']"
+      >
+        {app.name}
+      </a>
       <p class="text-muted-foreground truncate text-xs">{app.host}</p>
     </div>
     <ExternalLink class="text-muted-foreground size-4 shrink-0" aria-hidden="true" />
   </div>
-  <div class={cn('flex items-center justify-between gap-2', actions?.onEdit && 'pr-10')}>
+  <div class="flex items-center justify-between gap-2">
     <StatusBadge data={{ label: app.status.label }} ui={{ tone: app.status.tone, size: 'sm' }} />
-    <span class="text-muted-foreground text-xs">{app.checkedLabel}</span>
+    <span class="text-muted-foreground ml-auto text-xs">{app.checkedLabel}</span>
+    {#if actions?.onEdit}
+      <span class="relative z-10 -my-1.5 -mr-2">
+        <ActionButton
+          data={{ label: `Editar ${app.name}` }}
+          ui={{ variant: 'ghost', size: 'sm', icon: Pencil, isIconOnly: true }}
+          actions={{ onClick: actions.onEdit }}
+        />
+      </span>
+    {/if}
   </div>
-</a>
-{#if actions?.onEdit}
-  <div class="col-start-1 row-start-1 m-3 self-end justify-self-end">
-    <ActionButton
-      data={{ label: `Editar ${app.name}` }}
-      ui={{ variant: 'ghost', size: 'sm', icon: Pencil, isIconOnly: true }}
-      actions={{ onClick: actions.onEdit }}
-    />
-  </div>
-{/if}
 </div>
