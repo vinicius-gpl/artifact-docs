@@ -45,6 +45,12 @@ export default defineConfig(({ mode }) => {
           target: `http://localhost:${apiPort}`,
           changeOrigin: true,
         },
+        /* Os artefatos publicados (/a/<token>/) também são servidos pelo Go: o preview e o
+           visualizador abrem esse endereço num <iframe>. */
+        '/a/': {
+          target: `http://localhost:${apiPort}`,
+          changeOrigin: true,
+        },
       },
     },
     preview: { port: 5105, strictPort: false },
