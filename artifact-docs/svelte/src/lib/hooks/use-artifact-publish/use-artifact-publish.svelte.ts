@@ -4,76 +4,99 @@ import { SvelteSet } from 'svelte/reactivity';
 
 import { artifactsApi } from '$lib/api/artifacts.api';
 import { readError } from '$lib/api/http-client';
-import { type OptionPickerOption } from '$lib/components/acerola-option-picker/acerola-option-picker.svelte';
 import {
-  ARTIFACT_KIND_LABELS,
-  artifactKindSchema,
+  type AcerolaPublishDialogProps,
+  type PublishDialogMode,
+  type PublishFormField,
+  type PublishFormValues,
+} from '$lib/components/acerola-publish-dialog/acerola-publish-dialog.svelte';
+import {
   artifactPublishSchema,
   artifactVersionPublishSchema,
   PUBLISH_ACCEPT,
   type ArtifactKind,
-  type ArtifactPublishInput,
   type ArtifactVersionPublishInput,
 } from '$lib/contracts/artifact.schema';
 import { mirrorStore } from '$lib/hooks/use-mirror-store/use-mirror-store.svelte';
 import { slugify } from '$lib/utils/slug.util';
 
-export type PublishField = keyof ArtifactPublishInput;
-
-/** O formulário como a pessoa preenche: o arquivo pode ainda não ter sido escolhido. */
-export type PublishValues = Omit<ArtifactPublishInput, 'file'> & { file: File | null };
-
-export type PublishMode = 'new' | 'version';
+type PublishCopy = AcerolaPublishDialogProps['data']['copy'];
 
 export type ArtifactPublishModel = {
-  data: { values: PublishValues; kindOptions: OptionPickerOption[]; accept: string };
-  ui: { mode: PublishMode };
+  data: { values: PublishFormValues; accept: string; copy: PublishCopy };
+  ui: { mode: PublishDialogMode };
   state: {
     isOpen: boolean;
     isSubmitting: boolean;
     error: string | null;
-    fieldErrors: Partial<Record<PublishField, string>>;
+    fieldErrors: Partial<Record<PublishFormField, string>>;
   };
   actions: {
     onOpen: () => void;
     onClose: () => void;
-    onChange: (field: Exclude<PublishField, 'file'>, value: string) => void;
+    onChange: (field: Exclude<PublishFormField, 'file'>, value: string) => void;
     onFileChange: (file: File | null) => void;
-    onBlur: (field: PublishField) => void;
+    onBlur: (field: PublishFormField) => void;
     onSubmit: () => void;
   };
 };
 
-function emptyValues(input: { kind?: ArtifactKind; label?: string }): PublishValues {
-  return {
-    file: null,
-    title: '',
-    label: input.label ?? '',
-    kind: input.kind ?? 'document',
-    description: '',
-    tags: '',
-  };
+/**
+ * O que cada aba publica — o tipo vem da aba, e o diálogo diz o nome dele. A versão nova não
+ * precisa: o tipo do artefato não muda numa versão.
+ */
+export const PUBLISH_COPY: Record<ArtifactKind, PublishCopy> = {
+  document: {
+    title: 'Publicar documento',
+    description: 'O arquivo vira uma página servida pelo hub, com preview em Documentos.',
+    submitLabel: 'Publicar documento',
+    titlePlaceholder: 'Guia de instalação',
+  },
+  plan: {
+    title: 'Publicar planejamento',
+    description: 'O plano vira uma página servida pelo hub, com preview em Planejamentos.',
+    submitLabel: 'Publicar planejamento',
+    titlePlaceholder: 'Abertura do CNPJ',
+  },
+  idea: {
+    title: 'Publicar ideia',
+    description: 'A ideia vira uma página servida pelo hub, com preview em Ideias.',
+    submitLabel: 'Publicar ideia',
+    titlePlaceholder: 'Gerador de paletas',
+  },
+};
+
+const VERSION_COPY: PublishCopy = {
+  title: 'Publicar nova versão',
+  description: 'A versão nova entra no ar no lugar da atual. As anteriores continuam guardadas.',
+  submitLabel: 'Publicar versão',
+  titlePlaceholder: '',
+};
+
+function emptyValues(label: string | undefined): PublishFormValues {
+  return { file: null, title: '', label: label ?? '', description: '', tags: '' };
 }
 
-function kindOptions(): OptionPickerOption[] {
-  return artifactKindSchema.options.map((kind) => ({
-    value: kind,
-    label: ARTIFACT_KIND_LABELS[kind],
-  }));
+/**
+ * O que vai para a API. Artefato novo leva o tipo da aba; a versão nova NÃO leva tipo —
+ * mandado, ele trocaria o tipo do artefato no Go.
+ */
+function toInput(values: PublishFormValues, kind: ArtifactKind | undefined) {
+  return { ...values, kind };
 }
 
 /** O primeiro erro de cada campo, no formato que os campos mostram embaixo deles. */
 export function publishErrorsOf(
-  values: PublishValues,
-  mode: PublishMode,
-): Partial<Record<PublishField, string>> {
-  const schema = mode === 'new' ? artifactPublishSchema : artifactVersionPublishSchema;
-  const result = schema.safeParse(values);
+  values: PublishFormValues,
+  kind: ArtifactKind | undefined,
+): Partial<Record<PublishFormField, string>> {
+  const schema = kind ? artifactPublishSchema : artifactVersionPublishSchema;
+  const result = schema.safeParse(toInput(values, kind));
   if (result.success) return {};
 
-  const errors: Partial<Record<PublishField, string>> = {};
+  const errors: Partial<Record<PublishFormField, string>> = {};
   for (const issue of result.error.issues) {
-    const field = issue.path[0] as PublishField;
+    const field = issue.path[0] as PublishFormField;
     errors[field] ??= issue.message;
   }
 
@@ -82,38 +105,39 @@ export function publishErrorsOf(
 
 /** Só os erros dos campos que a pessoa já deixou — ou todos, depois de tentar enviar. */
 function visibleErrors(
-  errors: Partial<Record<PublishField, string>>,
-  touched: ReadonlySet<PublishField>,
+  errors: Partial<Record<PublishFormField, string>>,
+  touched: ReadonlySet<PublishFormField>,
   isSubmitted: boolean,
-): Partial<Record<PublishField, string>> {
+): Partial<Record<PublishFormField, string>> {
   if (isSubmitted) return errors;
 
   return Object.fromEntries(
-    Object.entries(errors).filter(([field]) => touched.has(field as PublishField)),
+    Object.entries(errors).filter(([field]) => touched.has(field as PublishFormField)),
   );
 }
 
 /**
- * PUBLICAR UM ARTEFATO — o diálogo da galeria (artefato novo) e do detalhe (versão nova).
+ * PUBLICAR — o diálogo de cada aba (Documentos, Planejamentos, Ideias) e o da versão nova, no
+ * detalhe.
  *
- * Com `label`, é versão nova daquele artefato: a label fica travada e só o arquivo é
- * obrigatório (título, descrição e tags vazios mantêm o publicado). Sem `label`, é artefato
- * novo: a label nasce do título enquanto a pessoa não mexer nela.
- *
- * Publicou o novo, a tela abre o artefato; publicou a versão, o detalhe se atualiza sozinho
- * (todas as consultas de artefato são invalidadas).
+ * Com `kind`, é artefato NOVO daquele tipo: a label nasce do título enquanto a pessoa não
+ * mexer nela, e publicado ele abre. Com `label`, é VERSÃO NOVA daquele artefato: a label fica
+ * travada, só o arquivo é obrigatório, e o detalhe se atualiza sozinho (todas as consultas de
+ * artefato são invalidadas).
  */
 export function useArtifactPublishModel(
-  input: { kind?: ArtifactKind; label?: string } = {},
+  input: { kind: ArtifactKind; label?: never } | { label: string; kind?: never },
 ): ArtifactPublishModel {
   const queryClient = useQueryClient();
-  const mode: PublishMode = input.label ? 'version' : 'new';
+  const kind = input.kind;
+  const mode: PublishDialogMode = kind ? 'new' : 'version';
+  const copy = kind ? PUBLISH_COPY[kind] : VERSION_COPY;
 
-  let values = $state<PublishValues>(emptyValues(input));
+  let values = $state<PublishFormValues>(emptyValues(input.label));
   let isOpen = $state(false);
   let isSubmitted = $state(false);
   let isLabelEdited = $state(false);
-  const touched = new SvelteSet<PublishField>();
+  const touched = new SvelteSet<PublishFormField>();
 
   const publish = mirrorStore(
     createMutation({
@@ -127,7 +151,7 @@ export function useArtifactPublishModel(
   );
 
   function reset(): void {
-    values = emptyValues(input);
+    values = emptyValues(input.label);
     isSubmitted = false;
     isLabelEdited = false;
     touched.clear();
@@ -136,7 +160,7 @@ export function useArtifactPublishModel(
 
   return {
     get data() {
-      return { values, kindOptions: kindOptions(), accept: PUBLISH_ACCEPT };
+      return { values, accept: PUBLISH_ACCEPT, copy };
     },
     ui: { mode },
     get state() {
@@ -144,7 +168,7 @@ export function useArtifactPublishModel(
         isOpen,
         isSubmitting: publish.current.isPending,
         error: readError(publish.current.error),
-        fieldErrors: visibleErrors(publishErrorsOf(values, mode), touched, isSubmitted),
+        fieldErrors: visibleErrors(publishErrorsOf(values, kind), touched, isSubmitted),
       };
     },
     actions: {
@@ -157,11 +181,6 @@ export function useArtifactPublishModel(
         isOpen = false;
       },
       onChange: (field, value) => {
-        if (field === 'kind') {
-          const kind = artifactKindSchema.safeParse(value);
-          if (kind.success) values.kind = kind.data;
-          return;
-        }
         values[field] = value;
         if (field === 'label') isLabelEdited = true;
         if (field === 'title' && mode === 'new' && !isLabelEdited) values.label = slugify(value);
@@ -175,12 +194,11 @@ export function useArtifactPublishModel(
       },
       onSubmit: () => {
         isSubmitted = true;
-        const schema = mode === 'new' ? artifactPublishSchema : artifactVersionPublishSchema;
-        const parsed = schema.safeParse(values);
+        const schema = kind ? artifactPublishSchema : artifactVersionPublishSchema;
+        const parsed = schema.safeParse(toInput(values, kind));
         if (!parsed.success || publish.current.isPending) return;
 
-        /* Na versão nova o tipo não vai: mandado, ele trocaria o tipo do artefato. */
-        publish.current.mutate(mode === 'new' ? parsed.data : { ...parsed.data, kind: undefined });
+        publish.current.mutate(parsed.data);
       },
     },
   };

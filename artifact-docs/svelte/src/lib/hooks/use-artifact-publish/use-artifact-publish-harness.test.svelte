@@ -9,9 +9,10 @@
     kind,
     label,
     onReady,
-  }: { kind?: ArtifactKind; label?: string; onReady: (model: ArtifactPublishModel) => void } = $props();
+  }: { kind?: ArtifactKind; label?: string; onReady: (model: ArtifactPublishModel) => void } =
+    $props();
 
   setQueryClientContext(new QueryClient({ defaultOptions: { mutations: { retry: false } } }));
 
-  onReady(useArtifactPublishModel({ kind, label }));
+  onReady(useArtifactPublishModel(label ? { label } : { kind: kind ?? 'document' }));
 </script>

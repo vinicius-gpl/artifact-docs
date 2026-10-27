@@ -8,7 +8,7 @@ import TopNav from './acerola-top-nav.svelte';
 const USER = { name: 'Você Mesmo', email: 'voce@exemplo.com', avatarUrl: null };
 
 /* `null` (e não `undefined`) para "nada aceso": `undefined` num parâmetro com padrão faz o
-   JavaScript usar o padrão, e o teste de "nada aceso" acabava com "Artefatos" aceso. */
+   JavaScript usar o padrão, e o teste de "nada aceso" acabava com "Documentos" aceso. */
 function renderNav(active: string | null = 'artifacts', onSignOut = vi.fn()) {
   const activeKey = active ?? undefined;
   return render(TopNav, {
@@ -31,7 +31,7 @@ describe('AcerolaTopNav', () => {
       'aria-current',
       'page',
     );
-    expect(within(nav).getByRole('link', { name: 'Artefatos' })).not.toHaveAttribute(
+    expect(within(nav).getByRole('link', { name: 'Documentos' })).not.toHaveAttribute(
       'aria-current',
     );
   });

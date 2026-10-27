@@ -1,85 +1,90 @@
 <script lang="ts" module>
-  import { type OptionPickerOption } from '$lib/components/acerola-option-picker/acerola-option-picker.svelte';
-  import {
-    type PublishField,
-    type PublishMode,
-    type PublishValues,
-  } from '$lib/hooks/use-artifact-publish/use-artifact-publish.svelte';
-
   /**
-   * Publicar um artefato: o arquivo e os dados dele, num diálogo (cadastro curto, ui-standards
-   * §8). O mesmo diálogo publica o artefato NOVO (galeria) e a VERSÃO NOVA (detalhe) — na
-   * versão, a label fica travada e o título vazio mantém o publicado.
+   * Publicar um arquivo como página: o arquivo e os dados dele, num diálogo (cadastro curto,
+   * ui-standards §8). Serve às três abas de publicação — Documentos, Planejamentos e Ideias —,
+   * e cada uma diz o que se publica pelo `data.copy`; o tipo vem da aba, e não de um campo.
    *
-   * Seis campos, em três blocos que a pessoa reconhece (Miller): o arquivo; título e label lado
-   * a lado (a label nasce do título); tipo, descrição e tags.
+   * Na VERSÃO NOVA (`ui.mode = 'version'`) a label fica travada e o título vazio mantém o
+   * publicado.
+   *
+   * Cinco campos, em três blocos que a pessoa reconhece (Miller): o arquivo; título e label lado
+   * a lado (a label nasce do título); descrição e tags.
+   *
+   * O conteúdo rola por dentro e tem altura máxima também no desktop: numa tela baixa, o
+   * diálogo cortado escondia o botão de publicar. O `px-1 -mx-1` do formulário é o espaço da
+   * borda de foco: sem ele, a rolagem corta a borda dos campos que encostam na lateral.
    */
-  export type AcerolaArtifactPublishDialogProps = {
-    data: { values: PublishValues; kindOptions: OptionPickerOption[]; accept: string };
-    ui: { mode: PublishMode };
+  export type PublishFormValues = {
+    file: File | null;
+    title: string;
+    label: string;
+    description: string;
+    tags: string;
+  };
+
+  export type PublishFormField = keyof PublishFormValues;
+
+  export type PublishDialogMode = 'new' | 'version';
+
+  export type AcerolaPublishDialogProps = {
+    data: {
+      values: PublishFormValues;
+      accept: string;
+      copy: { title: string; description: string; submitLabel: string; titlePlaceholder: string };
+    };
+    ui: { mode: PublishDialogMode };
     state: {
       isOpen: boolean;
       isSubmitting: boolean;
       error: string | null;
-      fieldErrors: Partial<Record<PublishField, string>>;
+      fieldErrors: Partial<Record<PublishFormField, string>>;
     };
     actions: {
       onClose: () => void;
-      onChange: (field: Exclude<PublishField, 'file'>, value: string) => void;
+      onChange: (field: Exclude<PublishFormField, 'file'>, value: string) => void;
       onFileChange: (file: File | null) => void;
-      onBlur: (field: PublishField) => void;
+      onBlur: (field: PublishFormField) => void;
       onSubmit: () => void;
     };
-  };
-
-  const COPY: Record<PublishMode, { title: string; description: string; submit: string }> = {
-    new: {
-      title: 'Publicar artefato',
-      description: 'O arquivo vira uma página servida pelo hub, com preview na galeria.',
-      submit: 'Publicar',
-    },
-    version: {
-      title: 'Publicar nova versão',
-      description: 'A versão nova entra no ar no lugar da atual. As anteriores continuam guardadas.',
-      submit: 'Publicar versão',
-    },
   };
 </script>
 
 <script lang="ts">
   import ActionButton from '$lib/components/acerola-action-button/acerola-action-button.svelte';
+  import ErrorState from '$lib/components/acerola-error-state/acerola-error-state.svelte';
+  import FileField from '$lib/components/acerola-file-field/acerola-file-field.svelte';
+  import ResponsiveDialogContent from '$lib/components/acerola-responsive-dialog-content/acerola-responsive-dialog-content.svelte';
+  import SubmitButton from '$lib/components/acerola-submit-button/acerola-submit-button.svelte';
+  import TextAreaField from '$lib/components/acerola-text-area-field/acerola-text-area-field.svelte';
+  import TextField from '$lib/components/acerola-text-field/acerola-text-field.svelte';
   import {
     Dialog,
     DialogDescription,
     DialogFooter,
     DialogHeader,
     DialogTitle,
-  } from '$lib/components/acerola-dialog/acerola-dialog';
-  import ErrorState from '$lib/components/acerola-error-state/acerola-error-state.svelte';
-  import FileField from '$lib/components/acerola-file-field/acerola-file-field.svelte';
-  import FilterField from '$lib/components/acerola-filter-field/acerola-filter-field.svelte';
-  import OptionPicker from '$lib/components/acerola-option-picker/acerola-option-picker.svelte';
-  import ResponsiveDialogContent from '$lib/components/acerola-responsive-dialog-content/acerola-responsive-dialog-content.svelte';
-  import SubmitButton from '$lib/components/acerola-submit-button/acerola-submit-button.svelte';
-  import TextAreaField from '$lib/components/acerola-text-area-field/acerola-text-area-field.svelte';
-  import TextField from '$lib/components/acerola-text-field/acerola-text-field.svelte';
+  } from '$lib/components/ui/dialog';
 
-  let { data, ui, state, actions }: AcerolaArtifactPublishDialogProps = $props();
+  let { data, ui, state, actions }: AcerolaPublishDialogProps = $props();
 
-  const copy = $derived(COPY[ui.mode]);
   const isNew = $derived(ui.mode === 'new');
   const errors = $derived(state.fieldErrors);
 </script>
 
-<Dialog open={state.isOpen} onOpenChange={(isOpen: boolean) => (isOpen ? undefined : actions.onClose())}>
-  <ResponsiveDialogContent class="sm:max-w-xl">
+<Dialog
+  open={state.isOpen}
+  onOpenChange={(isOpen: boolean) => (isOpen ? undefined : actions.onClose())}
+>
+  <ResponsiveDialogContent class="sm:max-h-[90dvh] sm:max-w-xl">
     <DialogHeader>
-      <DialogTitle class="text-lg font-semibold tracking-tight">{copy.title}</DialogTitle>
-      <DialogDescription class="text-muted-foreground text-xs">{copy.description}</DialogDescription>
+      <DialogTitle class="text-lg font-semibold tracking-tight">{data.copy.title}</DialogTitle>
+      <DialogDescription class="text-muted-foreground text-xs">
+        {data.copy.description}
+      </DialogDescription>
     </DialogHeader>
 
     <form
-      class="flex flex-col gap-4"
+      class="-mx-1 flex flex-col gap-4 px-1 pb-1"
       novalidate
       onsubmit={(event) => {
         event.preventDefault();
@@ -105,12 +110,15 @@
             label: 'Título',
             name: 'title',
             value: data.values.title,
-            placeholder: isNew ? 'Guia de instalação' : 'Manter o atual',
+            placeholder: isNew ? data.copy.titlePlaceholder : 'Manter o atual',
             autoComplete: 'off',
             isRequired: isNew,
           }}
           state={{ error: errors.title, isDisabled: state.isSubmitting }}
-          actions={{ onChange: (value) => actions.onChange('title', value), onBlur: () => actions.onBlur('title') }}
+          actions={{
+            onChange: (value) => actions.onChange('title', value),
+            onBlur: () => actions.onBlur('title'),
+          }}
         />
         <TextField
           data={{
@@ -122,20 +130,12 @@
             isRequired: isNew,
           }}
           state={{ error: errors.label, isDisabled: state.isSubmitting || !isNew }}
-          actions={{ onChange: (value) => actions.onChange('label', value), onBlur: () => actions.onBlur('label') }}
+          actions={{
+            onChange: (value) => actions.onChange('label', value),
+            onBlur: () => actions.onBlur('label'),
+          }}
         />
       </div>
-
-      {#if isNew}
-        <FilterField data={{ label: 'Tipo' }}>
-          <OptionPicker
-            data={{ value: data.values.kind, options: data.kindOptions }}
-            ui={{ ariaLabel: 'Tipo', fullWidth: true }}
-            state={{ isDisabled: state.isSubmitting }}
-            actions={{ onChange: (value) => actions.onChange('kind', value) }}
-          />
-        </FilterField>
-      {/if}
 
       <TextAreaField
         data={{
@@ -147,7 +147,10 @@
         }}
         ui={{ rows: 2 }}
         state={{ error: errors.description, isDisabled: state.isSubmitting }}
-        actions={{ onChange: (value) => actions.onChange('description', value), onBlur: () => actions.onBlur('description') }}
+        actions={{
+          onChange: (value) => actions.onChange('description', value),
+          onBlur: () => actions.onBlur('description'),
+        }}
       />
 
       <TextField
@@ -159,7 +162,10 @@
           autoComplete: 'off',
         }}
         state={{ error: errors.tags, isDisabled: state.isSubmitting }}
-        actions={{ onChange: (value) => actions.onChange('tags', value), onBlur: () => actions.onBlur('tags') }}
+        actions={{
+          onChange: (value) => actions.onChange('tags', value),
+          onBlur: () => actions.onBlur('tags'),
+        }}
       />
 
       {#if state.error}
@@ -173,7 +179,10 @@
           state={{ isDisabled: state.isSubmitting }}
           actions={{ onClick: actions.onClose }}
         />
-        <SubmitButton data={{ label: copy.submit, loadingLabel: 'Publicando…' }} state={{ isLoading: state.isSubmitting }} />
+        <SubmitButton
+          data={{ label: data.copy.submitLabel, loadingLabel: 'Publicando…' }}
+          state={{ isLoading: state.isSubmitting }}
+        />
       </DialogFooter>
     </form>
   </ResponsiveDialogContent>

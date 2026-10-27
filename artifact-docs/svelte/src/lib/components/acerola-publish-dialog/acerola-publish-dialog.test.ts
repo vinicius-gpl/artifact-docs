@@ -2,22 +2,19 @@ import { render, screen } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 
-import PublishDialog, {
-  type AcerolaArtifactPublishDialogProps,
-} from './acerola-artifact-publish-dialog.svelte';
+import PublishDialog, { type AcerolaPublishDialogProps } from './acerola-publish-dialog.svelte';
 
-function props(
-  overrides: Partial<AcerolaArtifactPublishDialogProps> = {},
-): AcerolaArtifactPublishDialogProps {
+function props(overrides: Partial<AcerolaPublishDialogProps> = {}): AcerolaPublishDialogProps {
   return {
     data: {
-      values: { file: null, title: '', label: '', kind: 'document', description: '', tags: '' },
-      kindOptions: [
-        { value: 'document', label: 'Documento' },
-        { value: 'plan', label: 'Planejamento' },
-        { value: 'idea', label: 'Ideia' },
-      ],
+      values: { file: null, title: '', label: '', description: '', tags: '' },
       accept: '.html,.zip,.md,.pdf',
+      copy: {
+        title: 'Publicar documento',
+        description: 'O arquivo vira uma página servida pelo hub.',
+        submitLabel: 'Publicar documento',
+        titlePlaceholder: 'Guia de instalação',
+      },
     },
     ui: { mode: 'new' },
     state: { isOpen: true, isSubmitting: false, error: null, fieldErrors: {} },
@@ -32,7 +29,7 @@ function props(
   };
 }
 
-describe('AcerolaArtifactPublishDialog', () => {
+describe('AcerolaPublishDialog', () => {
   // feliz
   it('reports the file, the typed title and the submit', async () => {
     const current = props();
@@ -41,7 +38,7 @@ describe('AcerolaArtifactPublishDialog', () => {
 
     await userEvent.upload(screen.getByLabelText('Arquivo'), file);
     await userEvent.type(screen.getByLabelText(/Título/), 'G');
-    await userEvent.click(screen.getByRole('button', { name: 'Publicar' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Publicar documento' }));
 
     expect(current.actions.onFileChange).toHaveBeenCalledWith(file);
     expect(current.actions.onChange).toHaveBeenCalledWith('title', 'G');
@@ -49,17 +46,21 @@ describe('AcerolaArtifactPublishDialog', () => {
   });
 
   // feliz
-  it('locks the label and hides the kind when publishing a new version', () => {
+  it('locks the label when publishing a new version', () => {
     render(PublishDialog, {
       props: props({
         ui: { mode: 'version' },
-        data: { ...props().data, values: { ...props().data.values, label: 'abertura-cnpj' } },
+        data: {
+          ...props().data,
+          values: { ...props().data.values, label: 'abertura-cnpj' },
+          copy: { ...props().data.copy, title: 'Publicar nova versão' },
+        },
       }),
     });
 
     expect(screen.getByRole('heading', { name: 'Publicar nova versão' })).toBeInTheDocument();
     expect(screen.getByLabelText(/Label/)).toBeDisabled();
-    expect(screen.queryByText('Tipo')).not.toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Manter o atual')).toBeInTheDocument();
   });
 
   // triste
