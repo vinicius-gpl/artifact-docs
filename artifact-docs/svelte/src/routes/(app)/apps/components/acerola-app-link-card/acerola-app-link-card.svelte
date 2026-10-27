@@ -48,12 +48,15 @@
   const app = $derived(data.app);
 </script>
 
-<div class={cn('relative', ui?.className)}>
+<!-- O link e o lápis dividem a MESMA célula de grid: o lápis se alinha ao canto de baixo do
+     próprio card, sem depender da altura da caixa em volta (com `absolute`, ele vazava pela
+     borda de baixo). -->
+<div class={cn('grid', ui?.className)}>
 <a
   href={app.url}
   target="_blank"
   rel="noopener noreferrer"
-  class="glass hover-fill rounded-surface flex min-h-10 flex-col gap-3 p-4"
+  class="glass hover-fill rounded-surface col-start-1 row-start-1 flex min-h-10 flex-col gap-3 p-4"
   style:--fill-color={fillColorOf(app.status.tone === 'danger' ? 'danger' : 'neutral')}
   use:fillFromPointer
   use:hoverLift
@@ -80,10 +83,12 @@
   </div>
 </a>
 {#if actions?.onEdit}
-  <ActionButton
-    data={{ label: `Editar ${app.name}` }}
-    ui={{ variant: 'ghost', size: 'sm', icon: Pencil, isIconOnly: true, className: 'absolute right-2 bottom-2' }}
-    actions={{ onClick: actions.onEdit }}
-  />
+  <div class="col-start-1 row-start-1 m-3 self-end justify-self-end">
+    <ActionButton
+      data={{ label: `Editar ${app.name}` }}
+      ui={{ variant: 'ghost', size: 'sm', icon: Pencil, isIconOnly: true }}
+      actions={{ onClick: actions.onEdit }}
+    />
+  </div>
 {/if}
 </div>
