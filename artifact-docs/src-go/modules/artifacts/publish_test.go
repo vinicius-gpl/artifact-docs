@@ -5,6 +5,7 @@ import (
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"testing"
 )
@@ -40,7 +41,9 @@ func publishRequest(test *testing.T, label string, parts ...formPart) *http.Requ
 		test.Fatalf("close form: %v", err)
 	}
 
-	request := httptest.NewRequest(http.MethodPut, "/api/artifacts/"+label, &body)
+	// A label vai escapada no endereço: uma label inválida com espaço ("Guia Rápido") é justamente
+	// o que o teste manda, e crua ela quebra a linha da requisição antes de chegar ao handler.
+	request := httptest.NewRequest(http.MethodPut, "/api/artifacts/"+url.PathEscape(label), &body)
 	request.Header.Set("Content-Type", writer.FormDataContentType())
 	request.SetPathValue("label", label)
 

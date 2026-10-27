@@ -167,11 +167,14 @@ func siteEntries(all []*zip.File) ([]*zip.File, error) {
 	var entries []*zip.File
 	var unpacked uint64
 	for _, entry := range all {
+		// O caminho perigoso é conferido ANTES de "oculto": `../x` começa com ponto, e na ordem
+		// inversa um .zip malicioso passava calado, com a entrada descartada em vez de recusada.
+		// Pasta vem com barra no fim (`assets/`), que o Clean tiraria; ela não muda a segurança.
+		if !isSafePath(strings.TrimSuffix(entry.Name, "/")) {
+			return nil, invalidUpload{fmt.Sprintf("O .zip tem um caminho inválido: %s", entry.Name)}
+		}
 		if entry.FileInfo().IsDir() || isHidden(entry.Name) {
 			continue
-		}
-		if !isSafePath(entry.Name) {
-			return nil, invalidUpload{fmt.Sprintf("O .zip tem um caminho inválido: %s", entry.Name)}
 		}
 
 		unpacked += entry.UncompressedSize64
