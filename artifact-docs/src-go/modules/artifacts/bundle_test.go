@@ -48,7 +48,11 @@ func paths(files []bundleFile) string {
 
 // feliz
 func TestAZippedSiteInsideAFolderIsServedFromTheFolder(test *testing.T) {
+	// As entradas de pasta (`site/`) são o que o zip do sistema operacional grava: precisam passar
+	// pela checagem de caminho perigoso, que agora vem antes de tudo.
 	received := zipUpload(test, map[string]string{
+		"site/":                "",
+		"site/css/":            "",
 		"site/index.html":      "<title>Guia</title><p>Olá &amp; bem-vindo</p>",
 		"site/css/style.css":   "p{}",
 		"site/.DS_Store":       "lixo",
