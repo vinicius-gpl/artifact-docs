@@ -14,6 +14,9 @@
   export type AcerolaAppLinkCardProps = {
     data: { app: AppTile };
     ui?: { className?: string };
+    /** `onEdit` liga o botão de editar, no canto de baixo — FORA do link: botão dentro de
+     * `<a>` é HTML inválido, e o clique abriria o app em vez de editar. */
+    actions?: { onEdit?: () => void };
   };
 
   export function initialsOf(name: string): string {
@@ -28,13 +31,16 @@
 
 <script lang="ts">
   import ExternalLink from '@lucide/svelte/icons/external-link';
+  import Pencil from '@lucide/svelte/icons/pencil';
+
+  import ActionButton from '$lib/components/acerola-action-button/acerola-action-button.svelte';
 
   import StatusBadge from '$lib/components/acerola-status-badge/acerola-status-badge.svelte';
   import { fillColorOf, fillFromPointer } from '$lib/motion/hover-fill';
   import { hoverLift } from '$lib/motion/motion';
   import { cn } from '$lib/utils/cn';
 
-  let { data, ui }: AcerolaAppLinkCardProps = $props();
+  let { data, ui, actions }: AcerolaAppLinkCardProps = $props();
 
   /* Estado puramente visual: a imagem falhou, mostra as iniciais. */
   let hasIconFailed = $state(false);
@@ -42,11 +48,12 @@
   const app = $derived(data.app);
 </script>
 
+<div class={cn('relative', ui?.className)}>
 <a
   href={app.url}
   target="_blank"
   rel="noopener noreferrer"
-  class={cn('glass hover-fill rounded-surface flex min-h-10 flex-col gap-3 p-4', ui?.className)}
+  class="glass hover-fill rounded-surface flex min-h-10 flex-col gap-3 p-4"
   style:--fill-color={fillColorOf(app.status.tone === 'danger' ? 'danger' : 'neutral')}
   use:fillFromPointer
   use:hoverLift
@@ -67,8 +74,16 @@
     </div>
     <ExternalLink class="text-muted-foreground size-4 shrink-0" aria-hidden="true" />
   </div>
-  <div class="flex items-center justify-between gap-2">
+  <div class={cn('flex items-center justify-between gap-2', actions?.onEdit && 'pr-10')}>
     <StatusBadge data={{ label: app.status.label }} ui={{ tone: app.status.tone, size: 'sm' }} />
     <span class="text-muted-foreground text-xs">{app.checkedLabel}</span>
   </div>
 </a>
+{#if actions?.onEdit}
+  <ActionButton
+    data={{ label: `Editar ${app.name}` }}
+    ui={{ variant: 'ghost', size: 'sm', icon: Pencil, isIconOnly: true, className: 'absolute right-2 bottom-2' }}
+    actions={{ onClick: actions.onEdit }}
+  />
+{/if}
+</div>

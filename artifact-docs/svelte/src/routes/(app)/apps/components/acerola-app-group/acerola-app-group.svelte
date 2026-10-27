@@ -8,6 +8,7 @@
   export type AcerolaAppGroupProps = {
     data: { group: AppGroup };
     ui?: { className?: string };
+    actions?: { onEdit?: (id: string) => void };
   };
 </script>
 
@@ -16,7 +17,7 @@
   import { revealChildren } from '$lib/motion/motion';
   import { cn } from '$lib/utils/cn';
 
-  let { data, ui }: AcerolaAppGroupProps = $props();
+  let { data, ui, actions }: AcerolaAppGroupProps = $props();
 </script>
 
 <section class={cn('flex flex-col gap-3', ui?.className)} aria-labelledby="app-group-{data.group.id}">
@@ -26,7 +27,10 @@
   </h2>
   <div class="card-grid" use:revealChildren>
     {#each data.group.apps as app (app.id)}
-      <AppLinkCard data={{ app }} />
+      <AppLinkCard
+        data={{ app }}
+        actions={{ onEdit: actions?.onEdit ? () => actions.onEdit?.(app.id) : undefined }}
+      />
     {/each}
   </div>
 </section>
