@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"crypto/rand"
 	"errors"
 	"io/fs"
 	"log/slog"
@@ -16,6 +17,7 @@ import (
 	"github.com/vinicius-gpl/artifact-docs/artifact-docs/src-go/lib/infra/config"
 	"github.com/vinicius-gpl/artifact-docs/artifact-docs/src-go/lib/infra/database"
 	"github.com/vinicius-gpl/artifact-docs/artifact-docs/src-go/lib/infra/neonauth"
+	"github.com/vinicius-gpl/artifact-docs/artifact-docs/src-go/lib/infra/storage"
 	"github.com/vinicius-gpl/artifact-docs/artifact-docs/src-go/modules/apps"
 	"github.com/vinicius-gpl/artifact-docs/artifact-docs/src-go/modules/artifacts"
 	"github.com/vinicius-gpl/artifact-docs/artifact-docs/src-go/modules/auth"
@@ -35,7 +37,10 @@ func Run(logger *slog.Logger, spa fs.FS) error {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	deps := Dependencies{Auth: authSettings(cfg)}
+	deps := Dependencies{Auth: authSettings(cfg), LinkSecret: linkSecret(logger, cfg.LinkSecret)}
+	if cfg.IsTest() {
+		logger.Warn("APP_ENV=test: every request logs in as the test user, without Neon Auth")
+	}
 	if cfg.DatabaseURL != "" {
 		pool, err := openDatabase(ctx, logger, cfg.DatabaseURL)
 		if err != nil {
@@ -47,6 +52,13 @@ func Run(logger *slog.Logger, spa fs.FS) error {
 		deps.Artifacts = artifacts.NewRepository(pool)
 		deps.Apps = apps.NewRepository(pool)
 	}
+	if cfg.Storage.Configured() {
+		bucket, err := storage.Open(storage.Settings(cfg.Storage))
+		if err != nil {
+			return err
+		}
+		deps.Files = bucket
+	}
 
 	return serve(ctx, logger, &http.Server{
 		Addr:              cfg.Addr(),
@@ -55,10 +67,26 @@ func Run(logger *slog.Logger, spa fs.FS) error {
 	})
 }
 
+// linkSecret é o ARTIFACT_LINK_SECRET, ou um sorteado agora quando ele não foi configurado
+// (desenvolvimento): os links privados funcionam, mas param de valer quando o processo
+// reinicia.
+func linkSecret(logger *slog.Logger, configured string) []byte {
+	if configured != "" {
+		return []byte(configured)
+	}
+
+	logger.Warn("ARTIFACT_LINK_SECRET not set: private artifact links stop working on restart")
+	secret := make([]byte, 32)
+	_, _ = rand.Read(secret)
+
+	return secret
+}
+
 // authSettings liga o porteiro às chaves da Neon. Sem NEON_AUTH_JWKS_URL o login fica
 // desligado (Tokens nil) e o servidor sobe assim mesmo: em desenvolvimento a tela usa o mock.
+// Com APP_ENV=test, o porteiro deixa entrar o usuário de teste (o e2e), sem Neon Auth.
 func authSettings(cfg config.Config) auth.Settings {
-	settings := auth.Settings{AllowedEmails: cfg.AllowedEmails, NeonAuthURL: cfg.NeonAuthURL}
+	settings := auth.Settings{AllowedEmails: cfg.AllowedEmails, NeonAuthURL: cfg.NeonAuthURL, TestMode: cfg.IsTest()}
 	if cfg.NeonAuthJWKSURL == "" {
 		return settings
 	}
