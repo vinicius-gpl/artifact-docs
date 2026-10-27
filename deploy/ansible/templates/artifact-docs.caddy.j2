@@ -1,0 +1,22 @@
+# Gerado pelo Ansible (deploy do artifact-docs) — não edite na VPS.
+# Público: quem protege o hub é o login (Neon Auth), conferido pelo Go.
+{{ app_host }} {
+    header {
+        Strict-Transport-Security "max-age=31536000;"
+        X-Content-Type-Options "nosniff"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        # SAMEORIGIN e não DENY: a galeria mostra a prévia do artefato (/a/...) num iframe.
+        X-Frame-Options "SAMEORIGIN"
+    }
+
+    reverse_proxy artifact-docs:{{ app_port }} {
+        header_up X-Real-IP {remote}
+    }
+
+    encode zstd gzip
+
+    log {
+        output file /data/artifact-docs-access.log
+        format json
+    }
+}

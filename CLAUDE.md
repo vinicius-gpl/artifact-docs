@@ -70,10 +70,13 @@ O padrão está em **`CONTRIBUTING.md`**, e ele manda. Os pontos que mais quebra
 
 ```
 artifact-docs/                                  o app (como acerola/dashboard no acerola-ticket)
-├── main.go                                     sobe o processo e embute a SPA
+├── main.go                                     cria o log e chama o app/server
 ├── mise.toml                                   tarefas do app (dev, build, Go, web)
-├── src-go/<pacote>/                            Go (config, server, web…)
-├── src-go/web/dist/                            cópia da SPA compilada (gerada)
+├── src-go/app/server/                          compõe: rotas, dependências, subir e parar
+├── src-go/modules/<feature>/                   funcionalidade inteira: tipos, handlers, repositório, queries/*.sql
+├── src-go/lib/infra/<integração>/              config, database (pool + migrations/), neonauth
+├── src-go/lib/{httpjson,web}/                  resposta JSON da API · SPA embutida
+├── src-go/lib/web/dist/                        cópia da SPA compilada (gerada)
 └── svelte/src/
     ├── routes/(app)/<feature>/                 tela (só composição): apps, artifacts, plans, ideas
     ├── routes/(app)/<feature>/components/acerola-<nome>/  componente da feature
@@ -122,7 +125,7 @@ nasce no mock e no contrato Zod; quando o Go a implementa, o mock dela sai.
 
 - Commit direto na `main` ou na `develop`; `--no-verify`; ativar o Modo Admin sem pedido.
 - `npm install --force` ou `--legacy-peer-deps`.
-- Editar `lib/components/ui/`, `lib/hooks/ui/` ou `artifact-docs/src-go/web/dist/`.
+- Editar `lib/components/ui/`, `lib/hooks/ui/` ou `artifact-docs/src-go/lib/web/dist/`.
 - Reescrever componente existente além do que foi pedido, ou recriar à mão componente que o
   shadcn-svelte já tem.
 - Colocar segredo em variável `VITE_` ou em arquivo versionado.

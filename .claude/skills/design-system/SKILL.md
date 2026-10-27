@@ -48,12 +48,20 @@ mise.toml                                   ferramentas, setup, design e atalhos
 docs/<nome-kebab>.md                        conteúdo em pt-BR, nome em inglês
 
 artifact-docs/                              o app (como acerola/dashboard no acerola-ticket)
-├── main.go  go.mod                         sobe o processo e embute a SPA — o resto do Go mora em src-go/
+├── main.go  go.mod                         cria o log e chama o app/server — o resto do Go mora em src-go/
 ├── mise.toml                               tarefas do app (dev, build, Go, web)
-├── src-go/
-│   ├── <pacote>/<arquivo>.go (+ _test.go)  pacotes Go, nome curto em inglês (config, server…)
-│   ├── migrations/                         SQL do Neon
-│   ├── web/dist/                           cópia da SPA compilada (gerada — não edite)
+├── src-go/                                 o desenho do agent do acerola-ticket
+│   ├── app/server/                         compõe: rotas, dependências, subir e parar
+│   ├── modules/<feature>/                  auth, artifacts, apps — a funcionalidade inteira:
+│   │   ├── <feature>.go                    tipos (saem como JSON, nomes do contrato Zod)
+│   │   ├── handlers.go  repository.go      rotas · acesso ao banco (+ _test.go)
+│   │   └── queries/<verbo>_<coisa>.sql     uma consulta por arquivo, lida com go:embed
+│   ├── lib/infra/config/                   variáveis de ambiente
+│   ├── lib/infra/database/                 pool do Neon e aplicador de migrations
+│   │   └── migrations/models/<domínio>/    NNNN_create_<tabela>.sql · views em migrations/views/
+│   ├── lib/infra/neonauth/                 conferência do JWT (JWKS)
+│   ├── lib/httpjson/                       resposta JSON e o formato único de erro
+│   ├── lib/web/dist/                       cópia da SPA compilada (gerada — não edite)
 │   └── .env.example                        variáveis da API
 └── svelte/
     ├── src/lib/
@@ -176,8 +184,9 @@ Tudo em `kebab-case`, inglês, singular para componente/hook, plural para módul
 | Util | `<nome>.util.ts` | `format-date.util.ts` |
 | Tipo | `<nome>.type.ts` | `form-field.type.ts` |
 | Schema Zod | `lib/contracts/<entity>.schema.ts` | `artifact.schema.ts` |
-| Pacote Go | `artifact-docs/src-go/<pacote>/<arquivo>.go` · teste `_test.go` | `artifact-docs/src-go/server/spa.go` |
-| Migration | `artifact-docs/src-go/migrations/<NNNN>_<nome>.sql` | `0001_artifacts.sql` |
+| Pacote Go | `artifact-docs/src-go/{app,modules,lib}/<pacote>/<arquivo>.go` · teste `_test.go` | `artifact-docs/src-go/modules/artifacts/handlers.go` |
+| Consulta SQL | `artifact-docs/src-go/modules/<feature>/queries/<verbo>_<coisa>.sql` | `list_artifacts.sql` |
+| Migration | `artifact-docs/src-go/lib/infra/database/migrations/models/<domínio>/<NNNN>_create_<tabela>.sql` (views em `migrations/views/`); o número é único no projeto todo | `0001_create_artifacts.sql` |
 | E2E | `<fluxo>.e2e.ts` | `artifact-gallery.e2e.ts` |
 | Doc | `docs/<nome-kebab>.md` | `docs/briefing.md` |
 | Branch | `feature/<nome-kebab>` · `bugfix/<nome-kebab>` | |

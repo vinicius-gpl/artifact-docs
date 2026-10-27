@@ -12,8 +12,8 @@ const ARTIFACT: ArtifactView = {
   isPrivate: true,
   facts: [{ label: 'Formato', value: 'Markdown' }],
   versions: [
-    { version: 'v2', detail: '25/10/2026 · 12 KB', isCurrent: true },
-    { version: 'v1', detail: '18/10/2026 · 11 KB', isCurrent: false },
+    { number: 2, version: 'v2', detail: '25/10/2026 · 12 KB', isCurrent: true },
+    { number: 1, version: 'v1', detail: '18/10/2026 · 11 KB', isCurrent: false },
   ],
 };
 
@@ -58,9 +58,99 @@ describe('AcerolaArtifactViewer', () => {
       },
     });
 
-    expect(screen.getByRole('link', { name: /Voltar para Artefatos/ })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Voltar' })).toHaveAttribute('href', '/artifacts');
+  });
+
+  // feliz
+  it('goes back to the tab of the artifact kind', () => {
+    render(ArtifactViewer, {
+      props: {
+        data: {
+          artifact: ARTIFACT,
+          back: { href: '/plans', label: 'Voltar para Planejamentos', navKey: 'plans' },
+        },
+        state: idle,
+        actions: { onRetry: vi.fn() },
+      },
+    });
+
+    expect(screen.getByRole('link', { name: /Voltar para Planejamentos/ })).toHaveAttribute(
       'href',
-      '/artifacts',
+      '/plans',
     );
+  });
+
+  // feliz
+  it('offers the actions and restores an older version by its number', async () => {
+    const actions = {
+      onRetry: vi.fn(),
+      onPublishVersion: vi.fn(),
+      onTogglePrivate: vi.fn(),
+      onRestore: vi.fn(),
+      onDelete: vi.fn(),
+    };
+    render(ArtifactViewer, { props: { data: { artifact: ARTIFACT }, state: idle, actions } });
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Restaurar v1' }));
+    await fireEvent.click(screen.getByRole('button', { name: 'Tornar público' }));
+    await fireEvent.click(screen.getByRole('button', { name: 'Publicar nova versão' }));
+    await fireEvent.click(screen.getByRole('button', { name: 'Apagar' }));
+
+    expect(actions.onRestore).toHaveBeenCalledWith(1);
+    expect(actions.onTogglePrivate).toHaveBeenCalled();
+    expect(actions.onPublishVersion).toHaveBeenCalled();
+    expect(actions.onDelete).toHaveBeenCalled();
+    expect(screen.queryByRole('button', { name: 'Restaurar v2' })).not.toBeInTheDocument();
+  });
+
+  // triste
+  it('locks the actions while one runs and shows why the last one failed', () => {
+    render(ArtifactViewer, {
+      props: {
+        data: { artifact: ARTIFACT },
+        state: {
+          ...idle,
+          pendingAction: { kind: 'private' },
+          actionError: 'Não consegui salvar a alteração.',
+        },
+        actions: { onRetry: vi.fn(), onDelete: vi.fn(), onRestore: vi.fn() },
+      },
+    });
+
+    expect(screen.getByRole('button', { name: 'Apagar' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Restaurar v1' })).toBeDisabled();
+    expect(screen.getByText('Não consegui salvar a alteração.')).toBeInTheDocument();
+  });
+
+  // feliz
+  it('opens the published page in an in-app fullscreen frame and leaves it', async () => {
+    render(ArtifactViewer, {
+      props: { data: { artifact: ARTIFACT }, state: idle, actions: { onRetry: vi.fn() } },
+    });
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Tela cheia' }));
+    const frame = screen.getByRole('region', { name: 'Briefing do hub em tela cheia' });
+    expect(frame).toHaveAttribute('data-expanded', 'true');
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Sair da tela cheia' }));
+    expect(screen.getByRole('region', { name: 'Prévia da página publicada' })).toHaveAttribute(
+      'data-expanded',
+      'false',
+    );
+  });
+
+  // triste
+  it('leaves the fullscreen frame with Escape, and Escape does nothing outside it', async () => {
+    render(ArtifactViewer, {
+      props: { data: { artifact: ARTIFACT }, state: idle, actions: { onRetry: vi.fn() } },
+    });
+
+    await fireEvent.keyDown(window, { key: 'Escape' });
+    expect(screen.getByRole('button', { name: 'Tela cheia' })).toBeInTheDocument();
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Tela cheia' }));
+    await fireEvent.keyDown(window, { key: 'Escape' });
+
+    expect(screen.getByRole('button', { name: 'Tela cheia' })).toBeInTheDocument();
   });
 });

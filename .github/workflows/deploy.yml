@@ -1,0 +1,149 @@
+# Deploy na VPS (a Oracle do my-config): compila o binário aqui e o Ansible leva para lá.
+#
+# Roda sozinho a cada push na main que mexe no app ou no deploy, e à mão pelo "Run workflow"
+# (com o modo simulação, se quiser ver o que mudaria). A main só recebe o que passou no CI do
+# PR, então aqui não se repetem os testes.
+#
+# As secrets moram no Environment `oracle` deste repositório — as quatro do acesso SSH são as
+# mesmas do Environment `oracle` do my-config. Lista e origem de cada uma: docs/deploy.md.
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'artifact-docs/**'
+      - 'deploy/**'
+      - '.github/workflows/deploy.yml'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Modo simulação (--check)?'
+        required: false
+        default: false
+        type: boolean
+
+# Dois deploys ao mesmo tempo disputariam o mesmo container; o segundo espera o primeiro.
+concurrency:
+  group: deploy-oracle
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy na Oracle
+    runs-on: ubuntu-latest
+    environment: oracle
+    steps:
+      - uses: actions/checkout@v5
+      - uses: jdx/mise-action@v3
+      - run: npm ci --prefer-offline --prefix artifact-docs/svelte
+
+      # O endereço do Neon Auth entra no bundle (é público: só diz ONDE o login acontece).
+      # CGO desligado dá um binário estático, que roda na imagem distroless sem libc.
+      - name: Compilar o binário (SPA embutida)
+        run: mise run build
+        working-directory: artifact-docs
+        env:
+          CGO_ENABLED: '0'
+          GOOS: linux
+          GOARCH: amd64
+          VITE_API_MOCKS: 'false'
+          VITE_API_URL: ''
+          VITE_NEON_AUTH_URL: ${{ secrets.NEON_AUTH_URL }}
+
+      - name: Carregar a chave SSH
+        env:
+          SSH_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          PASSPHRASE: ${{ secrets.SSH_PASSPHRASE }}
+        run: |
+          if [ -z "$SSH_KEY" ]; then
+            echo "::error::Falta a secret SSH_PRIVATE_KEY no Environment 'oracle'."
+            exit 1
+          fi
+
+          eval "$(ssh-agent -s)"
+          echo "SSH_AUTH_SOCK=$SSH_AUTH_SOCK" >> "$GITHUB_ENV"
+          echo "SSH_AGENT_PID=$SSH_AGENT_PID" >> "$GITHUB_ENV"
+
+          # A secret às vezes é salva com "\n" literal ou com CRLF; o ssh-add recusa as duas.
+          if printf '%s' "$SSH_KEY" | grep -q '\\n'; then
+            SSH_KEY=$(printf '%b' "$SSH_KEY")
+          fi
+          umask 077
+          printf '%s\n' "$SSH_KEY" | tr -d '\r' > /tmp/id_ci
+          trap 'rm -f /tmp/id_ci /tmp/ssh_askpass' EXIT
+
+          if [ -z "$PASSPHRASE" ]; then
+            ssh-add /tmp/id_ci
+            exit 0
+          fi
+
+          export PASSPHRASE
+          printf '#!/bin/sh\nexec printf "%%s\\n" "$PASSPHRASE"\n' > /tmp/ssh_askpass
+          chmod 700 /tmp/ssh_askpass
+          DISPLAY=None SSH_ASKPASS=/tmp/ssh_askpass SSH_ASKPASS_REQUIRE=force ssh-add /tmp/id_ci
+
+      - name: Instalar o Ansible
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ansible
+
+      - name: Montar o inventário
+        working-directory: deploy/ansible
+        env:
+          HOSTS_INI: ${{ secrets.ANSIBLE_HOSTS_INI }}
+        run: |
+          if [ -z "$HOSTS_INI" ]; then
+            echo "::error::Falta a secret ANSIBLE_HOSTS_INI no Environment 'oracle'."
+            exit 1
+          fi
+          umask 077
+          printf '%s\n' "$HOSTS_INI" > hosts.ini
+
+      # Os segredos vão num arquivo JSON, e não na linha de comando: assim não aparecem na
+      # lista de processos nem no log do ansible-playbook.
+      - name: Executar o playbook
+        working-directory: deploy/ansible
+        env:
+          ANSIBLE_HOST_KEY_CHECKING: 'False'
+          ANSIBLE_FORCE_COLOR: 'True'
+          APP_HOST: ${{ vars.APP_HOST || 'hub.vinicius-gpl.com' }}
+          BECOME_PASS: ${{ secrets.ANSIBLE_BECOME_PASSWORD }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          NEON_AUTH_URL: ${{ secrets.NEON_AUTH_URL }}
+          NEON_AUTH_JWKS_URL: ${{ secrets.NEON_AUTH_JWKS_URL }}
+          AUTH_ALLOWED_EMAILS: ${{ secrets.AUTH_ALLOWED_EMAILS }}
+          R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+          ARTIFACT_LINK_SECRET: ${{ secrets.ARTIFACT_LINK_SECRET }}
+        run: |
+          umask 077
+          trap 'rm -f /tmp/deploy-vars.json' EXIT
+          python3 - <<'PY'
+          import json, os
+
+          names = [
+              "DATABASE_URL", "NEON_AUTH_URL", "NEON_AUTH_JWKS_URL", "AUTH_ALLOWED_EMAILS",
+              "R2_ENDPOINT", "R2_ACCESS_KEY_ID", "R2_SECRET_ACCESS_KEY", "R2_BUCKET",
+              "ARTIFACT_LINK_SECRET",
+          ]
+          values = {
+              "app_host": os.environ["APP_HOST"],
+              "app_env": {name: os.environ.get(name, "") for name in names},
+          }
+          if os.environ.get("BECOME_PASS"):
+              values["ansible_become_password"] = os.environ["BECOME_PASS"]
+          json.dump(values, open("/tmp/deploy-vars.json", "w"))
+          PY
+
+          CHECK_ARG=""
+          if [ "${{ inputs.dry_run }}" = "true" ]; then
+            CHECK_ARG="--check"
+          fi
+
+          ansible-playbook deploy.yml \
+            -e "binary_src=$GITHUB_WORKSPACE/artifact-docs/bin/artifact-docs" \
+            -e @/tmp/deploy-vars.json \
+            $CHECK_ARG
