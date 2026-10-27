@@ -58,6 +58,8 @@
   } from '$lib/components/acerola-action-button/acerola-action-button.svelte';
   import ErrorState from '$lib/components/acerola-error-state/acerola-error-state.svelte';
   import { Skeleton } from '$lib/components/acerola-skeleton/acerola-skeleton';
+  import { flipFrom } from '$lib/motion/motion';
+  import { tick } from 'svelte';
   import StatusBadge from '$lib/components/acerola-status-badge/acerola-status-badge.svelte';
   import { cn } from '$lib/utils/cn';
 
@@ -68,9 +70,22 @@
 
   /* Estado puramente visual: a prévia está na moldura de tela cheia. */
   let isExpanded = $state(false);
+  /* O bloco da prévia — é ele que cresce até a tela cheia e encolhe de volta. */
+  let preview = $state<HTMLElement>();
+
+  /**
+   * Entra ou sai da tela cheia ANIMANDO: mede onde a prévia está, muda, e o `flipFrom` leva
+   * do lugar de antes ao novo — a prévia cresce até cobrir a janela, ou encolhe de volta.
+   */
+  async function toggleExpanded(): Promise<void> {
+    const first = preview?.getBoundingClientRect();
+    isExpanded = !isExpanded;
+    await tick();
+    if (preview && first) flipFrom(preview, first);
+  }
 
   function onWindowKeydown(event: KeyboardEvent): void {
-    if (isExpanded && event.key === 'Escape') isExpanded = false;
+    if (isExpanded && event.key === 'Escape') void toggleExpanded();
   }
 </script>
 
@@ -152,6 +167,7 @@
       <!-- A prévia: a barra da página e o <iframe>. Na tela cheia, o MESMO bloco passa a cobrir
            a janela (fixed) — nada é remontado, a página não recarrega. -->
       <section
+        bind:this={preview}
         class={cn(
           'flex min-w-0 flex-col',
           isExpanded && 'bg-background fixed inset-0 z-50 gap-2 p-3 sm:p-4',
@@ -160,21 +176,27 @@
         data-expanded={isExpanded}
       >
         <div class="glass rounded-surface flex min-h-12 items-center gap-2 border px-3">
-          <span class="text-muted-foreground min-w-0 flex-1 truncate text-xs">
+          <p class="text-muted-foreground flex min-w-0 flex-1 items-center gap-1.5 text-xs">
             {#if isExpanded}
-              <span class="text-foreground text-sm font-medium">{artifact.title}</span>
+              <span class="text-foreground truncate text-sm font-medium">{artifact.title}</span>
             {:else}
-              Página publicada
+              <span class="truncate">Página publicada</span>
             {/if}
-            {#if current}<span class="font-mono"> · {current.version}</span>{/if}
-          </span>
+            {#if current}
+              <span aria-hidden="true">·</span>
+              <span class="font-mono">{current.version}</span>
+            {/if}
+          </p>
           <a
             href={artifact.url}
             target="_blank"
             rel="noopener noreferrer"
             aria-label="Abrir em nova aba"
             title="Abrir em nova aba"
-            class={actionButton({ variant: 'ghost', size: 'lg', isIconOnly: true })}
+            class={cn(
+              actionButton({ variant: 'ghost', size: 'lg', isIconOnly: true }),
+              'inline-flex shrink-0 items-center justify-center',
+            )}
           >
             <ExternalLink class="size-4" aria-hidden="true" />
           </a>
@@ -187,7 +209,7 @@
               isIconOnly: !isExpanded,
             }}
             state={{ isPressed: isExpanded }}
-            actions={{ onClick: () => (isExpanded = !isExpanded) }}
+            actions={{ onClick: () => void toggleExpanded() }}
           />
         </div>
         <iframe
