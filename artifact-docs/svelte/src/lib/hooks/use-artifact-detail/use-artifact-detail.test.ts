@@ -65,7 +65,11 @@ describe('useArtifactDetailModel', () => {
 
     await waitFor(() => expect(model.data.artifact?.title).toBe('Abertura do CNPJ'));
     expect(artifactsApi.get).toHaveBeenCalledWith('abertura-cnpj');
-    expect(model.data.back).toEqual({ href: '/plans', label: 'Voltar para Planejamentos' });
+    expect(model.data.back).toEqual({
+      href: '/plans',
+      label: 'Voltar para Planejamentos',
+      navKey: 'plans',
+    });
   });
 
   // triste

@@ -4,7 +4,7 @@ import { type AppHub } from '$lib/contracts/app-link.schema';
 import { type ArtifactDetail, type ArtifactList } from '$lib/contracts/artifact.schema';
 
 import { ApiError } from './http-client';
-import { MOCK_PASSWORD, MOCK_USER } from './mock-fixtures';
+import { htmlUrl, MOCK_PASSWORD, MOCK_USER } from './mock-fixtures';
 import { resetMockAccount, setMockSession } from './mock-auth';
 import { handleMockRequest, matchPath, resetMockDatabase } from './mock-server';
 
@@ -228,5 +228,23 @@ describe('handleMockRequest — apps', () => {
     await expect(request('/apps/nao-existe', { method: 'DELETE' })).rejects.toMatchObject({
       status: 404,
     });
+  });
+});
+
+describe('htmlUrl', () => {
+  // feliz
+  it('falls back to a data: page where the browser has no blob URLs', () => {
+    expect(htmlUrl('<h1>Oi</h1>')).toBe(
+      `data:text/html;charset=utf-8,${encodeURIComponent('<h1>Oi</h1>')}`,
+    );
+  });
+
+  // triste
+  it('uses a blob: page when the browser can open it in a new tab', () => {
+    const original = URL.createObjectURL;
+    URL.createObjectURL = () => 'blob:http://localhost/1';
+
+    expect(htmlUrl('<h1>Oi</h1>')).toBe('blob:http://localhost/1');
+    URL.createObjectURL = original;
   });
 });

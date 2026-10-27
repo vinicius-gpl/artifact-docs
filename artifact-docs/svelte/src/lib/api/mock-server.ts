@@ -26,7 +26,7 @@ import {
   mockSignUp,
   setMockSession,
 } from './mock-auth';
-import { createMockDatabase, mockPage, type MockDatabase } from './mock-fixtures';
+import { createMockDatabase, htmlUrl, mockPage, type MockDatabase } from './mock-fixtures';
 
 /**
  * O BACKEND DE MENTIRA — responde às mesmas rotas `/api/...` que o Go vai responder.
@@ -131,12 +131,12 @@ function formText(form: FormData, field: string): string | null {
 }
 
 /**
- * O que o mock serve no lugar de `/a/<token>/`: o próprio HTML enviado, num `data:`. Markdown,
+ * O que o mock serve no lugar de `/a/<token>/`: o próprio HTML enviado (`htmlUrl`). Markdown,
  * .zip e PDF viram uma página dizendo o que foi publicado — o mock não converte nem descompacta.
  */
 async function servedUrlOf(file: File, title: string, format: ArtifactFormat): Promise<string> {
   if (format === 'html' && /\.html?$/i.test(file.name)) {
-    return `data:text/html;charset=utf-8,${encodeURIComponent(await file.text())}`;
+    return htmlUrl(await file.text());
   }
 
   return mockPage(title, [`Arquivo publicado: ${file.name}.`, 'No Go, ele é servido de verdade.']);

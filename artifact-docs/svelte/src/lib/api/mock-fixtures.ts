@@ -29,6 +29,22 @@ export const MOCK_USER: SessionUser = {
   image: null,
 };
 
+/**
+ * O endereço de uma página HTML do modo mock — o que o Go serviria em `/a/<token>/`.
+ *
+ * `blob:` no navegador, porque é o que "Abrir em nova aba" consegue abrir: o navegador bloqueia
+ * abrir `data:` numa aba nova. Onde não há `URL.createObjectURL` (os testes), fica o `data:`.
+ * Na aba nova o `blob:` roda com a origem do hub, sem o sandbox do Go — aceitável só porque é
+ * o modo mock, em localhost, com o arquivo que a própria pessoa escolheu.
+ */
+export function htmlUrl(html: string): string {
+  if (typeof URL.createObjectURL !== 'function') {
+    return `data:text/html;charset=utf-8,${encodeURIComponent(html)}`;
+  }
+
+  return URL.createObjectURL(new Blob([html], { type: 'text/html;charset=utf-8' }));
+}
+
 /** Uma página mínima, no estilo da marca, para servir de artefato publicado. */
 export function mockPage(title: string, lines: string[]): string {
   const body = lines.map((line) => `<p>${line}</p>`).join('');
@@ -38,7 +54,7 @@ h1{font-weight:400;font-size:40px;margin:0 0 16px;border-left:8px solid #ffa58a;
 p{font-size:18px;line-height:1.6;color:#626267;max-width:60ch}</style></head>
 <body><h1>${title}</h1>${body}</body></html>`;
 
-  return `data:text/html;charset=utf-8,${encodeURIComponent(html)}`;
+  return htmlUrl(html);
 }
 
 type ArtifactSeed = Pick<Artifact, 'label' | 'title' | 'kind' | 'format'> &

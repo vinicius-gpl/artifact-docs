@@ -6,6 +6,7 @@ import { authApi } from '$lib/api/auth.api';
 import { USE_MOCKS } from '$lib/api/http-client';
 import { signOutOfNeon } from '$lib/auth/neon-auth.client';
 import { type SessionUser } from '$lib/contracts/user.schema';
+import { markedTab } from '$lib/navigation/active-tab.svelte';
 import { activeNavKeyOf, HOME_PATH, NAV_ITEMS, type NavItem } from '$lib/navigation/navigation';
 
 export type TopNavModel = {
@@ -51,7 +52,11 @@ export function useTopNavModel(input: {
       user: { name: input.user.name, email: input.user.email, avatarUrl: input.user.image },
     },
     get state() {
-      return { activeKey: activeNavKeyOf(page.url.pathname, items), isSigningOut };
+      /* A tela aberta pode dizer a aba (o detalhe de uma ideia acende Ideias, e não a aba do
+         endereço); sem marca, vale o endereço. */
+      const activeKey = markedTab() ?? activeNavKeyOf(page.url.pathname, items);
+
+      return { activeKey, isSigningOut };
     },
     actions: {
       onSignOut: () => {

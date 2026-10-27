@@ -65,7 +65,10 @@ describe('AcerolaArtifactViewer', () => {
   it('goes back to the tab of the artifact kind', () => {
     render(ArtifactViewer, {
       props: {
-        data: { artifact: ARTIFACT, back: { href: '/plans', label: 'Voltar para Planejamentos' } },
+        data: {
+          artifact: ARTIFACT,
+          back: { href: '/plans', label: 'Voltar para Planejamentos', navKey: 'plans' },
+        },
         state: idle,
         actions: { onRetry: vi.fn() },
       },
@@ -117,5 +120,30 @@ describe('AcerolaArtifactViewer', () => {
     expect(screen.getByRole('button', { name: 'Apagar' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Restaurar v1' })).toBeDisabled();
     expect(screen.getByText('Não consegui salvar a alteração.')).toBeInTheDocument();
+  });
+
+  // feliz
+  it('opens the published page in fullscreen', async () => {
+    const requestFullscreen = vi.fn().mockResolvedValue(undefined);
+    HTMLIFrameElement.prototype.requestFullscreen = requestFullscreen;
+    render(ArtifactViewer, {
+      props: { data: { artifact: ARTIFACT }, state: idle, actions: { onRetry: vi.fn() } },
+    });
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Tela cheia' }));
+
+    expect(requestFullscreen).toHaveBeenCalled();
+  });
+
+  // triste
+  it('does nothing in a browser without the fullscreen API', async () => {
+    Reflect.deleteProperty(HTMLIFrameElement.prototype, 'requestFullscreen');
+    render(ArtifactViewer, {
+      props: { data: { artifact: ARTIFACT }, state: idle, actions: { onRetry: vi.fn() } },
+    });
+
+    await expect(fireEvent.click(screen.getByRole('button', { name: 'Tela cheia' }))).resolves.toBe(
+      true,
+    );
   });
 });
