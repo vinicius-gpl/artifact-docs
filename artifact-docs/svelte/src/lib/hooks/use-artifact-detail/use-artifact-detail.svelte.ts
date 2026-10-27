@@ -36,17 +36,21 @@ export type ArtifactView = {
   versions: ArtifactVersionRow[];
 };
 
-export type BackLink = { href: string; label: string };
+/** `navKey` é a aba da barra (a `key` de `lib/navigation`); `null` enquanto não se sabe. */
+export type BackLink = { href: string; label: string; navKey: string | null };
 
-/** A aba de cada tipo: é para onde o "Voltar" leva e onde a tela cai depois de apagar. */
+/**
+ * A aba de cada tipo: é para onde o "Voltar" leva, onde a tela cai depois de apagar e qual
+ * aba a barra acende enquanto o artefato está aberto.
+ */
 export const KIND_TABS: Record<ArtifactKind, BackLink> = {
-  document: { href: '/artifacts', label: 'Voltar para Documentos' },
-  plan: { href: '/plans', label: 'Voltar para Planejamentos' },
-  idea: { href: '/ideas', label: 'Voltar para Ideias' },
+  document: { href: '/artifacts', label: 'Voltar para Documentos', navKey: 'artifacts' },
+  plan: { href: '/plans', label: 'Voltar para Planejamentos', navKey: 'plans' },
+  idea: { href: '/ideas', label: 'Voltar para Ideias', navKey: 'ideas' },
 };
 
 /** Enquanto o artefato não chega, o "Voltar" não sabe a aba: volta para a lista de sempre. */
-const DEFAULT_BACK: BackLink = { href: '/artifacts', label: 'Voltar' };
+const DEFAULT_BACK: BackLink = { href: '/artifacts', label: 'Voltar', navKey: null };
 
 /** A ação que está em andamento no detalhe — uma por vez. */
 export type ArtifactPendingAction =

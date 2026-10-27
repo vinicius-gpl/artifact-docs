@@ -4,6 +4,7 @@
   import PublishDialog from '$lib/components/acerola-publish-dialog/acerola-publish-dialog.svelte';
   import { useArtifactDetailModel } from '$lib/hooks/use-artifact-detail/use-artifact-detail.svelte';
   import { useArtifactPublishModel } from '$lib/hooks/use-artifact-publish/use-artifact-publish.svelte';
+  import { markTab } from '$lib/navigation/active-tab.svelte';
 
   /* Liga os hooks ao visualizador, ao diálogo de versão nova e à confirmação de apagar. Mora
      num slot para a página poder remontá-lo quando a label muda: os hooks buscam o artefato da
@@ -12,6 +13,13 @@
 
   const detail = useArtifactDetailModel({ label });
   const publish = useArtifactPublishModel({ label });
+
+  /* A barra acende a aba do tipo (uma ideia acende Ideias), e não a do endereço
+     `/artifacts`. Solta a marca ao sair da tela. */
+  $effect(() => {
+    const navKey = detail.data.back.navKey;
+    if (navKey) return markTab(navKey);
+  });
 </script>
 
 <svelte:head>

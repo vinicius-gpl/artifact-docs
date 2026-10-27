@@ -42,6 +42,7 @@
   import ExternalLink from '@lucide/svelte/icons/external-link';
   import Lock from '@lucide/svelte/icons/lock';
   import LockOpen from '@lucide/svelte/icons/lock-open';
+  import Maximize2 from '@lucide/svelte/icons/maximize-2';
   import Trash2 from '@lucide/svelte/icons/trash-2';
   import Upload from '@lucide/svelte/icons/upload';
 
@@ -56,6 +57,15 @@
   let { data, state, actions }: AcerolaArtifactViewerProps = $props();
 
   const isBusy = $derived(Boolean(state.pendingAction));
+
+  /* O `<iframe>` da página publicada, para a tela cheia. É DOM, não dado: mora aqui. Sem
+     `$state` (a prop `state` esconde a runa, e nada na tela depende dele). */
+  let frame: HTMLIFrameElement | undefined;
+
+  /** Tela cheia da página publicada, pelo próprio navegador — o Esc sai. */
+  function showFullscreen(): void {
+    void frame?.requestFullscreen?.();
+  }
 </script>
 
 <div class="flex flex-col gap-5">
@@ -97,6 +107,11 @@
         </div>
       </div>
       <div class="flex flex-wrap items-center gap-2">
+        <ActionButton
+          data={{ label: 'Tela cheia' }}
+          ui={{ variant: 'secondary', size: 'lg', icon: Maximize2 }}
+          actions={{ onClick: showFullscreen }}
+        />
         <a
           href={artifact.url}
           target="_blank"
@@ -139,6 +154,7 @@
 
     <div class="grid gap-5 lg:grid-cols-[minmax(0,1fr)_18rem]">
       <iframe
+        bind:this={frame}
         src={artifact.url}
         title={artifact.title}
         sandbox="allow-scripts allow-popups allow-forms"
