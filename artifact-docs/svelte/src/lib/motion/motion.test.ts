@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
+  flipFrom,
   hoverLift,
   moveIndicator,
   pageEnter,
@@ -181,5 +182,47 @@ describe('hoverLift', () => {
     card.dispatchEvent(new Event('pointerenter'));
 
     expect(gsap.to).not.toHaveBeenCalled();
+  });
+});
+
+describe('flipFrom', () => {
+  function placed(rect: Partial<DOMRect>): HTMLElement {
+    const node = document.createElement('section');
+    node.getBoundingClientRect = () =>
+      ({ left: 0, top: 0, width: 0, height: 0, ...rect }) as DOMRect;
+
+    return node;
+  }
+
+  // feliz
+  it('animates from the old box back to the new one, only with transform', () => {
+    setReducedMotion(false);
+    vi.mocked(gsap.fromTo).mockClear();
+    const node = placed({ left: 0, top: 0, width: 1000, height: 800 });
+
+    flipFrom(node, { left: 100, top: 200, width: 500, height: 400 } as DOMRect);
+
+    expect(gsap.fromTo).toHaveBeenCalledWith(
+      node,
+      expect.objectContaining({ x: 100, y: 200, scaleX: 0.5, scaleY: 0.5 }),
+      expect.objectContaining({ x: 0, y: 0, scaleX: 1, scaleY: 1 }),
+    );
+  });
+
+  // triste
+  it('does not animate when the person asks for less motion, or the element has no size', () => {
+    vi.mocked(gsap.fromTo).mockClear();
+    setReducedMotion(true);
+    flipFrom(placed({ width: 1000, height: 800 }), {
+      left: 0,
+      top: 0,
+      width: 1,
+      height: 1,
+    } as DOMRect);
+
+    setReducedMotion(false);
+    flipFrom(placed({}), { left: 0, top: 0, width: 1, height: 1 } as DOMRect);
+
+    expect(gsap.fromTo).not.toHaveBeenCalled();
   });
 });

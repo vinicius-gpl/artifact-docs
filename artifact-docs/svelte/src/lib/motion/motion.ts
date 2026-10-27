@@ -310,3 +310,40 @@ export function hoverLift(node: HTMLElement): { destroy: () => void } {
     },
   };
 }
+
+/**
+ * O ELEMENTO MUDOU DE LUGAR E DE TAMANHO — anima a mudança em vez de saltar (a técnica FLIP).
+ *
+ * Quem chama mede o retângulo ANTES (`first`), aplica a mudança (ex.: a prévia vira tela
+ * cheia) e espera o DOM atualizar; aqui o elemento já está no lugar novo. Ele volta, só com
+ * `transform`, para onde estava, e anda até o lugar novo — o olho acompanha a prévia crescendo
+ * até cobrir a janela, ou encolhendo de volta para o lugar dela.
+ *
+ * Só `transform`: nada é recalculado no layout durante a animação, que fica no compositor.
+ */
+export function flipFrom(node: HTMLElement, first: DOMRect): void {
+  if (prefersReducedMotion()) return;
+
+  const last = node.getBoundingClientRect();
+  if (!last.width || !last.height) return;
+
+  gsap.fromTo(
+    node,
+    {
+      x: first.left - last.left,
+      y: first.top - last.top,
+      scaleX: first.width / last.width,
+      scaleY: first.height / last.height,
+      transformOrigin: 'top left',
+    },
+    {
+      x: 0,
+      y: 0,
+      scaleX: 1,
+      scaleY: 1,
+      duration: DURATION.base,
+      ease: EASE.inOut,
+      clearProps: 'transform,transformOrigin',
+    },
+  );
+}

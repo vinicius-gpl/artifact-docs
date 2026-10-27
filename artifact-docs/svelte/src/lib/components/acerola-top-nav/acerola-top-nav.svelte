@@ -42,6 +42,7 @@
   import PersonAvatar from '$lib/components/acerola-person-avatar/acerola-person-avatar.svelte';
   import ThemeToggle from '$lib/components/acerola-theme-toggle/acerola-theme-toggle.svelte';
   import { moveIndicator, slideDown } from '$lib/motion/motion';
+  import { startsGroup } from '$lib/navigation/navigation';
   import { cn } from '$lib/utils/cn';
 
   let { data, state: navState, actions, ui }: AcerolaTopNavProps = $props();
@@ -88,12 +89,17 @@
 
     <nav aria-label="Principal" class="hidden md:block">
       <ul bind:this={list} class="relative flex items-center gap-1">
-        {#each data.items as item (item.key)}
+        {#each data.items as item, index (item.key)}
           {@const isActive = item.key === navState.activeKey}
+          <!-- A linha entre grupos: Apps de um lado, as abas de publicação do outro. -->
+          {#if startsGroup(data.items, index)}
+            <li class="bg-border mx-2 h-5 w-px" aria-hidden="true" data-slot="top-nav-divider"></li>
+          {/if}
           <li>
             <a
               href={item.to}
               aria-current={isActive ? 'page' : undefined}
+              title={item.group}
               class={cn(
                 'flex h-16 items-center px-3 text-sm transition-colors',
                 isActive ? 'text-foreground' : 'text-muted-foreground hover:text-foreground',
@@ -142,8 +148,16 @@
       use:slideDown
     >
       <ul class="mx-auto flex max-w-6xl flex-col px-4 py-2">
-        {#each data.items as item (item.key)}
+        {#each data.items as item, index (item.key)}
           {@const isActive = item.key === navState.activeKey}
+          {#if startsGroup(data.items, index) && item.group}
+            <li
+              class="text-muted-foreground border-border/70 mt-2 border-t px-3 pt-3 pb-1 text-xs font-medium tracking-wide uppercase"
+              aria-hidden="true"
+            >
+              {item.group}
+            </li>
+          {/if}
           <li>
             <a
               href={item.to}

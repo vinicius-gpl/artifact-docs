@@ -48,3 +48,28 @@ export const appHubSchema = z.object({
 });
 
 export type AppHub = z.infer<typeof appHubSchema>;
+
+/**
+ * O CADASTRO DE APP — `POST /api/apps` e `PATCH /api/apps/<id>`. O tipo vai pelo NOME: o que
+ * não existe nasce na hora, e o que fica sem apps some. O Go confere o mesmo
+ * (`modules/apps/validation.go`); mudou aqui, muda lá.
+ */
+export const appLinkInputSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(1, 'Informe o nome do app')
+    .max(80, 'O nome tem no máximo 80 caracteres'),
+  url: z
+    .string()
+    .trim()
+    .max(2048, 'O endereço é longo demais')
+    .regex(/^https?:\/\/[^\s/]+/i, 'Informe o endereço completo, começando com https://'),
+  typeName: z
+    .string()
+    .trim()
+    .min(1, 'Informe o tipo do app')
+    .max(40, 'O tipo tem no máximo 40 caracteres'),
+});
+
+export type AppLinkInput = z.infer<typeof appLinkInputSchema>;

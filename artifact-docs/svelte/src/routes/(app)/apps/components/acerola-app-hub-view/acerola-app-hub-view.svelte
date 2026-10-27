@@ -8,7 +8,14 @@
   export type AcerolaAppHubViewProps = {
     data: { groups: AppGroup[]; total: number };
     state: { isLoading: boolean; error: string | null; search: string };
-    actions: { onRetry: () => void; onClearSearch: () => void };
+    actions: {
+      onRetry: () => void;
+      onClearSearch: () => void;
+      /** Liga o "Editar" de cada card. */
+      onEdit?: (id: string) => void;
+      /** Liga o "Cadastrar o primeiro app" do hub vazio. */
+      onCreate?: () => void;
+    };
   };
 </script>
 
@@ -37,7 +44,15 @@
   <EmptyState
     data={{ title: 'Nenhum app cadastrado', description: 'Os apps cadastrados aparecem aqui, agrupados por tipo.' }}
     ui={{ icon: AppWindow }}
-  />
+  >
+    {#if actions.onCreate}
+      <ActionButton
+        data={{ label: 'Cadastrar o primeiro app' }}
+        ui={{ variant: 'secondary', size: 'lg' }}
+        actions={{ onClick: actions.onCreate }}
+      />
+    {/if}
+  </EmptyState>
 {:else if data.groups.length === 0}
   <EmptyState
     data={{ title: 'Nenhum app encontrado', description: `Nada combina com “${state.search}”.` }}
@@ -52,7 +67,7 @@
 {:else}
   <div class="flex flex-col gap-8">
     {#each data.groups as group (group.id)}
-      <AppGroupSection data={{ group }} />
+      <AppGroupSection data={{ group }} actions={{ onEdit: actions.onEdit }} />
     {/each}
   </div>
 {/if}

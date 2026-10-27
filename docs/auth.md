@@ -22,6 +22,7 @@ A regra fica no Go, não na tela: a tela só esconde; quem impede é o servidor.
 |---|---|---|
 | `GET /api/auth/setup` | sim | `{ "needsSetup": true }` enquanto não há usuário no Neon Auth com e-mail de `AUTH_ALLOWED_EMAILS` (consulta em `neon_auth.user`) |
 | `GET /api/auth/me` | não | `{ id, email, name, image }` de quem está no token |
+| `GET /api/auth/config` | sim | `{ "neonAuthUrl": "…" }` — onde o login acontece, quando a URL não veio no build da tela |
 | `GET /api/health` | sim | já existe |
 
 O porteiro valida a assinatura do JWT com as chaves públicas do Neon Auth (JWKS, buscadas uma
@@ -30,7 +31,8 @@ vez e guardadas em memória, renovadas quando aparece um `kid` desconhecido) e c
 Variáveis do Go (`src-go/.env`):
 
 ```
-NEON_AUTH_JWKS_URL=     # no painel da Neon: Auth → JWKS URL
+NEON_AUTH_URL=          # Auth → URL do endpoint (entregue em /api/auth/config)
+NEON_AUTH_JWKS_URL=     # no painel da Neon: Auth → JWKS URL (vazia = login desligado, 503)
 AUTH_ALLOWED_EMAILS=    # o seu e-mail; vários separados por vírgula
 ```
 
@@ -49,6 +51,17 @@ só diz ONDE o login acontece.
   de vida curta para eles. Os públicos abrem só com o link.
 - **Skills** que publicam pela API usam um token de API próprio (com hash no banco), não a
   sessão de login.
+
+## No e2e (APP_ENV=test)
+
+O e2e roda a tela contra o **Go de verdade**, mas sem login de verdade: com `APP_ENV=test`, o
+porteiro deixa toda requisição entrar como o **usuário de teste** — o mesmo do modo mock da
+tela (`user-mock` / `voce@exemplo.com`, `auth.TestUser` em `src-go/modules/auth/guard.go`).
+Nenhum token é pedido e o Neon Auth não é consultado; o `/api/auth/setup` responde
+`needsSetup: false`.
+
+Para isso nunca vazar para produção, o Go **recusa subir** com `APP_ENV=test` e
+`NEON_AUTH_JWKS_URL` preenchidas juntas, e avisa no log ao subir em modo de teste.
 
 ## Em localhost (modo mock)
 

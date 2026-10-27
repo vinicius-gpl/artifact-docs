@@ -49,6 +49,20 @@ describe('apiRequest', () => {
     expect(fetchMock.mock.calls[0]?.[1]?.headers).not.toHaveProperty('Authorization');
   });
 
+  // feliz
+  it('sends a FormData as is, letting the browser write the multipart boundary', async () => {
+    const fetchMock = respond(201, { id: 1 });
+    vi.stubGlobal('fetch', fetchMock);
+    const form = new FormData();
+    form.append('title', 'Guia');
+
+    await apiRequest('/artifacts/guia', { method: 'PUT', body: form });
+
+    const init = fetchMock.mock.calls[0]?.[1];
+    expect(init?.body).toBe(form);
+    expect(init?.headers).toEqual({ Authorization: 'Bearer token-de-teste' });
+  });
+
   it('returns the parsed body', async () => {
     vi.stubGlobal('fetch', respond(200, { id: 1 }));
 
