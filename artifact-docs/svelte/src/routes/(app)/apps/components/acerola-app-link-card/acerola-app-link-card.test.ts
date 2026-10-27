@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/svelte';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { type AppTile } from '$lib/hooks/use-app-hub/use-app-hub.svelte';
 import AppLinkCard, { initialsOf } from './acerola-app-link-card.svelte';
@@ -39,5 +39,24 @@ describe('AcerolaAppLinkCard', () => {
   it('builds initials from at most two words (edge case)', () => {
     expect(initialsOf('Uptime Kuma Status')).toBe('UK');
     expect(initialsOf('neon')).toBe('N');
+  });
+
+  // feliz
+  it('edits outside the link, so the click does not open the app', async () => {
+    const onEdit = vi.fn();
+    render(AppLinkCard, { props: { data: { app: APP }, actions: { onEdit } } });
+
+    const button = screen.getByRole('button', { name: 'Editar Home Assistant' });
+    await fireEvent.click(button);
+
+    expect(onEdit).toHaveBeenCalled();
+    expect(button.closest('a')).toBeNull();
+  });
+
+  // triste
+  it('has no edit button when the screen does not offer editing', () => {
+    render(AppLinkCard, { props: { data: { app: APP } } });
+
+    expect(screen.queryByRole('button', { name: /Editar/ })).not.toBeInTheDocument();
   });
 });

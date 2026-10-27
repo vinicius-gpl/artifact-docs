@@ -62,7 +62,7 @@ Nunca diga o caminho do arquivo para a pessoa. Diga **a tela ou a parte** que el
 | `artifact-docs/svelte/src/lib/theme/tokens.css` | "as **cores** do sistema" |
 | `artifact-docs/svelte/src/lib/contracts/<x>.schema.ts` | "as **regras do cadastro de <x>**" (campos obrigatórios, limites, mensagens de erro) |
 | `artifact-docs/src-go/<pacote>/...` | "a parte do servidor que **<o que o pacote faz>**" |
-| `artifact-docs/src-go/migrations/**` | "o **histórico de mudanças do banco**" — ver §5 |
+| `artifact-docs/src-go/lib/infra/database/migrations/**` | "o **histórico de mudanças do banco**" — ver §5 |
 | `artifact-docs/svelte/package.json`, `artifact-docs/svelte/package-lock.json`, `artifact-docs/go.mod`, `artifact-docs/go.sum` | "a **lista de bibliotecas** do projeto" — ver §5 |
 | `*.test.ts`, `*.stories.svelte` | "os **testes**" / "o **catálogo visual**" da parte correspondente |
 | `README.md`, `CONTRIBUTING.md`, `.claude/**` | "a **documentação**" |
@@ -110,9 +110,10 @@ mudar uma regra que ela criou), sugira **conversar com ela** antes, e mostre o n
   Resolva o `package.json` à mão (as duas listas somadas) e rode `npm install --prefix svelte`.
 - **`artifact-docs/go.sum`**: fique com a versão da develop, resolva o `artifact-docs/go.mod` à mão (as duas listas somadas)
   e rode `go mod tidy`.
-- **`artifact-docs/src-go/migrations/`**: **nunca** junte SQL à mão.
-  1. Fique com **todas** as migrations da develop (`git checkout --theirs -- artifact-docs/src-go/migrations`).
-  2. Renumere as migrations que eram **só desta branch** para depois da última da develop.
+- **`artifact-docs/src-go/lib/infra/database/migrations/`**: **nunca** junte SQL à mão.
+  1. Fique com **todas** as migrations da develop (`git checkout --theirs -- artifact-docs/src-go/lib/infra/database/migrations`).
+  2. Renumere as migrations que eram **só desta branch** para depois da última da develop — o
+     número é único no projeto inteiro, seja qual for a subpasta.
   3. Avise a pessoa que o banco de desenvolvimento precisa receber as migrations de novo se a
      antiga já tinha sido aplicada.
 

@@ -42,7 +42,7 @@ export class ApiError extends Error {
 
 export type RequestOptions = {
   credentials?: RequestCredentials;
-  method?: 'GET' | 'POST' | 'PATCH' | 'DELETE';
+  method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
   body?: unknown;
   query?: Record<string, string | number | boolean | undefined | null>;
   signal?: AbortSignal;
@@ -160,18 +160,23 @@ async function toApiError(response: Response): Promise<ApiError> {
 }
 
 /**
- * O corpo da requisição — sempre JSON. Arquivo não passa pela API: ele vai direto para o
- * storage (`uploadFile`), e o corpo leva só a chave dele.
+ * O corpo da requisição — JSON, ou o `FormData` como veio. O `FormData` é a publicação de
+ * artefato (`PUT /api/artifacts/<label>`): o Go precisa abrir o .zip e converter o Markdown,
+ * então o arquivo passa pela API em multipart.
  */
 function toRequestBody(body: unknown): BodyInit | undefined {
   if (body === undefined) return undefined;
+  if (body instanceof FormData) return body;
 
   return JSON.stringify(body);
 }
 
 async function buildHeaders(options: RequestOptions): Promise<Record<string, string>> {
   const headers: Record<string, string> = {};
-  if (options.body !== undefined) headers['Content-Type'] = 'application/json';
+  /* Multipart não leva Content-Type à mão: o navegador escreve o tipo COM o boundary, que é
+     o que separa as partes. Escrito aqui, o boundary sumiria e o Go não leria nada. */
+  const isJson = options.body !== undefined && !(options.body instanceof FormData);
+  if (isJson) headers['Content-Type'] = 'application/json';
 
   const token = await readAuthToken();
   if (token) headers.Authorization = `Bearer ${token}`;

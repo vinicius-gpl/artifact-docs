@@ -186,8 +186,10 @@ a publicação atômica.
 
 ```
 artifact-docs/           o app (como acerola/dashboard no acerola-ticket)
-├── main.go              sobe o processo e embute a SPA (o go:embed exige ficar acima dela)
-├── src-go/              Go: config, server (API + SPA), web (SPA embutida) e, depois, migrations/
+├── main.go              cria o log e chama o app/server
+├── src-go/              Go no desenho do agent do acerola-ticket: app/ (compõe), modules/<feature>/
+│                        (funcionalidades, com o SQL em queries/), lib/ (infra: config, database e
+│                        as migrations, neonauth; httpjson; web, a SPA embutida)
 ├── svelte/              SPA SvelteKit (adapter-static) — infra copiada do acerola-ticket
 └── mise.toml            tarefas do app
 deploy/                  Caddyfile, unit do systemd
