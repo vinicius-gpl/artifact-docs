@@ -11,8 +11,9 @@
    * a lado (a label nasce do título); descrição e tags.
    *
    * O conteúdo rola por dentro e tem altura máxima também no desktop: numa tela baixa, o
-   * diálogo cortado escondia o botão de publicar. O `px-1 -mx-1` do formulário é o espaço da
-   * borda de foco: sem ele, a rolagem corta a borda dos campos que encostam na lateral.
+   * diálogo cortado escondia o botão de publicar. O `px-1` do formulário é o espaço da borda
+   * de foco: sem ele, a rolagem corta a borda dos campos que encostam na lateral. Sem margem
+   * negativa junto: o formulário ficaria mais largo que a caixa, e ela rolaria para o lado.
    */
   export type PublishFormValues = {
     file: File | null;
@@ -84,7 +85,7 @@
     </DialogHeader>
 
     <form
-      class="-mx-1 flex flex-col gap-4 px-1 pb-1"
+      class="flex flex-col gap-4 px-1 pb-1"
       novalidate
       onsubmit={(event) => {
         event.preventDefault();
