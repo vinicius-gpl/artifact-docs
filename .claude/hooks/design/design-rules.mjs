@@ -67,6 +67,14 @@ export const GENERIC_BY_DESIGN = [
   'usage-meter',
   // O botão de enviar de TODO formulário (skill `ui-component`, catálogo): hoje só o login usa.
   'submit-button',
+  // Os campos de formulário do catálogo, irmãos do text-field: hoje só a publicação de
+  // artefato usa a área de texto e o campo de arquivo.
+  'text-area-field',
+  'file-field',
+  // A confirmação de ação sem volta (catálogo, ui-standards §10) e o conteúdo de diálogo que
+  // vira gaveta no celular (ui-standards §8): todo diálogo do sistema passa por eles.
+  'confirm-dialog',
+  'responsive-dialog-content',
   /^chart-/,
   // Invólucros de `ui/<x>`: a feature não pode importar `ui/` direto, então eles moram em lib.
   'dialog',
