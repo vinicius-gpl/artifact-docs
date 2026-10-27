@@ -123,7 +123,8 @@ func TestPublishRefusesWhatCannotBePublished(test *testing.T) {
 		{"bad label", "Guia Rápido", []formPart{html}, "letras minúsculas"},
 		{"new without title", "guia", []formPart{html, {field: "kind", content: "document"}}, "título e tipo"},
 		{"unknown kind", "guia", []formPart{html, {field: "kind", content: "video"}}, "document, plan ou idea"},
-		{"unknown extension", "guia", []formPart{{field: "file", fileName: "planilha.xlsx", content: "x"}}, ".html, .zip, .md ou .pdf"},
+		// Com título e tipo: artefato novo sem eles é recusado antes de o arquivo ser aberto.
+		{"unknown extension", "guia", []formPart{{field: "file", fileName: "planilha.xlsx", content: "x"}, {field: "title", content: "Planilha"}, {field: "kind", content: "document"}}, ".html, .zip, .md ou .pdf"},
 		{"fake pdf", "guia", []formPart{{field: "file", fileName: "doc.pdf", content: "MZ"}, {field: "title", content: "Doc"}, {field: "kind", content: "document"}}, "PDF válido"},
 		{"thumb not png", "guia", []formPart{html, {field: "thumb", fileName: "thumb.jpg", content: "\xff\xd8"}}, "PNG"},
 		{"no file", "guia", []formPart{{field: "title", content: "Guia"}}, "campo file"},
