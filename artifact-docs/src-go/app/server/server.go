@@ -24,6 +24,10 @@ type Dependencies struct {
 	Owners    auth.OwnerChecker
 	Artifacts artifacts.Store
 	Apps      apps.Store
+	// Files é o R2. Nil (sem R2_*), publicar, apagar e abrir artefato respondem 503.
+	Files artifacts.Files
+	// LinkSecret assina os links dos artefatos privados.
+	LinkSecret []byte
 }
 
 // New devolve o handler raiz do servidor. A lista de rotas da API é a mesma tabela ROUTES de
@@ -35,14 +39,21 @@ func New(logger *slog.Logger, spa fs.FS, deps Dependencies) http.Handler {
 	login := auth.NewHandlers(deps.Auth, deps.Owners, logger)
 	mux.HandleFunc("GET /api/health", health)
 	mux.HandleFunc("GET /api/auth/config", login.Config)
-	mux.HandleFunc("GET /api/auth/setup", needsDatabase(deps.Owners != nil, login.Setup))
+	mux.HandleFunc("GET /api/auth/setup", needsDatabase(deps.Owners != nil || deps.Auth.TestMode, login.Setup))
 	mux.HandleFunc("GET /api/auth/me", guard(login.Me))
 
-	gallery := artifacts.NewHandlers(deps.Artifacts, logger)
-	hasArtifacts := deps.Artifacts != nil
-	mux.HandleFunc("GET /api/artifacts", guard(needsDatabase(hasArtifacts, gallery.List)))
-	mux.HandleFunc("GET /api/artifacts/{label}", guard(needsDatabase(hasArtifacts, gallery.Open)))
-	mux.HandleFunc("PATCH /api/artifacts/{label}", guard(needsDatabase(hasArtifacts, gallery.Update)))
+	gallery := artifacts.NewHandlers(deps.Artifacts, deps.Files, artifacts.NewLinker(deps.LinkSecret), logger)
+	withData := func(next http.HandlerFunc) http.HandlerFunc { return needsDatabase(deps.Artifacts != nil, next) }
+	withFiles := func(next http.HandlerFunc) http.HandlerFunc { return withData(needsStorage(deps.Files != nil, next)) }
+	mux.HandleFunc("GET /api/artifacts", guard(withData(gallery.List)))
+	mux.HandleFunc("GET /api/artifacts/{label}", guard(withData(gallery.Open)))
+	mux.HandleFunc("PATCH /api/artifacts/{label}", guard(withData(gallery.Update)))
+	mux.HandleFunc("PUT /api/artifacts/{label}", guard(withFiles(gallery.Publish)))
+	mux.HandleFunc("POST /api/artifacts/{label}/restore", guard(withData(gallery.Restore)))
+	mux.HandleFunc("DELETE /api/artifacts/{label}", guard(withFiles(gallery.Delete)))
+	// Os artefatos servidos: públicos, porque quem decide é o link (links.go).
+	mux.HandleFunc("GET /a/{access}", gallery.RedirectToFolder)
+	mux.HandleFunc("GET /a/{access}/{path...}", withFiles(gallery.Serve))
 
 	hub := apps.NewHandlers(deps.Apps, logger)
 	mux.HandleFunc("GET /api/apps", guard(needsDatabase(deps.Apps != nil, hub.Hub)))
@@ -72,6 +83,17 @@ func needsDatabase(available bool, next http.HandlerFunc) http.HandlerFunc {
 
 	return func(writer http.ResponseWriter, _ *http.Request) {
 		httpjson.Error(writer, http.StatusServiceUnavailable, "O banco de dados ainda não foi configurado no servidor.")
+	}
+}
+
+// needsStorage é o needsDatabase do R2.
+func needsStorage(available bool, next http.HandlerFunc) http.HandlerFunc {
+	if available {
+		return next
+	}
+
+	return func(writer http.ResponseWriter, _ *http.Request) {
+		httpjson.Error(writer, http.StatusServiceUnavailable, "O armazenamento de arquivos (R2) ainda não foi configurado no servidor.")
 	}
 }
 

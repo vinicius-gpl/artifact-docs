@@ -11,22 +11,16 @@ import (
 )
 
 // feliz
-func TestWithLinksBuildsTheServedAddressesAndNormalizes(test *testing.T) {
+func TestNormalizedPutsTimesInUTCAndNeverLeavesTagsNull(test *testing.T) {
 	saoPaulo := time.FixedZone("BRT", -3*60*60)
 	viewed := time.Date(2026, 10, 26, 9, 0, 0, 0, saoPaulo)
 
-	artifact := withLinks(Artifact{
+	artifact := normalized(Artifact{
 		CreatedAt:    time.Date(2026, 10, 1, 9, 0, 0, 0, saoPaulo),
 		UpdatedAt:    time.Date(2026, 10, 2, 9, 0, 0, 0, saoPaulo),
 		LastViewedAt: &viewed,
-	}, "abc123", true)
+	})
 
-	if artifact.URL != "/a/abc123/" {
-		test.Fatalf("url = %q", artifact.URL)
-	}
-	if artifact.ThumbURL == nil || *artifact.ThumbURL != "/a/abc123/thumb.png" {
-		test.Fatalf("thumbUrl = %v", artifact.ThumbURL)
-	}
 	if artifact.Tags == nil {
 		test.Fatal("tags must be an empty list, never null")
 	}
@@ -39,14 +33,11 @@ func TestWithLinksBuildsTheServedAddressesAndNormalizes(test *testing.T) {
 }
 
 // triste
-func TestWithLinksLeavesTheThumbEmptyWhenThereIsNone(test *testing.T) {
-	artifact := withLinks(Artifact{Tags: []string{"marca"}}, "abc123", false)
+func TestNormalizedKeepsANeverViewedArtifactNull(test *testing.T) {
+	artifact := normalized(Artifact{Tags: []string{"marca"}})
 
-	if artifact.ThumbURL != nil {
-		test.Fatalf("thumbUrl = %v, want nil", *artifact.ThumbURL)
-	}
-	if artifact.LastViewedAt != nil {
-		test.Fatal("never viewed must stay null")
+	if artifact.LastViewedAt != nil || len(artifact.Tags) != 1 {
+		test.Fatalf("artifact = %+v, want lastViewedAt null and the tags kept", artifact)
 	}
 }
 
@@ -104,7 +95,7 @@ func TestListFindsByKindAndPortugueseSearch(test *testing.T) {
 	if err != nil {
 		test.Fatalf("list: %v", err)
 	}
-	if len(found) != 1 || found[0].SizeBytes != 2048 || found[0].ThumbURL == nil {
+	if len(found) != 1 || found[0].SizeBytes != 2048 || !found[0].hasThumb {
 		test.Fatalf("list = %+v, want the seeded artifact with its served version", found)
 	}
 }

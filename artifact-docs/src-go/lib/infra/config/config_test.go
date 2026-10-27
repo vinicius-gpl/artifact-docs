@@ -83,3 +83,61 @@ func TestLoadWithoutAllowedEmailsLetsNobodyIn(test *testing.T) {
 		test.Fatalf("allowed emails = %v, want none", cfg.AllowedEmails)
 	}
 }
+
+// feliz
+func TestLoadReadsTheStorageAndTheLinkSecret(test *testing.T) {
+	cfg, err := Load(envOf(map[string]string{
+		"R2_ENDPOINT":          "https://account.r2.cloudflarestorage.com",
+		"R2_ACCESS_KEY_ID":     "key",
+		"R2_SECRET_ACCESS_KEY": "secret",
+		"R2_BUCKET":            "artifact-docs",
+		"ARTIFACT_LINK_SECRET": strings.Repeat("s", 32),
+	}))
+	if err != nil {
+		test.Fatalf("unexpected error: %v", err)
+	}
+
+	if !cfg.Storage.Configured() || cfg.Storage.Bucket != "artifact-docs" {
+		test.Fatalf("storage = %+v", cfg.Storage)
+	}
+	if len(cfg.LinkSecret) != 32 {
+		test.Fatalf("link secret = %q", cfg.LinkSecret)
+	}
+}
+
+// triste
+func TestLoadRefusesAHalfConfiguredStorageOrAShortSecret(test *testing.T) {
+	halfStorage := map[string]string{"R2_ENDPOINT": "https://account.r2.cloudflarestorage.com", "R2_BUCKET": "artifact-docs"}
+	if _, err := Load(envOf(halfStorage)); err == nil {
+		test.Error("half the R2 settings: expected an error")
+	}
+
+	if _, err := Load(envOf(map[string]string{"ARTIFACT_LINK_SECRET": "short"})); err == nil {
+		test.Error("short link secret: expected an error")
+	}
+}
+
+// feliz
+func TestLoadReadsTheEnvironmentAndDefaultsToDevelopment(test *testing.T) {
+	standard, err := Load(envOf(nil))
+	if err != nil || standard.Env != EnvDevelopment || standard.IsTest() {
+		test.Fatalf("default: env = %q, err = %v", standard.Env, err)
+	}
+
+	e2e, err := Load(envOf(map[string]string{"APP_ENV": "test"}))
+	if err != nil || !e2e.IsTest() {
+		test.Fatalf("test: env = %q, err = %v", e2e.Env, err)
+	}
+}
+
+// triste
+func TestLoadRefusesAnUnknownEnvOrTestModeWiredToNeonAuth(test *testing.T) {
+	if _, err := Load(envOf(map[string]string{"APP_ENV": "staging"})); err == nil {
+		test.Error("unknown APP_ENV: expected an error")
+	}
+
+	wired := map[string]string{"APP_ENV": "test", "NEON_AUTH_JWKS_URL": "https://auth.example.com/jwks"}
+	if _, err := Load(envOf(wired)); err == nil {
+		test.Error("test mode with Neon Auth configured: expected an error")
+	}
+}

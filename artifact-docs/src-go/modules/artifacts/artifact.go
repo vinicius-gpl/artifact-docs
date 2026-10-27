@@ -6,7 +6,18 @@
 // resposta evita a cópia campo a campo, que é onde os dois lados costumam deixar de combinar.
 package artifacts
 
-import "time"
+import (
+	"errors"
+	"time"
+)
+
+// ErrConflict é outra publicação da mesma label terminando primeiro.
+var ErrConflict = errors.New("artifacts: concurrent publish")
+
+// thumbFile é o nome da miniatura dentro da pasta da versão, no R2 e no link servido. Começa
+// com ponto porque nenhum arquivo de .zip publicado chega com esse nome (os ocultos são
+// descartados): a miniatura nunca sobrescreve um arquivo do próprio artefato.
+const thumbFile = ".thumb.png"
 
 // Os enums do artifact.schema.ts (e dos CHECK da migration 0001).
 var (
@@ -33,6 +44,10 @@ type Artifact struct {
 	CreatedAt      time.Time  `json:"createdAt"`
 	UpdatedAt      time.Time  `json:"updatedAt"`
 	LastViewedAt   *time.Time `json:"lastViewedAt"`
+
+	// linkToken e hasThumb vêm do banco e viram URL e ThumbURL no Linker; não vão no JSON.
+	linkToken string
+	hasThumb  bool
 }
 
 // Version é o artifactVersionSchema.
@@ -63,4 +78,50 @@ type Patch struct {
 	IsPrivate *bool
 	StatusSet bool
 	Status    *string
+}
+
+// Served é o que o link /a/<token>/ precisa para servir: qual pasta do R2 e se exige
+// assinatura.
+type Served struct {
+	ArtifactID string
+	Version    int
+	Format     string
+	IsPrivate  bool
+}
+
+// PublishTarget é onde a próxima versão cai: o artefato existente e a maior versão dele.
+type PublishTarget struct {
+	Exists        bool
+	ArtifactID    string
+	LinkToken     string
+	LatestVersion int
+}
+
+// PublishMeta são os campos que acompanham o arquivo. Nil é "não veio": num artefato que
+// já existe, mantém o valor; num novo, título e kind são obrigatórios.
+type PublishMeta struct {
+	Title       *string
+	Kind        *string
+	Description *string
+	Tags        []string
+}
+
+// VersionRecord é a versão já enviada ao R2, pronta para entrar no banco.
+type VersionRecord struct {
+	IsNew       bool
+	ArtifactID  string
+	OwnerID     string
+	Label       string
+	Meta        PublishMeta
+	Format      string
+	ContentText string
+	Version     int
+	SizeBytes   int64
+	HasThumb    bool
+}
+
+// Deleted é o que sobra de um artefato apagado: onde estão os arquivos e qual link esquecer.
+type Deleted struct {
+	ArtifactID string
+	LinkToken  string
 }
