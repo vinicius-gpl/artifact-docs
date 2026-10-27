@@ -15,8 +15,14 @@
    * A ordem dos estados é a de sempre: carregando → erro (com o motivo; um 404 diz que o
    * artefato não existe) → conteúdo.
    *
-   * Ações: publicar versão nova é a principal (Von Restorff: uma por tela); privado, abrir e
-   * apagar são secundárias; restaurar mora em cada versão antiga da lista.
+   * As ações em dois grupos, cada um perto do que afeta (Conectividade Uniforme): as do
+   * ARTEFATO no cabeçalho — privado, apagar e, por último, publicar versão nova, a principal
+   * (Von Restorff) —; as da PÁGINA numa barra colada em cima da prévia — abrir em nova aba e
+   * tela cheia. Restaurar mora em cada versão antiga da lista.
+   *
+   * A tela cheia é uma moldura DENTRO do app, e não o F11 do navegador: a prévia cobre a
+   * janela com uma barra em cima, onde fica o "Sair da tela cheia" (e o Esc também sai). É o
+   * MESMO `<iframe>` mudando de lugar — a página não recarrega nem perde a rolagem.
    */
   export type AcerolaArtifactViewerProps = {
     /** `back` é a aba do tipo do artefato (Documentos, Planejamentos ou Ideias). */
@@ -43,6 +49,7 @@
   import Lock from '@lucide/svelte/icons/lock';
   import LockOpen from '@lucide/svelte/icons/lock-open';
   import Maximize2 from '@lucide/svelte/icons/maximize-2';
+  import Minimize2 from '@lucide/svelte/icons/minimize-2';
   import Trash2 from '@lucide/svelte/icons/trash-2';
   import Upload from '@lucide/svelte/icons/upload';
 
@@ -54,19 +61,20 @@
   import StatusBadge from '$lib/components/acerola-status-badge/acerola-status-badge.svelte';
   import { cn } from '$lib/utils/cn';
 
-  let { data, state, actions }: AcerolaArtifactViewerProps = $props();
+  /* `viewState`, e não `state`: com a prop chamada `state`, a runa `$state` ficaria escondida. */
+  let { data, state: viewState, actions }: AcerolaArtifactViewerProps = $props();
 
-  const isBusy = $derived(Boolean(state.pendingAction));
+  const isBusy = $derived(Boolean(viewState.pendingAction));
 
-  /* O `<iframe>` da página publicada, para a tela cheia. É DOM, não dado: mora aqui. Sem
-     `$state` (a prop `state` esconde a runa, e nada na tela depende dele). */
-  let frame: HTMLIFrameElement | undefined;
+  /* Estado puramente visual: a prévia está na moldura de tela cheia. */
+  let isExpanded = $state(false);
 
-  /** Tela cheia da página publicada, pelo próprio navegador — o Esc sai. */
-  function showFullscreen(): void {
-    void frame?.requestFullscreen?.();
+  function onWindowKeydown(event: KeyboardEvent): void {
+    if (isExpanded && event.key === 'Escape') isExpanded = false;
   }
 </script>
+
+<svelte:window onkeydown={onWindowKeydown} />
 
 <div class="flex flex-col gap-5">
   <a
@@ -77,19 +85,20 @@
     {data.back?.label ?? 'Voltar'}
   </a>
 
-  {#if state.isLoading}
+  {#if viewState.isLoading}
     <div class="flex flex-col gap-3" aria-busy="true" aria-label="Carregando">
       <Skeleton class="rounded-control h-8 w-80" />
       <Skeleton class="rounded-surface h-[70vh]" />
     </div>
-  {:else if state.error || !data.artifact}
+  {:else if viewState.error || !data.artifact}
     <ErrorState
-      data={{ title: 'O artefato não abriu', message: state.error ?? 'Artefato não encontrado.' }}
+      data={{ title: 'O artefato não abriu', message: viewState.error ?? 'Artefato não encontrado.' }}
       actions={{ onRetry: actions.onRetry }}
     />
   {:else}
     {@const artifact = data.artifact}
-    <header class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+    {@const current = artifact.versions.find((version) => version.isCurrent)}
+    <header class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
       <div class="min-w-0">
         <h1 class="flex items-center gap-2 text-2xl">
           {artifact.title}
@@ -98,7 +107,7 @@
           {/if}
         </h1>
         {#if artifact.description}
-          <p class="text-muted-foreground mt-1 text-sm">{artifact.description}</p>
+          <p class="text-muted-foreground mt-1 max-w-prose text-sm">{artifact.description}</p>
         {/if}
         <div class="mt-2 flex flex-wrap gap-1.5">
           {#each artifact.badges as badge (badge.label)}
@@ -106,26 +115,13 @@
           {/each}
         </div>
       </div>
-      <div class="flex flex-wrap items-center gap-2">
-        <ActionButton
-          data={{ label: 'Tela cheia' }}
-          ui={{ variant: 'secondary', size: 'lg', icon: Maximize2 }}
-          actions={{ onClick: showFullscreen }}
-        />
-        <a
-          href={artifact.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          class={cn(actionButton({ variant: 'secondary', size: 'lg' }), 'inline-flex items-center gap-2 text-sm')}
-        >
-          <ExternalLink class="size-4" aria-hidden="true" />
-          Abrir em nova aba
-        </a>
+
+      <div class="flex shrink-0 flex-wrap items-center gap-2" role="group" aria-label="Ações do artefato">
         {#if actions.onTogglePrivate}
           <ActionButton
             data={{ label: artifact.isPrivate ? 'Tornar público' : 'Tornar privado', loadingLabel: 'Salvando…' }}
             ui={{ variant: 'secondary', size: 'lg', icon: artifact.isPrivate ? LockOpen : Lock }}
-            state={{ isLoading: state.pendingAction?.kind === 'private', isDisabled: isBusy }}
+            state={{ isLoading: viewState.pendingAction?.kind === 'private', isDisabled: isBusy }}
             actions={{ onClick: actions.onTogglePrivate }}
           />
         {/if}
@@ -148,18 +144,59 @@
       </div>
     </header>
 
-    {#if state.actionError}
-      <ErrorState data={{ message: state.actionError }} ui={{ variant: 'inline' }} />
+    {#if viewState.actionError}
+      <ErrorState data={{ message: viewState.actionError }} ui={{ variant: 'inline' }} />
     {/if}
 
     <div class="grid gap-5 lg:grid-cols-[minmax(0,1fr)_18rem]">
-      <iframe
-        bind:this={frame}
-        src={artifact.url}
-        title={artifact.title}
-        sandbox="allow-scripts allow-popups allow-forms"
-        class="rounded-surface bg-background h-[70vh] w-full border"
-      ></iframe>
+      <!-- A prévia: a barra da página e o <iframe>. Na tela cheia, o MESMO bloco passa a cobrir
+           a janela (fixed) — nada é remontado, a página não recarrega. -->
+      <section
+        class={cn(
+          'flex min-w-0 flex-col',
+          isExpanded && 'bg-background fixed inset-0 z-50 gap-2 p-3 sm:p-4',
+        )}
+        aria-label={isExpanded ? `${artifact.title} em tela cheia` : 'Prévia da página publicada'}
+        data-expanded={isExpanded}
+      >
+        <div class="glass rounded-surface flex min-h-12 items-center gap-2 border px-3">
+          <span class="text-muted-foreground min-w-0 flex-1 truncate text-xs">
+            {#if isExpanded}
+              <span class="text-foreground text-sm font-medium">{artifact.title}</span>
+            {:else}
+              Página publicada
+            {/if}
+            {#if current}<span class="font-mono"> · {current.version}</span>{/if}
+          </span>
+          <a
+            href={artifact.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Abrir em nova aba"
+            title="Abrir em nova aba"
+            class={actionButton({ variant: 'ghost', size: 'lg', isIconOnly: true })}
+          >
+            <ExternalLink class="size-4" aria-hidden="true" />
+          </a>
+          <ActionButton
+            data={{ label: isExpanded ? 'Sair da tela cheia' : 'Tela cheia' }}
+            ui={{
+              variant: isExpanded ? 'secondary' : 'ghost',
+              size: 'lg',
+              icon: isExpanded ? Minimize2 : Maximize2,
+              isIconOnly: !isExpanded,
+            }}
+            state={{ isPressed: isExpanded }}
+            actions={{ onClick: () => (isExpanded = !isExpanded) }}
+          />
+        </div>
+        <iframe
+          src={artifact.url}
+          title={artifact.title}
+          sandbox="allow-scripts allow-popups allow-forms"
+          class={cn('rounded-surface bg-background w-full border', isExpanded ? 'min-h-0 flex-1' : 'mt-2 h-[70vh]')}
+        ></iframe>
+      </section>
 
       <aside class="flex flex-col gap-3" aria-label="Sobre o artefato">
         <section class="glass rounded-surface p-4">
@@ -181,7 +218,8 @@
                 {#if version.isCurrent}
                   <StatusBadge data={{ label: 'Atual' }} ui={{ tone: 'success', size: 'sm' }} />
                 {:else if actions.onRestore}
-                  {@const restoring = state.pendingAction?.kind === 'restore' && state.pendingAction.version === version.number}
+                  {@const restoring =
+                    viewState.pendingAction?.kind === 'restore' && viewState.pendingAction.version === version.number}
                   <ActionButton
                     data={{ label: `Restaurar ${version.version}`, loadingLabel: 'Restaurando…' }}
                     ui={{ variant: 'ghost', size: 'sm' }}

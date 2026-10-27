@@ -123,27 +123,34 @@ describe('AcerolaArtifactViewer', () => {
   });
 
   // feliz
-  it('opens the published page in fullscreen', async () => {
-    const requestFullscreen = vi.fn().mockResolvedValue(undefined);
-    HTMLIFrameElement.prototype.requestFullscreen = requestFullscreen;
+  it('opens the published page in an in-app fullscreen frame and leaves it', async () => {
     render(ArtifactViewer, {
       props: { data: { artifact: ARTIFACT }, state: idle, actions: { onRetry: vi.fn() } },
     });
 
     await fireEvent.click(screen.getByRole('button', { name: 'Tela cheia' }));
+    const frame = screen.getByRole('region', { name: 'Briefing do hub em tela cheia' });
+    expect(frame).toHaveAttribute('data-expanded', 'true');
 
-    expect(requestFullscreen).toHaveBeenCalled();
+    await fireEvent.click(screen.getByRole('button', { name: 'Sair da tela cheia' }));
+    expect(screen.getByRole('region', { name: 'Prévia da página publicada' })).toHaveAttribute(
+      'data-expanded',
+      'false',
+    );
   });
 
   // triste
-  it('does nothing in a browser without the fullscreen API', async () => {
-    Reflect.deleteProperty(HTMLIFrameElement.prototype, 'requestFullscreen');
+  it('leaves the fullscreen frame with Escape, and Escape does nothing outside it', async () => {
     render(ArtifactViewer, {
       props: { data: { artifact: ARTIFACT }, state: idle, actions: { onRetry: vi.fn() } },
     });
 
-    await expect(fireEvent.click(screen.getByRole('button', { name: 'Tela cheia' }))).resolves.toBe(
-      true,
-    );
+    await fireEvent.keyDown(window, { key: 'Escape' });
+    expect(screen.getByRole('button', { name: 'Tela cheia' })).toBeInTheDocument();
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Tela cheia' }));
+    await fireEvent.keyDown(window, { key: 'Escape' });
+
+    expect(screen.getByRole('button', { name: 'Tela cheia' })).toBeInTheDocument();
   });
 });
