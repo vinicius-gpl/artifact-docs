@@ -1,5 +1,8 @@
 <script lang="ts" module>
-  import type { ArtifactView } from '$lib/hooks/use-artifact-detail/use-artifact-detail.svelte';
+  import type {
+    ArtifactPendingAction,
+    ArtifactView,
+  } from '$lib/hooks/use-artifact-detail/use-artifact-detail.svelte';
 
   /**
    * Um artefato aberto: a página publicada ocupando o espaço, e ao lado os dados e as versões.
@@ -10,11 +13,25 @@
    *
    * A ordem dos estados é a de sempre: carregando → erro (com o motivo; um 404 diz que o
    * artefato não existe) → conteúdo.
+   *
+   * Ações: publicar versão nova é a principal (Von Restorff: uma por tela); privado, abrir e
+   * apagar são secundárias; restaurar mora em cada versão antiga da lista.
    */
   export type AcerolaArtifactViewerProps = {
     data: { artifact: ArtifactView | null };
-    state: { isLoading: boolean; error: string | null };
-    actions: { onRetry: () => void };
+    state: {
+      isLoading: boolean;
+      error: string | null;
+      pendingAction?: ArtifactPendingAction;
+      actionError?: string | null;
+    };
+    actions: {
+      onRetry: () => void;
+      onPublishVersion?: () => void;
+      onTogglePrivate?: () => void;
+      onRestore?: (version: number) => void;
+      onDelete?: () => void;
+    };
   };
 </script>
 
@@ -22,14 +39,21 @@
   import ArrowLeft from '@lucide/svelte/icons/arrow-left';
   import ExternalLink from '@lucide/svelte/icons/external-link';
   import Lock from '@lucide/svelte/icons/lock';
+  import LockOpen from '@lucide/svelte/icons/lock-open';
+  import Trash2 from '@lucide/svelte/icons/trash-2';
+  import Upload from '@lucide/svelte/icons/upload';
 
-  import { actionButton } from '$lib/components/acerola-action-button/acerola-action-button.svelte';
+  import ActionButton, {
+    actionButton,
+  } from '$lib/components/acerola-action-button/acerola-action-button.svelte';
   import ErrorState from '$lib/components/acerola-error-state/acerola-error-state.svelte';
   import { Skeleton } from '$lib/components/acerola-skeleton/acerola-skeleton';
   import StatusBadge from '$lib/components/acerola-status-badge/acerola-status-badge.svelte';
   import { cn } from '$lib/utils/cn';
 
   let { data, state, actions }: AcerolaArtifactViewerProps = $props();
+
+  const isBusy = $derived(Boolean(state.pendingAction));
 </script>
 
 <div class="flex flex-col gap-5">
@@ -70,16 +94,46 @@
           {/each}
         </div>
       </div>
-      <a
-        href={artifact.url}
-        target="_blank"
-        rel="noopener noreferrer"
-        class={cn(actionButton({ variant: 'secondary', size: 'lg' }), 'inline-flex items-center gap-2 text-sm')}
-      >
-        <ExternalLink class="size-4" aria-hidden="true" />
-        Abrir em nova aba
-      </a>
+      <div class="flex flex-wrap items-center gap-2">
+        <a
+          href={artifact.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          class={cn(actionButton({ variant: 'secondary', size: 'lg' }), 'inline-flex items-center gap-2 text-sm')}
+        >
+          <ExternalLink class="size-4" aria-hidden="true" />
+          Abrir em nova aba
+        </a>
+        {#if actions.onTogglePrivate}
+          <ActionButton
+            data={{ label: artifact.isPrivate ? 'Tornar público' : 'Tornar privado', loadingLabel: 'Salvando…' }}
+            ui={{ variant: 'secondary', size: 'lg', icon: artifact.isPrivate ? LockOpen : Lock }}
+            state={{ isLoading: state.pendingAction?.kind === 'private', isDisabled: isBusy }}
+            actions={{ onClick: actions.onTogglePrivate }}
+          />
+        {/if}
+        {#if actions.onDelete}
+          <ActionButton
+            data={{ label: 'Apagar' }}
+            ui={{ variant: 'ghost', size: 'lg', icon: Trash2 }}
+            state={{ isDisabled: isBusy }}
+            actions={{ onClick: actions.onDelete }}
+          />
+        {/if}
+        {#if actions.onPublishVersion}
+          <ActionButton
+            data={{ label: 'Publicar nova versão' }}
+            ui={{ variant: 'primary', size: 'lg', icon: Upload }}
+            state={{ isDisabled: isBusy }}
+            actions={{ onClick: actions.onPublishVersion }}
+          />
+        {/if}
+      </div>
     </header>
+
+    {#if state.actionError}
+      <ErrorState data={{ message: state.actionError }} ui={{ variant: 'inline' }} />
+    {/if}
 
     <div class="grid gap-5 lg:grid-cols-[minmax(0,1fr)_18rem]">
       <iframe
@@ -108,6 +162,14 @@
                 <span class="text-muted-foreground text-xs">{version.detail}</span>
                 {#if version.isCurrent}
                   <StatusBadge data={{ label: 'Atual' }} ui={{ tone: 'success', size: 'sm' }} />
+                {:else if actions.onRestore}
+                  {@const restoring = state.pendingAction?.kind === 'restore' && state.pendingAction.version === version.number}
+                  <ActionButton
+                    data={{ label: `Restaurar ${version.version}`, loadingLabel: 'Restaurando…' }}
+                    ui={{ variant: 'ghost', size: 'sm' }}
+                    state={{ isLoading: restoring, isDisabled: isBusy }}
+                    actions={{ onClick: () => actions.onRestore?.(version.number) }}
+                  />
                 {/if}
               </li>
             {/each}

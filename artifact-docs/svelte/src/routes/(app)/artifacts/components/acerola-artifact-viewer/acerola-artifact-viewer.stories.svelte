@@ -17,12 +17,20 @@
       { label: 'Tamanho', value: '12 KB' },
     ],
     versions: [
-      { version: 'v2', detail: '25/10/2026 · 12 KB', isCurrent: true },
-      { version: 'v1', detail: '18/10/2026 · 11 KB', isCurrent: false },
+      { number: 2, version: 'v2', detail: '25/10/2026 · 12 KB', isCurrent: true },
+      { number: 1, version: 'v1', detail: '18/10/2026 · 11 KB', isCurrent: false },
     ],
   };
 
   const idle = { isLoading: false, error: null };
+
+  const withActions = {
+    onRetry: fn(),
+    onPublishVersion: fn(),
+    onTogglePrivate: fn(),
+    onRestore: fn(),
+    onDelete: fn(),
+  };
 
   const { Story } = defineMeta({
     title: 'Features/Artifacts/AcerolaArtifactViewer',
@@ -43,5 +51,25 @@
   args={{
     data: { artifact: { ...artifact, isPrivate: true, description: null, versions: artifact.versions.slice(0, 1) } },
     state: idle,
+  }}
+/>
+
+<Story name="WithActions" args={{ data: { artifact }, state: idle, actions: withActions }} />
+
+<Story
+  name="Restoring"
+  args={{
+    data: { artifact },
+    state: { ...idle, pendingAction: { kind: 'restore', version: 1 } },
+    actions: withActions,
+  }}
+/>
+
+<Story
+  name="ActionFailed"
+  args={{
+    data: { artifact },
+    state: { ...idle, actionError: 'Versão não encontrada.' },
+    actions: withActions,
   }}
 />

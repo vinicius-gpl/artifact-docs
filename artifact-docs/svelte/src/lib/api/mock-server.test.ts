@@ -126,3 +126,73 @@ describe('mock sign-in', () => {
     await expect(request('/auth/me')).rejects.toMatchObject({ status: 401 });
   });
 });
+
+describe('handleMockRequest — publishing', () => {
+  function publishForm(fields: Record<string, string>, file?: File): FormData {
+    const form = new FormData();
+    if (file) form.append('file', file, file.name);
+    for (const [field, value] of Object.entries(fields)) form.append(field, value);
+
+    return form;
+  }
+
+  // feliz
+  it('publishes a new artifact and then a second version of it', async () => {
+    const html = new File(['<h1>Guia</h1>'], 'guia.html', { type: 'text/html' });
+    const created = await request<{ currentVersion: number; url: string }>('/artifacts/guia-novo', {
+      method: 'PUT',
+      body: publishForm({ title: 'Guia novo', kind: 'document' }, html),
+    });
+    const updated = await request<{ currentVersion: number; title: string }>(
+      '/artifacts/guia-novo',
+      {
+        method: 'PUT',
+        body: publishForm({}, new File(['# Guia'], 'guia.md')),
+      },
+    );
+
+    expect(created.currentVersion).toBe(1);
+    expect(created.url).toContain(encodeURIComponent('<h1>Guia</h1>'));
+    expect(updated).toMatchObject({ currentVersion: 2, title: 'Guia novo' });
+  });
+
+  // triste
+  it('refuses a new artifact without title, like the Go', async () => {
+    const html = new File(['<p>x</p>'], 'x.html');
+
+    await expect(
+      request('/artifacts/sem-titulo', {
+        method: 'PUT',
+        body: publishForm({ kind: 'idea' }, html),
+      }),
+    ).rejects.toMatchObject({ status: 400 });
+  });
+
+  // feliz
+  it('restores an older version and deletes an artifact', async () => {
+    const list = await request<ArtifactList>('/artifacts');
+    const withVersions = list.items.find((item) => item.currentVersion > 1);
+    if (!withVersions) throw new Error('the fixtures need an artifact with versions');
+
+    const restored = await request<{ currentVersion: number }>(
+      `/artifacts/${withVersions.label}/restore`,
+      { method: 'POST', body: { version: 1 } },
+    );
+    await request(`/artifacts/${withVersions.label}`, { method: 'DELETE' });
+
+    expect(restored.currentVersion).toBe(1);
+    await expect(request(`/artifacts/${withVersions.label}`)).rejects.toMatchObject({
+      status: 404,
+    });
+  });
+
+  // triste
+  it('answers 404 when restoring a version that does not exist', async () => {
+    const list = await request<ArtifactList>('/artifacts');
+    const label = list.items[0]?.label ?? '';
+
+    await expect(
+      request(`/artifacts/${label}/restore`, { method: 'POST', body: { version: 999 } }),
+    ).rejects.toMatchObject({ status: 404 });
+  });
+});
