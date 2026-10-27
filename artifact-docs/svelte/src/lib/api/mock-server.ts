@@ -1,4 +1,10 @@
-import { appHubSchema } from '$lib/contracts/app-link.schema';
+import {
+  appHubSchema,
+  appLinkInputSchema,
+  appLinkSchema,
+  type AppLink,
+  type AppLinkInput,
+} from '$lib/contracts/app-link.schema';
 import {
   artifactDetailSchema,
   artifactKindSchema,
@@ -250,6 +256,81 @@ function deleteArtifact({ params }: MockContext) {
   return undefined;
 }
 
+function readAppInput(body: unknown): AppLinkInput {
+  const input = appLinkInputSchema.safeParse(body);
+  if (!input.success)
+    throw new ApiError(400, input.error.issues[0]?.message ?? 'Cadastro inválido.');
+
+  return input.data;
+}
+
+/** O tipo pelo nome, sem diferença de maiúscula — o `upsert_app_type.sql` do Go. */
+function typeIdFor(name: string): string {
+  const existing = db.appHub.types.find((type) => type.name.toLowerCase() === name.toLowerCase());
+  if (existing) return existing.id;
+
+  const position = Math.max(-1, ...db.appHub.types.map((type) => type.position)) + 1;
+  const created = { id: `type-${crypto.randomUUID()}`, name, position };
+  db.appHub.types.push(created);
+
+  return created.id;
+}
+
+/** O tipo que ficou sem nenhum app some, como no Go. */
+function dropEmptyTypes(): void {
+  db.appHub.types = db.appHub.types.filter((type) =>
+    db.appHub.apps.some((app) => app.typeId === type.id),
+  );
+}
+
+function findApp(id: string): AppLink {
+  const app = db.appHub.apps.find((item) => item.id === id);
+  if (!app) throw new ApiError(404, 'App não encontrado. Ele pode ter sido apagado.');
+
+  return app;
+}
+
+function createApp({ body }: MockContext) {
+  const input = readAppInput(body);
+  const app: AppLink = {
+    id: `app-${crypto.randomUUID()}`,
+    typeId: typeIdFor(input.typeName),
+    name: input.name,
+    url: input.url,
+    logoUrl: null,
+    status: 'unknown',
+    checkedAt: null,
+  };
+  db.appHub.apps.push(app);
+
+  return appLinkSchema.parse(app);
+}
+
+function updateApp({ params, body }: MockContext) {
+  const app = findApp(params.id ?? '');
+  const input = readAppInput(body);
+  const isNewAddress = app.url !== input.url;
+
+  Object.assign(app, {
+    typeId: typeIdFor(input.typeName),
+    name: input.name,
+    url: input.url,
+    status: isNewAddress ? 'unknown' : app.status,
+    checkedAt: isNewAddress ? null : app.checkedAt,
+  });
+  dropEmptyTypes();
+
+  return appLinkSchema.parse(app);
+}
+
+function deleteApp({ params }: MockContext) {
+  const app = findApp(params.id ?? '');
+  db.appHub.apps = db.appHub.apps.filter((item) => item.id !== app.id);
+  dropEmptyTypes();
+
+  return undefined;
+}
+
 const ROUTES: MockRoute[] = [
   { method: 'GET', path: '/auth/me', handle: mockMe },
   { method: 'GET', path: '/auth/setup', isPublic: true, handle: mockSetup },
@@ -278,6 +359,9 @@ const ROUTES: MockRoute[] = [
   { method: 'POST', path: '/artifacts/:label/restore', handle: restoreArtifact },
   { method: 'DELETE', path: '/artifacts/:label', handle: deleteArtifact },
   { method: 'GET', path: '/apps', handle: () => appHubSchema.parse(db.appHub) },
+  { method: 'POST', path: '/apps', handle: createApp },
+  { method: 'PATCH', path: '/apps/:id', handle: updateApp },
+  { method: 'DELETE', path: '/apps/:id', handle: deleteApp },
 ];
 
 /** Casa `/artifacts/abertura-cnpj` com `/artifacts/:label` e devolve `{ label }`. */

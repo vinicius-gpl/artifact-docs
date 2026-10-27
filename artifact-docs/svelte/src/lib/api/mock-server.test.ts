@@ -196,3 +196,37 @@ describe('handleMockRequest — publishing', () => {
     ).rejects.toMatchObject({ status: 404 });
   });
 });
+
+describe('handleMockRequest — apps', () => {
+  const input = { name: 'Immich', url: 'https://fotos.exemplo.com', typeName: 'Mídia' };
+
+  // feliz
+  it('creates an app in a new type, then moves it and drops the empty type', async () => {
+    const created = await request<{ id: string; typeId: string }>('/apps', {
+      method: 'POST',
+      body: input,
+    });
+    const hub = await request<AppHub>('/apps');
+    expect(hub.types.some((type) => type.id === created.typeId && type.name === 'Mídia')).toBe(
+      true,
+    );
+
+    await request(`/apps/${created.id}`, {
+      method: 'PATCH',
+      body: { ...input, typeName: hub.types[0]!.name.toUpperCase() },
+    });
+
+    const after = await request<AppHub>('/apps');
+    expect(after.types.some((type) => type.name === 'Mídia')).toBe(false);
+  });
+
+  // triste
+  it('refuses an address without http and answers 404 for an app that does not exist', async () => {
+    await expect(
+      request('/apps', { method: 'POST', body: { ...input, url: 'fotos.exemplo.com' } }),
+    ).rejects.toMatchObject({ status: 400 });
+    await expect(request('/apps/nao-existe', { method: 'DELETE' })).rejects.toMatchObject({
+      status: 404,
+    });
+  });
+});
