@@ -37,6 +37,9 @@ A tabela `ROUTES` do `mock-server.ts` é a lista viva. Hoje:
 | `POST` | `/api/artifacts/{label}/restore` | `artifactSchema` | ✅ | corpo `artifactRestoreSchema`; o rollback só troca o ponteiro |
 | `DELETE` | `/api/artifacts/{label}` | 204 | ✅ | apaga o registro e os arquivos no R2 |
 | `GET` | `/api/apps` | `appHubSchema` | ✅ | tipos e apps juntos; a tela agrupa |
+| `POST` | `/api/apps` | `appLinkSchema` | ✅ | corpo `appLinkInputSchema`; o tipo vai pelo nome e nasce se não existe |
+| `PATCH` | `/api/apps/{id}` | `appLinkSchema` | ✅ | idem; endereço novo volta para "sem verificação" |
+| `DELETE` | `/api/apps/{id}` | 204 | ✅ | o tipo que fica sem app some |
 
 Com tudo ✅, o próximo passo é conferir a tela com `VITE_API_MOCKS=false` contra um banco de
 verdade e, dando certo, apagar o mock (passo 3 acima). Sem `DATABASE_URL` ou
