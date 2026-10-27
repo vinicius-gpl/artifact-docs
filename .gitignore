@@ -34,3 +34,7 @@ desktop.ini
 
 # Ajuste local do Claude Code — é de quem programa, não do projeto.
 .claude/settings.local.json
+
+# Inventário e segredos do deploy: o workflow monta os dois a partir das secrets.
+deploy/ansible/hosts.ini
+deploy/ansible/vars.json

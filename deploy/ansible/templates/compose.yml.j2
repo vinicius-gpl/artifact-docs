@@ -1,0 +1,32 @@
+# Gerado pelo Ansible (deploy/ansible/templates/compose.yml.j2) — não edite na VPS.
+#
+# O binário vem pronto do CI e entra por volume: a VPS não compila nada. A imagem distroless
+# só dá os certificados (TLS do Neon e do R2) e o usuário sem root — não tem shell nem pacote.
+networks:
+  proxy:
+    external: true
+
+services:
+  artifact-docs:
+    image: gcr.io/distroless/static-debian12:nonroot
+    container_name: artifact-docs
+    restart: always
+    entrypoint: ["/app/artifact-docs"]
+    env_file: .env
+    volumes:
+      - {{ app_path }}/artifact-docs:/app/artifact-docs:ro,z
+    # O upload grande (multipart) transborda para o /tmp; o resto do disco é só leitura.
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m
+    security_opt:
+      - no-new-privileges:true
+    # A VPS tem 1 GB: o GOMEMLIMIT segura o Go, e este teto protege o resto do servidor.
+    mem_limit: {{ app_mem_limit }}
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - proxy
