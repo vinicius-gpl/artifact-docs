@@ -33,6 +33,9 @@ A tabela `ROUTES` do `mock-server.ts` é a lista viva. Hoje:
 | `GET` | `/api/artifacts?kind=&q=` | `artifactListSchema` | ✅ | mais recente primeiro; `q` é a busca `tsvector` |
 | `GET` | `/api/artifacts/{label}` | `artifactDetailSchema` | ✅ | grava `last_viewed_at` (é o que ordena "Recentes") |
 | `PATCH` | `/api/artifacts/{label}` | `artifactSchema` | ✅ | corpo `artifactPatchSchema` (fixar, privado, situação) |
+| `PUT` | `/api/artifacts/{label}` | `artifactSchema` | ✅ | multipart (`artifactPublishSchema`): cria ou sobe versão; 201 quando é novo |
+| `POST` | `/api/artifacts/{label}/restore` | `artifactSchema` | ✅ | corpo `artifactRestoreSchema`; o rollback só troca o ponteiro |
+| `DELETE` | `/api/artifacts/{label}` | 204 | ✅ | apaga o registro e os arquivos no R2 |
 | `GET` | `/api/apps` | `appHubSchema` | ✅ | tipos e apps juntos; a tela agrupa |
 
 Com tudo ✅, o próximo passo é conferir a tela com `VITE_API_MOCKS=false` contra um banco de
@@ -48,6 +51,8 @@ Erro segue o formato que o `http-client` já lê: status HTTP e corpo
 ## Limites do mock
 
 - Os dados voltam ao começo a cada recarga da página — de propósito, para não virar um segundo banco.
-- O `url` de cada artefato é um `data:` com uma página mínima. O preview e o visualizador funcionam;
+- O `url` de cada artefato é um `data:` com uma página mínima (ou, ao publicar um `.html` pelo
+  mock, o próprio HTML enviado). Markdown, `.zip` e PDF publicados no mock viram uma página
+  dizendo o que foi enviado: quem converte e descompacta é o Go. O preview e o visualizador funcionam;
   "Abrir em nova aba" não, porque o navegador bloqueia abrir `data:` direto. Com o Go, o link é
   `/a/<token>/` e abre normalmente.
