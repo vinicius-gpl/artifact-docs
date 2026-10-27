@@ -58,9 +58,22 @@ describe('AcerolaArtifactViewer', () => {
       },
     });
 
-    expect(screen.getByRole('link', { name: /Voltar para Artefatos/ })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Voltar' })).toHaveAttribute('href', '/artifacts');
+  });
+
+  // feliz
+  it('goes back to the tab of the artifact kind', () => {
+    render(ArtifactViewer, {
+      props: {
+        data: { artifact: ARTIFACT, back: { href: '/plans', label: 'Voltar para Planejamentos' } },
+        state: idle,
+        actions: { onRetry: vi.fn() },
+      },
+    });
+
+    expect(screen.getByRole('link', { name: /Voltar para Planejamentos/ })).toHaveAttribute(
       'href',
-      '/artifacts',
+      '/plans',
     );
   });
 

@@ -9,6 +9,7 @@ import {
   ARTIFACT_KIND_LABELS,
   ARTIFACT_STATUS_LABELS,
   type ArtifactDetail,
+  type ArtifactKind,
 } from '$lib/contracts/artifact.schema';
 import { STATUS_TONES } from '$lib/hooks/use-artifact-gallery/use-artifact-gallery.svelte';
 import { mirrorStore } from '$lib/hooks/use-mirror-store/use-mirror-store.svelte';
@@ -35,12 +36,24 @@ export type ArtifactView = {
   versions: ArtifactVersionRow[];
 };
 
+export type BackLink = { href: string; label: string };
+
+/** A aba de cada tipo: é para onde o "Voltar" leva e onde a tela cai depois de apagar. */
+export const KIND_TABS: Record<ArtifactKind, BackLink> = {
+  document: { href: '/artifacts', label: 'Voltar para Documentos' },
+  plan: { href: '/plans', label: 'Voltar para Planejamentos' },
+  idea: { href: '/ideas', label: 'Voltar para Ideias' },
+};
+
+/** Enquanto o artefato não chega, o "Voltar" não sabe a aba: volta para a lista de sempre. */
+const DEFAULT_BACK: BackLink = { href: '/artifacts', label: 'Voltar' };
+
 /** A ação que está em andamento no detalhe — uma por vez. */
 export type ArtifactPendingAction =
   { kind: 'private' } | { kind: 'restore'; version: number } | null;
 
 export type ArtifactDetailModel = {
-  data: { artifact: ArtifactView | null };
+  data: { artifact: ArtifactView | null; back: BackLink };
   state: {
     isLoading: boolean;
     error: string | null;
@@ -109,6 +122,11 @@ export function useArtifactDetailModel(input: { label: string }): ArtifactDetail
   );
 
   let isDeleteOpen = $state(false);
+  const backOf = (): BackLink => {
+    const kind = detail.current.data?.kind;
+
+    return kind ? KIND_TABS[kind] : DEFAULT_BACK;
+  };
   const refresh = () => queryClient.invalidateQueries({ queryKey: ['artifacts'] });
 
   const privacy = mirrorStore(
@@ -127,12 +145,13 @@ export function useArtifactDetailModel(input: { label: string }): ArtifactDetail
     createMutation({
       mutationFn: () => artifactsApi.remove(input.label),
       onSuccess: async () => {
+        const back = backOf();
         /* Tira o detalhe do cache antes de sair: voltar pelo histórico não pode mostrar o
            artefato apagado como se existisse. */
         queryClient.removeQueries({ queryKey: ['artifacts', 'detail', input.label] });
         await refresh();
         isDeleteOpen = false;
-        await goto('/artifacts');
+        await goto(back.href);
       },
     }),
   );
@@ -149,7 +168,7 @@ export function useArtifactDetailModel(input: { label: string }): ArtifactDetail
     get data() {
       const artifact = detail.current.data;
 
-      return { artifact: artifact ? toArtifactView(artifact) : null };
+      return { artifact: artifact ? toArtifactView(artifact) : null, back: backOf() };
     },
     get state() {
       return {

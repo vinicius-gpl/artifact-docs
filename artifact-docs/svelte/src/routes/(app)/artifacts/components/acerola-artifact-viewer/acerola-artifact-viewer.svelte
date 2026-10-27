@@ -2,6 +2,7 @@
   import type {
     ArtifactPendingAction,
     ArtifactView,
+    BackLink,
   } from '$lib/hooks/use-artifact-detail/use-artifact-detail.svelte';
 
   /**
@@ -18,7 +19,8 @@
    * apagar são secundárias; restaurar mora em cada versão antiga da lista.
    */
   export type AcerolaArtifactViewerProps = {
-    data: { artifact: ArtifactView | null };
+    /** `back` é a aba do tipo do artefato (Documentos, Planejamentos ou Ideias). */
+    data: { artifact: ArtifactView | null; back?: BackLink };
     state: {
       isLoading: boolean;
       error: string | null;
@@ -58,11 +60,11 @@
 
 <div class="flex flex-col gap-5">
   <a
-    href="/artifacts"
+    href={data.back?.href ?? '/artifacts'}
     class={cn(actionButton({ variant: 'ghost', size: 'lg' }), 'inline-flex w-fit items-center gap-2 text-sm')}
   >
     <ArrowLeft class="size-4" aria-hidden="true" />
-    Voltar para Artefatos
+    {data.back?.label ?? 'Voltar'}
   </a>
 
   {#if state.isLoading}

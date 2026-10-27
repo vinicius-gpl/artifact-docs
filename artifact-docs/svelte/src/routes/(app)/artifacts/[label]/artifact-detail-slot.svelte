@@ -1,7 +1,7 @@
 <script lang="ts">
-  import ArtifactPublishDialog from '../components/acerola-artifact-publish-dialog/acerola-artifact-publish-dialog.svelte';
   import ArtifactViewer from '../components/acerola-artifact-viewer/acerola-artifact-viewer.svelte';
   import ConfirmDialog from '$lib/components/acerola-confirm-dialog/acerola-confirm-dialog.svelte';
+  import PublishDialog from '$lib/components/acerola-publish-dialog/acerola-publish-dialog.svelte';
   import { useArtifactDetailModel } from '$lib/hooks/use-artifact-detail/use-artifact-detail.svelte';
   import { useArtifactPublishModel } from '$lib/hooks/use-artifact-publish/use-artifact-publish.svelte';
 
@@ -30,7 +30,7 @@
   }}
 />
 
-<ArtifactPublishDialog data={publish.data} ui={publish.ui} state={publish.state} actions={publish.actions} />
+<PublishDialog data={publish.data} ui={publish.ui} state={publish.state} actions={publish.actions} />
 
 <ConfirmDialog
   data={{

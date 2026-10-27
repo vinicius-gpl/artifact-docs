@@ -3,12 +3,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ApiError } from '$lib/api/http-client';
 import { createMockDatabase } from '$lib/api/mock-fixtures';
+import { type PublishFormValues } from '$lib/components/acerola-publish-dialog/acerola-publish-dialog.svelte';
+import { type ArtifactKind } from '$lib/contracts/artifact.schema';
 import Harness from './use-artifact-publish-harness.test.svelte';
-import {
-  publishErrorsOf,
-  type ArtifactPublishModel,
-  type PublishValues,
-} from './use-artifact-publish.svelte';
+import { publishErrorsOf, type ArtifactPublishModel } from './use-artifact-publish.svelte';
 
 vi.mock('$app/navigation', () => ({ goto: vi.fn() }));
 vi.mock('$lib/api/artifacts.api', () => ({ artifactsApi: { publish: vi.fn() } }));
@@ -16,12 +14,10 @@ vi.mock('$lib/api/artifacts.api', () => ({ artifactsApi: { publish: vi.fn() } })
 const { goto } = await import('$app/navigation');
 const { artifactsApi } = await import('$lib/api/artifacts.api');
 
-const published = createMockDatabase().artifacts[0];
+const published = createMockDatabase().artifacts[0]!;
 const html = new File(['<h1>Guia</h1>'], 'guia.html', { type: 'text/html' });
 
-function mountModel(
-  input: { kind?: 'document' | 'plan' | 'idea'; label?: string } = {},
-): ArtifactPublishModel {
+function mountModel(input: { kind?: ArtifactKind; label?: string } = {}): ArtifactPublishModel {
   let model!: ArtifactPublishModel;
   render(Harness, { props: { ...input, onReady: (ready) => (model = ready) } });
 
@@ -32,42 +28,42 @@ beforeEach(() => {
   vi.mocked(goto).mockReset();
   vi.mocked(artifactsApi.publish)
     .mockReset()
-    .mockResolvedValue({ ...published!, label: 'guia-rapido' });
+    .mockResolvedValue({ ...published, label: 'guia-rapido' });
 });
 
 describe('publishErrorsOf', () => {
-  const filled: PublishValues = {
+  const filled: PublishFormValues = {
     file: html,
     title: 'Guia',
     label: 'guia',
-    kind: 'document',
     description: '',
     tags: '',
   };
 
   // feliz
-  it('has no error for a filled new artifact', () => {
-    expect(publishErrorsOf(filled, 'new')).toEqual({});
+  it('has no error for a filled new document', () => {
+    expect(publishErrorsOf(filled, 'document')).toEqual({});
   });
 
   // triste
   it('asks for the file and the title of a new artifact, but only the file of a version', () => {
     const empty = { ...filled, file: null, title: '' };
 
-    expect(publishErrorsOf(empty, 'new')).toMatchObject({
+    expect(publishErrorsOf(empty, 'plan')).toMatchObject({
       file: 'Escolha o arquivo a publicar',
       title: 'Informe o título',
     });
-    expect(publishErrorsOf(empty, 'version')).toEqual({ file: 'Escolha o arquivo a publicar' });
+    expect(publishErrorsOf(empty, undefined)).toEqual({ file: 'Escolha o arquivo a publicar' });
   });
 });
 
 describe('useArtifactPublishModel', () => {
   // feliz
-  it('suggests the label from the title until the person edits it', () => {
-    const model = mountModel();
+  it('names what the tab publishes and suggests the label from the title', () => {
+    const model = mountModel({ kind: 'idea' });
 
     model.actions.onChange('title', 'Guia Rápido');
+    expect(model.data.copy.submitLabel).toBe('Publicar ideia');
     expect(model.data.values.label).toBe('guia-rapido');
 
     model.actions.onChange('label', 'meu-guia');
@@ -76,7 +72,7 @@ describe('useArtifactPublishModel', () => {
   });
 
   // feliz
-  it('publishes a new artifact and opens it', async () => {
+  it('publishes a new artifact of the tab kind and opens it', async () => {
     const model = mountModel({ kind: 'plan' });
     model.actions.onOpen();
     model.actions.onFileChange(html);
@@ -94,8 +90,8 @@ describe('useArtifactPublishModel', () => {
   });
 
   // feliz
-  it('publishes a new version keeping the label and staying on the artifact', async () => {
-    const model = mountModel({ label: 'abertura-cnpj', kind: 'plan' });
+  it('publishes a new version without a kind, staying on the artifact', async () => {
+    const model = mountModel({ label: 'abertura-cnpj' });
     model.actions.onOpen();
     model.actions.onFileChange(html);
 

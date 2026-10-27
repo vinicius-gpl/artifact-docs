@@ -65,6 +65,7 @@ describe('useArtifactDetailModel', () => {
 
     await waitFor(() => expect(model.data.artifact?.title).toBe('Abertura do CNPJ'));
     expect(artifactsApi.get).toHaveBeenCalledWith('abertura-cnpj');
+    expect(model.data.back).toEqual({ href: '/plans', label: 'Voltar para Planejamentos' });
   });
 
   // triste
@@ -124,7 +125,8 @@ describe('useArtifactDetailModel — actions', () => {
 
     model.actions.onDeleteConfirm();
 
-    await waitFor(() => expect(goto).toHaveBeenCalledWith('/artifacts'));
+    /* abertura-cnpj é um planejamento: depois de apagar, volta para a aba dele. */
+    await waitFor(() => expect(goto).toHaveBeenCalledWith('/plans'));
     expect(model.state.isDeleteOpen).toBe(false);
   });
 
