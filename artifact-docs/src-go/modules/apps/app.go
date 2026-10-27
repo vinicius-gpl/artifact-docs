@@ -32,3 +32,17 @@ type Hub struct {
 	Types []Type `json:"types"`
 	Apps  []Link `json:"apps"`
 }
+
+// Input é o appLinkInputSchema: o que o cadastro e a edição mandam. O tipo vai pelo NOME — o
+// que não existe nasce na hora (migration 0007).
+type Input struct {
+	Name     string `json:"name"`
+	URL      string `json:"url"`
+	TypeName string `json:"typeName"`
+}
+
+// Target é o que o monitor confere: um app e o endereço dele.
+type Target struct {
+	ID  string
+	URL string
+}
