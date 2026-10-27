@@ -1,0 +1,98 @@
+---
+# Deploy do artifact-docs na VPS (a Oracle do my-config).
+#
+# O binário chega pronto do CI (`mise run build`, com a SPA embutida): a VPS tem 1 GB e não
+# compila nada. Ele roda num container sem shell, na rede `proxy`, e o Caddy do my-config
+# (`/opt/caddy`) o publica pelo nome. Docker, a rede `proxy` e o Caddy são do my-config —
+# este playbook só cuida do que é do app.
+#
+#   ansible-playbook deploy.yml -e binary_src=../../artifact-docs/bin/artifact-docs -e @vars.json
+#
+# `vars.json` traz `app_host` e `app_env` (as variáveis do Go); o workflow monta a partir das
+# secrets. Nada de segredo neste arquivo.
+
+- name: Deploy do artifact-docs
+  hosts: servers
+  become: yes
+  vars:
+    app_path: "/opt/artifact-docs"
+    caddy_path: "/opt/caddy"
+    app_port: 3010
+    # GOMEMLIMIT faz o Go devolver memória antes do teto do container derrubá-lo.
+    app_go_mem_limit: "64MiB"
+    app_mem_limit: "160m"
+    app_env: {}
+
+  tasks:
+    - name: "[check] Conferir o que o deploy precisa"
+      assert:
+        that:
+          - binary_src is defined
+          - app_host is defined and app_host | length > 0
+          # O CI compila para linux/amd64 (a Oracle é a VM.Standard.E2.1.Micro).
+          - ansible_architecture == 'x86_64'
+        fail_msg: "Faltou binary_src ou app_host, ou o servidor não é x86_64 (o binário é amd64)."
+
+    - name: "[check] Conferir a rede proxy e o Caddy (vêm do my-config)"
+      command: docker inspect --format '{{ "{{" }}.State.Running{{ "}}" }}' caddy
+      register: caddy_state
+      changed_when: false
+      check_mode: false
+      failed_when: caddy_state.rc != 0 or caddy_state.stdout != 'true'
+
+    - name: "[app] Criar a pasta do app"
+      file:
+        path: "{{ app_path }}"
+        state: directory
+        mode: '0750'
+
+    - name: "[app] Enviar o binário"
+      copy:
+        src: "{{ binary_src }}"
+        dest: "{{ app_path }}/artifact-docs"
+        mode: '0755'
+
+    - name: "[app] Gravar as variáveis do Go"
+      template:
+        src: templates/env.j2
+        dest: "{{ app_path }}/.env"
+        mode: '0600'
+
+    - name: "[app] Gravar o docker-compose"
+      template:
+        src: templates/compose.yml.j2
+        dest: "{{ app_path }}/docker-compose.yml"
+        mode: '0644'
+
+    # Sempre recria: o binário entra por volume, e o processo antigo continuaria com o velho.
+    - name: "[app] Subir o container"
+      command: docker compose up -d --force-recreate --remove-orphans
+      args:
+        chdir: "{{ app_path }}"
+
+    # O container não tem shell nem porta no host; quem pergunta é o Caddy, pela rede proxy.
+    # As migrations rodam ao subir, então a primeira resposta pode demorar uns segundos.
+    - name: "[app] Esperar a API responder"
+      command: docker exec caddy wget -qO- http://artifact-docs:{{ app_port }}/api/health
+      register: health
+      until: health.rc == 0
+      retries: 15
+      delay: 2
+      changed_when: false
+      when: not ansible_check_mode
+
+    - name: "[caddy] Gravar o site do artifact-docs"
+      template:
+        src: templates/artifact-docs.caddy.j2
+        dest: "{{ caddy_path }}/conf.d/artifact-docs.caddy"
+        mode: '0644'
+      register: caddy_site
+
+    - name: "[caddy] Validar a configuração"
+      command: docker exec caddy caddy validate --config /etc/caddy/Caddyfile
+      changed_when: false
+      when: caddy_site.changed and not ansible_check_mode
+
+    - name: "[caddy] Recarregar o Caddy"
+      command: docker exec caddy caddy reload --config /etc/caddy/Caddyfile
+      when: caddy_site.changed
