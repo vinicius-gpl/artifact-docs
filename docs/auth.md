@@ -52,6 +52,17 @@ só diz ONDE o login acontece.
 - **Skills** que publicam pela API usam um token de API próprio (com hash no banco), não a
   sessão de login.
 
+## No e2e (APP_ENV=test)
+
+O e2e roda a tela contra o **Go de verdade**, mas sem login de verdade: com `APP_ENV=test`, o
+porteiro deixa toda requisição entrar como o **usuário de teste** — o mesmo do modo mock da
+tela (`user-mock` / `voce@exemplo.com`, `auth.TestUser` em `src-go/modules/auth/guard.go`).
+Nenhum token é pedido e o Neon Auth não é consultado; o `/api/auth/setup` responde
+`needsSetup: false`.
+
+Para isso nunca vazar para produção, o Go **recusa subir** com `APP_ENV=test` e
+`NEON_AUTH_JWKS_URL` preenchidas juntas, e avisa no log ao subir em modo de teste.
+
 ## Em localhost (modo mock)
 
 Com `VITE_API_MOCKS=true` (padrão do `mise run dev`), nada disso sai da máquina: o
