@@ -72,16 +72,26 @@
   let isExpanded = $state(false);
   /* O bloco da prévia — é ele que cresce até a tela cheia e encolhe de volta. */
   let preview = $state<HTMLElement>();
+  /* A prévia está ENCOLHENDO de volta: já saiu do `fixed`, mas ainda voa por cima da página. */
+  let isSettling = $state(false);
 
   /**
    * Entra ou sai da tela cheia ANIMANDO: mede onde a prévia está, muda, e o `flipFrom` leva
    * do lugar de antes ao novo — a prévia cresce até cobrir a janela, ou encolhe de volta.
+   *
+   * Na SAÍDA, o bloco já voltou para a grade (sem `fixed`, sem fundo, sem `z-50`) e começa
+   * esticado do tamanho da janela. Sem segurar ele por cima, a barra do topo (`z-40`) e a coluna
+   * do lado eram pintadas por cima dele, e o fundo transparente deixava a página vazar no meio
+   * do voo — era o "bug visual" ao sair. `isSettling` mantém fundo e camada até ele pousar.
    */
   async function toggleExpanded(): Promise<void> {
     const first = preview?.getBoundingClientRect();
+    const isLeaving = isExpanded;
     isExpanded = !isExpanded;
+    isSettling = isLeaving;
     await tick();
-    if (preview && first) flipFrom(preview, first);
+    if (preview && first) await flipFrom(preview, first);
+    if (isLeaving && !isExpanded) isSettling = false;
   }
 
   function onWindowKeydown(event: KeyboardEvent): void {
@@ -171,9 +181,11 @@
         class={cn(
           'flex min-w-0 flex-col',
           isExpanded && 'bg-background fixed inset-0 z-50 gap-2 p-3 sm:p-4',
+          isSettling && 'bg-background relative z-50',
         )}
         aria-label={isExpanded ? `${artifact.title} em tela cheia` : 'Prévia da página publicada'}
         data-expanded={isExpanded}
+        data-settling={isSettling}
       >
         <div class="glass rounded-surface flex min-h-12 items-center gap-2 border px-3">
           <p class="text-muted-foreground flex min-w-0 flex-1 items-center gap-1.5 text-xs">
