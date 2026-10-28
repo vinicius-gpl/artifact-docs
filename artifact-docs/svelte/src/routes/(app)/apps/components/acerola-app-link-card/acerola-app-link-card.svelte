@@ -70,7 +70,16 @@
           {initialsOf(app.name)}
         </span>
       {:else}
-        <img src={app.iconUrl} alt="" class="size-6" onerror={() => (hasIconFailed = true)} />
+        <!-- O ícone vem direto do site do app (o monitor do Go acha o endereço). Sem referrer:
+             o site não precisa saber de onde o hub é aberto. -->
+        <img
+          src={app.iconUrl}
+          alt=""
+          class="size-6"
+          loading="lazy"
+          referrerpolicy="no-referrer"
+          onerror={() => (hasIconFailed = true)}
+        />
       {/if}
     </span>
     <div class="min-w-0 flex-1">

@@ -8,7 +8,6 @@
   const data = {
     items: NAV_ITEMS,
     homeHref: '#',
-    user: { name: 'Você Mesmo', email: 'voce@exemplo.com', avatarUrl: null },
   };
 
   const { Story } = defineMeta({

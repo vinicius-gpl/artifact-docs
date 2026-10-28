@@ -320,30 +320,39 @@ export function hoverLift(node: HTMLElement): { destroy: () => void } {
  * até cobrir a janela, ou encolhendo de volta para o lugar dela.
  *
  * Só `transform`: nada é recalculado no layout durante a animação, que fica no compositor.
+ *
+ * Devolve uma promessa que resolve quando a animação termina (na hora, sem animação): quem
+ * chama precisa saber quando tirar o que segura o elemento por cima do resto durante o voo.
+ * `overwrite` derruba uma animação anterior ainda em curso — clicar duas vezes rápido não
+ * deixa duas brigando pelo mesmo `transform`.
  */
-export function flipFrom(node: HTMLElement, first: DOMRect): void {
-  if (prefersReducedMotion()) return;
+export function flipFrom(node: HTMLElement, first: DOMRect): Promise<void> {
+  if (prefersReducedMotion()) return Promise.resolve();
 
   const last = node.getBoundingClientRect();
-  if (!last.width || !last.height) return;
+  if (!last.width || !last.height) return Promise.resolve();
 
-  gsap.fromTo(
-    node,
-    {
-      x: first.left - last.left,
-      y: first.top - last.top,
-      scaleX: first.width / last.width,
-      scaleY: first.height / last.height,
-      transformOrigin: 'top left',
-    },
-    {
-      x: 0,
-      y: 0,
-      scaleX: 1,
-      scaleY: 1,
-      duration: DURATION.base,
-      ease: EASE.inOut,
-      clearProps: 'transform,transformOrigin',
-    },
-  );
+  return new Promise((resolve) => {
+    gsap.fromTo(
+      node,
+      {
+        x: first.left - last.left,
+        y: first.top - last.top,
+        scaleX: first.width / last.width,
+        scaleY: first.height / last.height,
+        transformOrigin: 'top left',
+      },
+      {
+        x: 0,
+        y: 0,
+        scaleX: 1,
+        scaleY: 1,
+        duration: DURATION.base,
+        ease: EASE.inOut,
+        overwrite: true,
+        clearProps: 'transform,transformOrigin',
+        onComplete: () => resolve(),
+      },
+    );
+  });
 }

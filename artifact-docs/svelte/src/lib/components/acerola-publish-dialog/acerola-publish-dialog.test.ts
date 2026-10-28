@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/svelte';
+import { fireEvent, render, screen, within } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -7,7 +7,15 @@ import PublishDialog, { type AcerolaPublishDialogProps } from './acerola-publish
 function props(overrides: Partial<AcerolaPublishDialogProps> = {}): AcerolaPublishDialogProps {
   return {
     data: {
-      values: { file: null, title: '', label: '', description: '', tags: '' },
+      values: {
+        file: null,
+        title: '',
+        label: '',
+        description: '',
+        tags: '',
+        status: 'draft',
+        visibility: 'private',
+      },
       accept: '.html,.zip,.md,.pdf',
       copy: {
         title: 'Publicar documento',
@@ -43,6 +51,36 @@ describe('AcerolaPublishDialog', () => {
     expect(current.actions.onFileChange).toHaveBeenCalledWith(file);
     expect(current.actions.onChange).toHaveBeenCalledWith('title', 'G');
     expect(current.actions.onSubmit).toHaveBeenCalled();
+  });
+
+  // feliz
+  it('asks the status of a plan or idea and the access', async () => {
+    const current = props({ ui: { mode: 'new', hasStatus: true } });
+    render(PublishDialog, { props: current });
+
+    expect(screen.getByText('Situação')).toBeInTheDocument();
+    expect(screen.getByRole('group', { name: 'Acesso' })).toHaveTextContent('Privado');
+    /* Quatro situações passam do limite de pastilhas do formulário: viram a lista que abre. */
+    await userEvent.click(screen.getByRole('button', { name: 'Situação' }));
+    const popup = (await screen.findByPlaceholderText('Buscar…')).closest(
+      '[data-slot="popover-content"]',
+    ) as HTMLElement;
+    await fireEvent.click(within(popup).getByText('Em andamento'));
+    await userEvent.click(screen.getByRole('button', { name: 'Com o link' }));
+
+    expect(current.actions.onChange).toHaveBeenCalledWith('status', 'active');
+    expect(current.actions.onChange).toHaveBeenCalledWith('visibility', 'public');
+  });
+
+  // triste
+  it('has no status for a document, and neither status nor access on a new version', () => {
+    const { unmount } = render(PublishDialog, { props: props() });
+    expect(screen.queryByText('Situação')).toBeNull();
+    expect(screen.getByText('Acesso')).toBeInTheDocument();
+    unmount();
+
+    render(PublishDialog, { props: props({ ui: { mode: 'version', hasStatus: false } }) });
+    expect(screen.queryByText('Acesso')).toBeNull();
   });
 
   // feliz

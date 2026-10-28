@@ -24,7 +24,7 @@ type PublishCopy = AcerolaPublishDialogProps['data']['copy'];
 
 export type ArtifactPublishModel = {
   data: { values: PublishFormValues; accept: string; copy: PublishCopy };
-  ui: { mode: PublishDialogMode };
+  ui: { mode: PublishDialogMode; hasStatus: boolean };
   state: {
     isOpen: boolean;
     isSubmitting: boolean;
@@ -73,16 +73,39 @@ const VERSION_COPY: PublishCopy = {
   titlePlaceholder: '',
 };
 
-function emptyValues(label: string | undefined): PublishFormValues {
-  return { file: null, title: '', label: label ?? '', description: '', tags: '' };
+/** Planejamento e ideia têm situação; documento só existe ou não existe. */
+function hasStatus(kind: ArtifactKind | undefined): boolean {
+  return kind === 'plan' || kind === 'idea';
+}
+
+/** O artefato novo nasce privado e, quando tem situação, como rascunho. */
+function emptyValues(label: string | undefined, kind: ArtifactKind | undefined): PublishFormValues {
+  return {
+    file: null,
+    title: '',
+    label: label ?? '',
+    description: '',
+    tags: '',
+    status: hasStatus(kind) ? 'draft' : '',
+    visibility: 'private',
+  };
 }
 
 /**
- * O que vai para a API. Artefato novo leva o tipo da aba; a versão nova NÃO leva tipo —
- * mandado, ele trocaria o tipo do artefato no Go.
+ * O que vai para a API. Artefato novo leva o tipo da aba, a situação e o acesso; a versão nova
+ * NÃO leva nenhum dos três — mandado, o tipo trocaria o do artefato no Go, e situação e acesso
+ * mudam no detalhe.
  */
 function toInput(values: PublishFormValues, kind: ArtifactKind | undefined) {
-  return { ...values, kind };
+  const { status, visibility, ...fields } = values;
+  if (!kind) return fields;
+
+  return {
+    ...fields,
+    kind,
+    status: hasStatus(kind) ? status : undefined,
+    isPrivate: visibility !== 'public',
+  };
 }
 
 /** O primeiro erro de cada campo, no formato que os campos mostram embaixo deles. */
@@ -133,7 +156,7 @@ export function useArtifactPublishModel(
   const mode: PublishDialogMode = kind ? 'new' : 'version';
   const copy = kind ? PUBLISH_COPY[kind] : VERSION_COPY;
 
-  let values = $state<PublishFormValues>(emptyValues(input.label));
+  let values = $state<PublishFormValues>(emptyValues(input.label, kind));
   let isOpen = $state(false);
   let isSubmitted = $state(false);
   let isLabelEdited = $state(false);
@@ -151,7 +174,7 @@ export function useArtifactPublishModel(
   );
 
   function reset(): void {
-    values = emptyValues(input.label);
+    values = emptyValues(input.label, kind);
     isSubmitted = false;
     isLabelEdited = false;
     touched.clear();
@@ -162,7 +185,7 @@ export function useArtifactPublishModel(
     get data() {
       return { values, accept: PUBLISH_ACCEPT, copy };
     },
-    ui: { mode },
+    ui: { mode, hasStatus: mode === 'new' && hasStatus(kind) },
     get state() {
       return {
         isOpen,
@@ -181,6 +204,11 @@ export function useArtifactPublishModel(
         isOpen = false;
       },
       onChange: (field, value) => {
+        /* O acesso só tem dois valores; qualquer outro texto vira o padrão, privado. */
+        if (field === 'visibility') {
+          values.visibility = value === 'public' ? 'public' : 'private';
+          return;
+        }
         values[field] = value;
         if (field === 'label') isLabelEdited = true;
         if (field === 'title' && mode === 'new' && !isLabelEdited) values.label = slugify(value);

@@ -11,13 +11,23 @@
     titlePlaceholder: 'Guia de instalação',
   };
   const accept = '.html,.zip,.md,.pdf';
-  const empty = { file: null, title: '', label: '', description: '', tags: '' };
+  const empty = {
+    file: null,
+    title: '',
+    label: '',
+    description: '',
+    tags: '',
+    status: '',
+    visibility: 'private' as const,
+  };
   const filled = {
     file: new File(['<h1>Guia</h1>'], 'guia-de-instalacao.zip'),
     title: 'Guia de instalação',
     label: 'guia-de-instalacao',
     description: 'Passo a passo para subir o hub numa VPS nova.',
     tags: 'hub, deploy',
+    status: '',
+    visibility: 'private' as const,
   };
   const actions = {
     onClose: fn(),
@@ -43,7 +53,7 @@
   name="Plan"
   args={{
     data: {
-      values: empty,
+      values: { ...empty, status: 'draft' },
       accept,
       copy: {
         title: 'Publicar planejamento',
@@ -52,6 +62,7 @@
         titlePlaceholder: 'Abertura do CNPJ',
       },
     },
+    ui: { mode: 'new', hasStatus: true },
   }}
 />
 
