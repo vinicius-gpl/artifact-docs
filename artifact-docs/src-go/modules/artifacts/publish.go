@@ -112,6 +112,7 @@ func (handlers *Handlers) publishVersion(ctx context.Context, ownerID, label str
 			return Artifact{}, false, err
 		}
 		target.ArtifactID = newUUID()
+		applyNewDefaults(&form.meta)
 	}
 
 	content, err := buildBundle(form.received, pageTitle(form.meta, label))
@@ -188,6 +189,24 @@ func requireNewFields(meta PublishMeta) error {
 	}
 
 	return nil
+}
+
+// applyNewDefaults completa o artefato novo. Privado por padrão: o hub é de uma pessoa só, e
+// publicar aberto precisa ser uma escolha, não um esquecimento. Planejamento e ideia nascem
+// como rascunho; documento não tem situação, e uma enviada por engano é descartada.
+func applyNewDefaults(meta *PublishMeta) {
+	if meta.IsPrivate == nil {
+		private := true
+		meta.IsPrivate = &private
+	}
+	if *meta.Kind == "document" {
+		meta.Status = nil
+		return
+	}
+	if meta.Status == nil {
+		draft := "draft"
+		meta.Status = &draft
+	}
 }
 
 // pageTitle é o título da página gerada do Markdown: o que veio, ou a label.
@@ -303,6 +322,10 @@ func readField(part *multipart.Part, meta *PublishMeta) error {
 		meta.Description = &value
 	case "tags":
 		return setTags(meta, value)
+	case "status":
+		return setStatus(meta, value)
+	case "private":
+		return setPrivate(meta, value)
 	}
 
 	return nil
@@ -322,6 +345,25 @@ func setKind(meta *PublishMeta, value string) error {
 		return invalidUpload{"O tipo (kind) precisa ser document, plan ou idea."}
 	}
 	meta.Kind = &value
+
+	return nil
+}
+
+func setStatus(meta *PublishMeta, value string) error {
+	if !knownStatuses[value] {
+		return invalidUpload{"A situação (status) precisa ser draft, active, done ou archived."}
+	}
+	meta.Status = &value
+
+	return nil
+}
+
+func setPrivate(meta *PublishMeta, value string) error {
+	if value != "true" && value != "false" {
+		return invalidUpload{"O campo private precisa ser true ou false."}
+	}
+	private := value == "true"
+	meta.IsPrivate = &private
 
 	return nil
 }
