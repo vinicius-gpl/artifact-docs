@@ -15,6 +15,7 @@ type recordingStore struct {
 	mutex    sync.Mutex
 	targets  []Target
 	statuses map[string]string
+	icons    map[string]string
 }
 
 func (store *recordingStore) Targets(_ context.Context) ([]Target, error) {
@@ -27,6 +28,24 @@ func (store *recordingStore) SetStatus(_ context.Context, id, status string) err
 	store.statuses[id] = status
 
 	return nil
+}
+
+func (store *recordingStore) SetIcon(_ context.Context, id, iconURL string) error {
+	store.mutex.Lock()
+	defer store.mutex.Unlock()
+	if store.icons == nil {
+		store.icons = map[string]string{}
+	}
+	store.icons[id] = iconURL
+
+	return nil
+}
+
+func (store *recordingStore) iconOf(id string) string {
+	store.mutex.Lock()
+	defer store.mutex.Unlock()
+
+	return store.icons[id]
 }
 
 func (store *recordingStore) statusOf(id string) string {
