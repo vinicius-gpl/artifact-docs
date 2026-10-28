@@ -78,6 +78,13 @@ type Patch struct {
 	IsPrivate *bool
 	StatusSet bool
 	Status    *string
+	// Title nil mantém o título.
+	Title *string
+	// DescriptionSet diz se a descrição veio; Description nil ou vazia limpa.
+	DescriptionSet bool
+	Description    *string
+	// Tags nil mantém; lista vazia (não nil) limpa.
+	Tags []string
 }
 
 // Served é o que o link /a/<token>/ precisa para servir: qual pasta do R2 e se exige

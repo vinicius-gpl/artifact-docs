@@ -99,6 +99,7 @@ describe('AcerolaArtifactViewer', () => {
     const actions = {
       onRetry: vi.fn(),
       onPublishVersion: vi.fn(),
+      onEdit: vi.fn(),
       onTogglePrivate: vi.fn(),
       onRestore: vi.fn(),
       onDelete: vi.fn(),
@@ -109,11 +110,13 @@ describe('AcerolaArtifactViewer', () => {
     await fireEvent.click(screen.getByRole('button', { name: 'Tornar público' }));
     await fireEvent.click(screen.getByRole('button', { name: 'Publicar nova versão' }));
     await fireEvent.click(screen.getByRole('button', { name: 'Apagar' }));
+    await fireEvent.click(screen.getByRole('button', { name: 'Editar' }));
 
     expect(actions.onRestore).toHaveBeenCalledWith(1);
     expect(actions.onTogglePrivate).toHaveBeenCalled();
     expect(actions.onPublishVersion).toHaveBeenCalled();
     expect(actions.onDelete).toHaveBeenCalled();
+    expect(actions.onEdit).toHaveBeenCalled();
     expect(screen.queryByRole('button', { name: 'Restaurar v2' })).not.toBeInTheDocument();
   });
 
