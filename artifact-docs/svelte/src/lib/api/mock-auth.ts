@@ -1,12 +1,13 @@
 import {
-  firstAccessSchema,
   INVALID_CREDENTIALS,
   loginRequestSchema,
+  newPasswordSchema,
   setupStatusSchema,
   type SetupStatus,
 } from '$lib/contracts/auth.schema';
 import { sessionUserSchema, type SessionUser } from '$lib/contracts/user.schema';
 
+import { MOCK_LINK_PREFIX } from './auth.api';
 import { ApiError } from './http-client';
 import { MOCK_PASSWORD, MOCK_USER } from './mock-fixtures';
 
@@ -17,8 +18,8 @@ import { MOCK_PASSWORD, MOCK_USER } from './mock-fixtures';
  * Duas portas de entrada:
  * - o USUÁRIO DE TESTE (`MOCK_USER`), que existe sempre: em desenvolvimento ninguém precisa
  *   criar conta para abrir o hub;
- * - a CONTA DO PRIMEIRO ACESSO, criada pela própria tela. Enquanto ela não existe, `/auth/setup`
- *   diz `needsSetup: true` e o botão "Primeiro acesso" aparece — é assim que esse caminho é
+ * - a CONTA DO PRIMEIRO ACESSO, que ganha senha pela tela de senha nova. Em produção o link
+ *   vem por e-mail; aqui o token do link é `mock:<e-mail>` — é assim que esse caminho é
  *   testado em localhost.
  *
  * Sessão e conta ficam no `localStorage`: sem isso, cada F5 mandaria para o login. É valor de
@@ -106,18 +107,17 @@ export function mockSignIn(body: unknown): SessionUser {
   return mockMe();
 }
 
-/** O primeiro acesso: só enquanto não há conta — depois disso, 409, como o Go deve fazer. */
-export function mockSignUp(body: unknown): SessionUser {
-  if (readAccount()) {
-    throw new ApiError(409, 'A conta do hub já existe. Entre com e-mail e senha.');
-  }
+/**
+ * A senha nova do link do primeiro acesso. O token é `mock:<e-mail>`: sem o prefixo, é um link
+ * que não vale — 401, como o Neon Auth responde a um token vencido.
+ */
+export function mockSetPassword(body: unknown): void {
+  const { token = '', password = '' } = (body ?? {}) as { token?: string; password?: string };
+  const email = token.startsWith(MOCK_LINK_PREFIX) ? token.slice(MOCK_LINK_PREFIX.length) : '';
+  if (!email) throw new ApiError(401, 'Este link não vale mais.');
 
-  const account = firstAccessSchema.safeParse(body);
-  if (!account.success) throw new ApiError(400, 'Confira os campos do primeiro acesso.');
+  const parsed = newPasswordSchema.safeParse({ password, passwordConfirmation: password });
+  if (!parsed.success) throw new ApiError(400, 'A senha precisa de pelo menos 8 caracteres.');
 
-  const { name, email, password } = account.data;
-  write(ACCOUNT_KEY, JSON.stringify({ name, email, password }));
-  setMockSession(email);
-
-  return mockMe();
+  write(ACCOUNT_KEY, JSON.stringify({ name: email.split('@')[0], email, password }));
 }
