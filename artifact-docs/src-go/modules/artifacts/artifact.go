@@ -104,6 +104,8 @@ type PublishMeta struct {
 	Kind        *string
 	Description *string
 	Tags        []string
+	Status      *string
+	IsPrivate   *bool
 }
 
 // VersionRecord é a versão já enviada ao R2, pronta para entrar no banco.

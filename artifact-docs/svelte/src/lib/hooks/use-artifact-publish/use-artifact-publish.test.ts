@@ -38,6 +38,8 @@ describe('publishErrorsOf', () => {
     label: 'guia',
     description: '',
     tags: '',
+    status: '',
+    visibility: 'private',
   };
 
   // feliz
@@ -85,8 +87,31 @@ describe('useArtifactPublishModel', () => {
       file: html,
       label: 'guia-rapido',
       kind: 'plan',
+      status: 'draft',
+      isPrivate: true,
     });
     expect(model.state.isOpen).toBe(false);
+  });
+
+  // feliz
+  it('publishes an idea open to the link with the chosen status, and a document without one', async () => {
+    const idea = mountModel({ kind: 'idea' });
+    idea.actions.onOpen();
+    idea.actions.onFileChange(html);
+    idea.actions.onChange('title', 'Ideia');
+    idea.actions.onChange('status', 'active');
+    idea.actions.onChange('visibility', 'public');
+    idea.actions.onSubmit();
+
+    await waitFor(() => expect(artifactsApi.publish).toHaveBeenCalled());
+    expect(vi.mocked(artifactsApi.publish).mock.calls[0]?.[0]).toMatchObject({
+      status: 'active',
+      isPrivate: false,
+    });
+
+    const document = mountModel({ kind: 'document' });
+    expect(document.ui.hasStatus).toBe(false);
+    expect(document.data.values.status).toBe('');
   });
 
   // feliz
@@ -99,10 +124,11 @@ describe('useArtifactPublishModel', () => {
 
     await waitFor(() => expect(artifactsApi.publish).toHaveBeenCalled());
     expect(model.ui.mode).toBe('version');
-    expect(vi.mocked(artifactsApi.publish).mock.calls[0]?.[0]).toMatchObject({
-      label: 'abertura-cnpj',
-      kind: undefined,
-    });
+    const sent = vi.mocked(artifactsApi.publish).mock.calls[0]?.[0];
+    expect(sent).toMatchObject({ label: 'abertura-cnpj' });
+    expect(sent).not.toHaveProperty('kind');
+    expect(sent).not.toHaveProperty('status');
+    expect(sent).not.toHaveProperty('isPrivate');
     expect(goto).not.toHaveBeenCalled();
   });
 

@@ -215,13 +215,15 @@ func saveArtifactRow(ctx context.Context, transaction pgx.Tx, record VersionReco
 	if record.IsNew {
 		_, err := transaction.Exec(ctx, insertArtifactSQL,
 			record.ArtifactID, record.OwnerID, record.Label, meta.Title, meta.Description,
-			meta.Kind, record.Format, meta.Tags, record.ContentText, record.Version)
+			meta.Kind, record.Format, meta.Tags, record.ContentText, record.Version,
+			meta.Status, meta.IsPrivate)
 		return err
 	}
 
 	_, err := transaction.Exec(ctx, updatePublishedSQL,
 		record.ArtifactID, meta.Title, meta.Description != nil, meta.Description,
-		meta.Kind, meta.Tags, record.Format, record.ContentText, record.Version)
+		meta.Kind, meta.Tags, record.Format, record.ContentText, record.Version,
+		meta.Status, meta.IsPrivate)
 
 	return err
 }

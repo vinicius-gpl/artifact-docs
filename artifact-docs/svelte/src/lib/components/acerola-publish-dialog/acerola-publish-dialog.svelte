@@ -5,10 +5,12 @@
    * e cada uma diz o que se publica pelo `data.copy`; o tipo vem da aba, e não de um campo.
    *
    * Na VERSÃO NOVA (`ui.mode = 'version'`) a label fica travada e o título vazio mantém o
-   * publicado.
+   * publicado; situação e acesso não aparecem — mudam no detalhe, não a cada versão.
    *
-   * Cinco campos, em três blocos que a pessoa reconhece (Miller): o arquivo; título e label lado
-   * a lado (a label nasce do título); descrição e tags.
+   * Os campos em blocos que a pessoa reconhece (Miller): o arquivo; título e label lado a lado
+   * (a label nasce do título); situação e acesso; descrição e tags. A situação só existe em
+   * planejamento e ideia (`ui.hasStatus`): é ela que alimenta o filtro "Situação" da aba. O
+   * acesso nasce PRIVADO — abrir para quem tem o link é escolha, não esquecimento.
    *
    * O conteúdo rola por dentro e tem altura máxima também no desktop: numa tela baixa, o
    * diálogo cortado escondia o botão de publicar. O `px-1` do formulário é o espaço da borda
@@ -21,7 +23,12 @@
     label: string;
     description: string;
     tags: string;
+    /** `''` em documento, que não tem situação. */
+    status: string;
+    visibility: PublishVisibility;
   };
+
+  export type PublishVisibility = 'private' | 'public';
 
   export type PublishFormField = keyof PublishFormValues;
 
@@ -33,7 +40,7 @@
       accept: string;
       copy: { title: string; description: string; submitLabel: string; titlePlaceholder: string };
     };
-    ui: { mode: PublishDialogMode };
+    ui: { mode: PublishDialogMode; hasStatus?: boolean };
     state: {
       isOpen: boolean;
       isSubmitting: boolean;
@@ -54,6 +61,8 @@
   import ActionButton from '$lib/components/acerola-action-button/acerola-action-button.svelte';
   import ErrorState from '$lib/components/acerola-error-state/acerola-error-state.svelte';
   import FileField from '$lib/components/acerola-file-field/acerola-file-field.svelte';
+  import FilterField from '$lib/components/acerola-filter-field/acerola-filter-field.svelte';
+  import OptionPicker from '$lib/components/acerola-option-picker/acerola-option-picker.svelte';
   import ResponsiveDialogContent from '$lib/components/acerola-responsive-dialog-content/acerola-responsive-dialog-content.svelte';
   import SubmitButton from '$lib/components/acerola-submit-button/acerola-submit-button.svelte';
   import TextAreaField from '$lib/components/acerola-text-area-field/acerola-text-area-field.svelte';
@@ -65,11 +74,20 @@
     DialogHeader,
     DialogTitle,
   } from '$lib/components/ui/dialog';
+  import { ARTIFACT_STATUS_LABELS, type ArtifactStatus } from '$lib/contracts/artifact.schema';
 
   let { data, ui, state, actions }: AcerolaPublishDialogProps = $props();
 
   const isNew = $derived(ui.mode === 'new');
   const errors = $derived(state.fieldErrors);
+
+  const STATUS_OPTIONS = (Object.keys(ARTIFACT_STATUS_LABELS) as ArtifactStatus[]).map(
+    (status) => ({ value: status, label: ARTIFACT_STATUS_LABELS[status] }),
+  );
+  const VISIBILITY_OPTIONS = [
+    { value: 'private', label: 'Privado' },
+    { value: 'public', label: 'Com o link' },
+  ];
 </script>
 
 <Dialog
@@ -137,6 +155,29 @@
           }}
         />
       </div>
+
+      {#if isNew}
+        <div class="grid gap-4 sm:grid-cols-2">
+          {#if ui.hasStatus}
+            <FilterField data={{ label: 'Situação' }}>
+              <OptionPicker
+                data={{ value: data.values.status, options: STATUS_OPTIONS }}
+                ui={{ ariaLabel: 'Situação', fullWidth: true }}
+                state={{ isDisabled: state.isSubmitting }}
+                actions={{ onChange: (value) => actions.onChange('status', value) }}
+              />
+            </FilterField>
+          {/if}
+          <FilterField data={{ label: 'Acesso' }}>
+            <OptionPicker
+              data={{ value: data.values.visibility, options: VISIBILITY_OPTIONS }}
+              ui={{ ariaLabel: 'Acesso', fullWidth: true }}
+              state={{ isDisabled: state.isSubmitting }}
+              actions={{ onChange: (value) => actions.onChange('visibility', value) }}
+            />
+          </FilterField>
+        </div>
+      {/if}
 
       <TextAreaField
         data={{

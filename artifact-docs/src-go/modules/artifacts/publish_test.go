@@ -111,6 +111,56 @@ func TestPublishANewVersionOfAnExistingArtifact(test *testing.T) {
 	}
 }
 
+// feliz
+func TestPublishANewDocumentIsPrivateAndHasNoStatus(test *testing.T) {
+	store := &fakeStore{artifact: sampleArtifact}
+	request := publishRequest(test, "guia",
+		formPart{field: "file", fileName: "guia.html", content: "<p>oi</p>"},
+		formPart{field: "title", content: "Guia"},
+		formPart{field: "kind", content: "document"},
+		formPart{field: "status", content: "active"},
+	)
+
+	response := call(newTestHandlers(store, newFakeFiles()), publish, request)
+
+	meta := store.gotRecord.Meta
+	if response.StatusCode != http.StatusCreated || meta.IsPrivate == nil || !*meta.IsPrivate || meta.Status != nil {
+		test.Fatalf("status = %d, meta = %+v, want a private document without status", response.StatusCode, meta)
+	}
+}
+
+// feliz
+func TestPublishANewIdeaTakesTheChosenStatusAndPrivacy(test *testing.T) {
+	cases := []struct {
+		name        string
+		extra       []formPart
+		wantStatus  string
+		wantPrivate bool
+	}{
+		{"defaults", nil, "draft", true},
+		{"chosen", []formPart{{field: "status", content: "active"}, {field: "private", content: "false"}}, "active", false},
+	}
+
+	for _, testCase := range cases {
+		store := &fakeStore{artifact: sampleArtifact}
+		parts := append([]formPart{
+			{field: "file", fileName: "ideia.md", content: "# Ideia"},
+			{field: "title", content: "Ideia"},
+			{field: "kind", content: "idea"},
+		}, testCase.extra...)
+
+		response := call(newTestHandlers(store, newFakeFiles()), publish, publishRequest(test, "ideia", parts...))
+
+		if response.StatusCode != http.StatusCreated {
+			test.Fatalf("%s: status = %d, want 201", testCase.name, response.StatusCode)
+		}
+		meta := store.gotRecord.Meta
+		if meta.Status == nil || *meta.Status != testCase.wantStatus || *meta.IsPrivate != testCase.wantPrivate {
+			test.Errorf("%s: meta = %+v, want status %q and private %v", testCase.name, meta, testCase.wantStatus, testCase.wantPrivate)
+		}
+	}
+}
+
 // triste
 func TestPublishRefusesWhatCannotBePublished(test *testing.T) {
 	html := formPart{field: "file", fileName: "site.html", content: "<p>oi</p>"}
@@ -123,6 +173,8 @@ func TestPublishRefusesWhatCannotBePublished(test *testing.T) {
 		{"bad label", "Guia Rápido", []formPart{html}, "letras minúsculas"},
 		{"new without title", "guia", []formPart{html, {field: "kind", content: "document"}}, "título e tipo"},
 		{"unknown kind", "guia", []formPart{html, {field: "kind", content: "video"}}, "document, plan ou idea"},
+		{"unknown status", "guia", []formPart{html, {field: "status", content: "pronto"}}, "draft, active, done ou archived"},
+		{"private not a boolean", "guia", []formPart{html, {field: "private", content: "sim"}}, "true ou false"},
 		// Com título e tipo: artefato novo sem eles é recusado antes de o arquivo ser aberto.
 		{"unknown extension", "guia", []formPart{{field: "file", fileName: "planilha.xlsx", content: "x"}, {field: "title", content: "Planilha"}, {field: "kind", content: "document"}}, ".html, .zip, .md ou .pdf"},
 		{"fake pdf", "guia", []formPart{{field: "file", fileName: "doc.pdf", content: "MZ"}, {field: "title", content: "Doc"}, {field: "kind", content: "document"}}, "PDF válido"},

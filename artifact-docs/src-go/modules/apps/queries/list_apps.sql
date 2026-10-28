@@ -4,6 +4,7 @@ SELECT
   app.type_id::TEXT,
   app.name,
   app.url,
+  app.icon_url,
   app.status,
   app.checked_at
 FROM apps AS app

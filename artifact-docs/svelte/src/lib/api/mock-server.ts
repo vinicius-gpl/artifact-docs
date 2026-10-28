@@ -13,8 +13,11 @@ import {
   artifactPatchSchema,
   artifactRestoreSchema,
   artifactSchema,
+  artifactStatusSchema,
   type Artifact,
   type ArtifactFormat,
+  type ArtifactKind,
+  type ArtifactStatus,
 } from '$lib/contracts/artifact.schema';
 
 import { ApiError, type RequestOptions } from './http-client';
@@ -142,6 +145,14 @@ async function servedUrlOf(file: File, title: string, format: ArtifactFormat): P
   return mockPage(title, [`Arquivo publicado: ${file.name}.`, 'No Go, ele é servido de verdade.']);
 }
 
+/** A situação do artefato novo, como o `applyNewDefaults` do Go: documento não tem. */
+function newStatusOf(form: FormData, kind: ArtifactKind): ArtifactStatus | null {
+  if (kind === 'document') return null;
+  const status = artifactStatusSchema.safeParse(form.get('status'));
+
+  return status.success ? status.data : 'draft';
+}
+
 function newArtifact(label: string, form: FormData, format: ArtifactFormat): Artifact {
   const title = formText(form, 'title');
   const kind = artifactKindSchema.safeParse(form.get('kind'));
@@ -157,8 +168,8 @@ function newArtifact(label: string, form: FormData, format: ArtifactFormat): Art
     description: null,
     kind: kind.data,
     format,
-    status: null,
-    isPrivate: false,
+    status: newStatusOf(form, kind.data),
+    isPrivate: form.get('private') !== 'false',
     isPinned: false,
     url: '',
     thumbUrl: null,

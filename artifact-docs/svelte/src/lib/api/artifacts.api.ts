@@ -41,6 +41,8 @@ export function toPublishForm(input: ArtifactVersionPublishInput): FormData {
   const form = new FormData();
   form.append('file', input.file, input.file.name);
   if (input.kind) form.append('kind', input.kind);
+  if (input.status) form.append('status', input.status);
+  if (input.isPrivate !== undefined) form.append('private', String(input.isPrivate));
   for (const field of ['title', 'description', 'tags'] as const) {
     const value = input[field].trim();
     if (value) form.append(field, value);
