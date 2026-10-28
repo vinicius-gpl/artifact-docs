@@ -23,8 +23,8 @@ var (
 	listVersionsSQL string
 	//go:embed queries/mark_artifact_viewed.sql
 	markViewedSQL string
-	//go:embed queries/update_artifact_flags.sql
-	updateFlagsSQL string
+	//go:embed queries/update_artifact.sql
+	updateArtifactSQL string
 	//go:embed queries/find_served_artifact.sql
 	findServedSQL string
 	//go:embed queries/find_publish_target.sql
@@ -100,8 +100,9 @@ func (repository *Repository) Open(ctx context.Context, ownerID, label string) (
 
 // Update aplica o patch e devolve o artefato como ficou.
 func (repository *Repository) Update(ctx context.Context, ownerID, label string, patch Patch) (Artifact, error) {
-	updated, err := repository.pool.Exec(ctx, updateFlagsSQL,
-		ownerID, label, patch.IsPinned, patch.IsPrivate, patch.StatusSet, patch.Status)
+	updated, err := repository.pool.Exec(ctx, updateArtifactSQL,
+		ownerID, label, patch.IsPinned, patch.IsPrivate, patch.StatusSet, patch.Status,
+		patch.Title, patch.DescriptionSet, patch.Description, patch.Tags)
 	if err != nil {
 		return Artifact{}, err
 	}

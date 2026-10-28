@@ -253,6 +253,59 @@ func TestUpdateTellsMissingStatusFromNullStatus(test *testing.T) {
 }
 
 // feliz
+func TestUpdateEditsTitleDescriptionAndTagsWithThePublishRules(test *testing.T) {
+	store := &fakeStore{artifact: sampleArtifact}
+	body := `{"title":"  ERP pessoal  ","description":"","tags":[" erp ","financeiro","erp",""]}`
+	response := call(newTestHandlers(store, nil), update, jsonRequest(http.MethodPatch, "/api/artifacts/x", "x", body))
+
+	if response.StatusCode != http.StatusOK {
+		test.Fatalf("status = %d, want 200", response.StatusCode)
+	}
+	patch := store.gotPatch
+	if patch.Title == nil || *patch.Title != "ERP pessoal" {
+		test.Fatalf("title = %v, want trimmed", patch.Title)
+	}
+	if !patch.DescriptionSet || patch.Description == nil || *patch.Description != "" {
+		test.Fatalf("description = %+v, want set and empty (clears)", patch)
+	}
+	if strings.Join(patch.Tags, ",") != "erp,financeiro" {
+		test.Fatalf("tags = %v, want trimmed, without blanks nor repeats", patch.Tags)
+	}
+}
+
+// feliz
+func TestUpdateKeepsWhatDidNotCome(test *testing.T) {
+	store := &fakeStore{artifact: sampleArtifact}
+	call(newTestHandlers(store, nil), update, jsonRequest(http.MethodPatch, "/api/artifacts/x", "x", `{"isPrivate":true}`))
+
+	patch := store.gotPatch
+	if patch.Title != nil || patch.DescriptionSet || patch.Tags != nil {
+		test.Fatalf("patch = %+v, want title, description and tags untouched", patch)
+	}
+}
+
+// triste
+func TestUpdateRefusesWhatPublishWouldRefuse(test *testing.T) {
+	cases := map[string]string{
+		"empty title":    `{"title":"   "}`,
+		"too many tags":  `{"tags":["a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t","u"]}`,
+		"unknown status": `{"status":"lost"}`,
+	}
+
+	for name, body := range cases {
+		store := &fakeStore{artifact: sampleArtifact}
+		response := call(newTestHandlers(store, nil), update, jsonRequest(http.MethodPatch, "/api/artifacts/x", "x", body))
+
+		if response.StatusCode != http.StatusBadRequest {
+			test.Fatalf("%s: status = %d, want 400", name, response.StatusCode)
+		}
+		if store.gotLabel != "" {
+			test.Fatalf("%s: the store was called with an invalid patch", name)
+		}
+	}
+}
+
+// feliz
 func TestRestorePointsBackToAnOlderVersion(test *testing.T) {
 	store := &fakeStore{artifact: sampleArtifact}
 	response := call(newTestHandlers(store, nil), restore, jsonRequest(http.MethodPost, "/api/artifacts/x/restore", "x", `{"version":2}`))
