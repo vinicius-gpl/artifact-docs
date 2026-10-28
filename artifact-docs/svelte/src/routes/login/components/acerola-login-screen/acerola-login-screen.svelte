@@ -7,9 +7,9 @@
    * o que vender aqui.
    *
    * Dois formulários, um de cada vez: ENTRAR (e-mail e senha) e PRIMEIRO ACESSO (criar a conta
-   * do dono). O botão "Primeiro acesso" só existe enquanto não há conta (`needsSetup`, que vem
-   * de `GET /api/auth/setup`): depois que ela existe, oferecer cadastro seria convidar
-   * estranhos. Qual formulário aparece é estado visual, e por isso mora aqui.
+   * do dono). O botão do primeiro acesso fica sempre à mão: quem barra estranho é a lista de
+   * e-mails do Go (AUTH_ALLOWED_EMAILS), e não esconder o botão. Conta repetida, o Neon recusa
+   * e a tela diz para entrar.
    *
    * No modo mock, um selo avisa que é modo local — para ninguém achar que entrou com uma conta
    * de verdade.
@@ -17,7 +17,6 @@
   export type AcerolaLoginScreenProps = {
     data: {
       isMockMode: boolean;
-      needsSetup: boolean;
       signIn: AcerolaSignInFormProps['data'];
       firstAccess: AcerolaFirstAccessFormProps['data'];
     };
@@ -53,7 +52,7 @@
   >
     <BrandMark ui={{ size: 'sm' }} />
 
-    {#if isFirstAccess && data.needsSetup}
+    {#if isFirstAccess}
       <h1 class="text-3xl">Primeiro acesso</h1>
       <FirstAccessForm
         data={data.firstAccess}
@@ -68,13 +67,11 @@
     {:else}
       <h1 class="text-3xl">Entrar</h1>
       <SignInForm data={data.signIn} state={screenState.signIn} actions={actions.signIn} />
-      {#if data.needsSetup}
-        <ActionButton
-          data={{ label: 'Primeiro acesso · Criar a conta' }}
-          ui={{ variant: 'secondary', size: 'lg', className: 'w-full' }}
-          actions={{ onClick: () => (isFirstAccess = true) }}
-        />
-      {/if}
+      <ActionButton
+        data={{ label: 'Primeiro acesso · Criar a conta' }}
+        ui={{ variant: 'secondary', size: 'lg', className: 'w-full' }}
+        actions={{ onClick: () => (isFirstAccess = true) }}
+      />
     {/if}
 
     {#if data.isMockMode}
