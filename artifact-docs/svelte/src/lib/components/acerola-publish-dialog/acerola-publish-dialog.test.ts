@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/svelte';
+import { fireEvent, render, screen, within } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -60,7 +60,12 @@ describe('AcerolaPublishDialog', () => {
 
     expect(screen.getByText('Situação')).toBeInTheDocument();
     expect(screen.getByRole('group', { name: 'Acesso' })).toHaveTextContent('Privado');
-    await userEvent.click(screen.getByRole('button', { name: 'Em andamento' }));
+    /* Quatro situações passam do limite de pastilhas do formulário: viram a lista que abre. */
+    await userEvent.click(screen.getByRole('button', { name: 'Situação' }));
+    const popup = (await screen.findByPlaceholderText('Buscar…')).closest(
+      '[data-slot="popover-content"]',
+    ) as HTMLElement;
+    await fireEvent.click(within(popup).getByText('Em andamento'));
     await userEvent.click(screen.getByRole('button', { name: 'Com o link' }));
 
     expect(current.actions.onChange).toHaveBeenCalledWith('status', 'active');
