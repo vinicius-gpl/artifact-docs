@@ -1,47 +1,30 @@
 <script lang="ts" module>
-  import type { AcerolaFirstAccessFormProps } from '../acerola-first-access-form/acerola-first-access-form.svelte';
   import type { AcerolaSignInFormProps } from '../acerola-sign-in-form/acerola-sign-in-form.svelte';
 
   /**
    * A TELA DE LOGIN — só o cartão do formulário, no centro. O hub é de uma pessoa só: não há
    * o que vender aqui.
    *
-   * Dois formulários, um de cada vez: ENTRAR (e-mail e senha) e PRIMEIRO ACESSO (criar a conta
-   * do dono). O botão do primeiro acesso fica sempre à mão: quem barra estranho é a lista de
-   * e-mails do Go (AUTH_ALLOWED_EMAILS), e não esconder o botão. Conta repetida, o Neon recusa
-   * e a tela diz para entrar.
+   * O primeiro acesso não é cadastro: a conta nasce no painel da Neon, sem senha, e o link
+   * leva para a tela que manda o e-mail de criar a senha (a mesma de "esqueci a senha").
    *
    * No modo mock, um selo avisa que é modo local — para ninguém achar que entrou com uma conta
    * de verdade.
    */
   export type AcerolaLoginScreenProps = {
-    data: {
-      isMockMode: boolean;
-      signIn: AcerolaSignInFormProps['data'];
-      firstAccess: AcerolaFirstAccessFormProps['data'];
-    };
-    state: {
-      signIn: AcerolaSignInFormProps['state'];
-      firstAccess: AcerolaFirstAccessFormProps['state'];
-    };
-    actions: {
-      signIn: AcerolaSignInFormProps['actions'];
-      firstAccess: AcerolaFirstAccessFormProps['actions'];
-    };
+    data: { isMockMode: boolean; signIn: AcerolaSignInFormProps['data'] };
+    state: { signIn: AcerolaSignInFormProps['state'] };
+    actions: { signIn: AcerolaSignInFormProps['actions'] };
   };
 </script>
 
 <script lang="ts">
-  import FirstAccessForm from '../acerola-first-access-form/acerola-first-access-form.svelte';
   import SignInForm from '../acerola-sign-in-form/acerola-sign-in-form.svelte';
-  import ActionButton from '$lib/components/acerola-action-button/acerola-action-button.svelte';
   import { BrandMark } from '$lib/components/acerola-brand-mark/acerola-brand-mark';
   import StatusBadge from '$lib/components/acerola-status-badge/acerola-status-badge.svelte';
   import { revealChildren } from '$lib/motion/motion';
 
   let { data, state: screenState, actions }: AcerolaLoginScreenProps = $props();
-
-  let isFirstAccess = $state(false);
 </script>
 
 <div class="flex min-h-dvh items-center justify-center px-4 py-12">
@@ -52,27 +35,15 @@
   >
     <BrandMark ui={{ size: 'sm' }} />
 
-    {#if isFirstAccess}
-      <h1 class="text-3xl">Primeiro acesso</h1>
-      <FirstAccessForm
-        data={data.firstAccess}
-        state={screenState.firstAccess}
-        actions={actions.firstAccess}
-      />
-      <ActionButton
-        data={{ label: 'Já tenho conta · Entrar' }}
-        ui={{ variant: 'ghost', size: 'lg', className: 'w-full' }}
-        actions={{ onClick: () => (isFirstAccess = false) }}
-      />
-    {:else}
-      <h1 class="text-3xl">Entrar</h1>
-      <SignInForm data={data.signIn} state={screenState.signIn} actions={actions.signIn} />
-      <ActionButton
-        data={{ label: 'Primeiro acesso · Criar a conta' }}
-        ui={{ variant: 'secondary', size: 'lg', className: 'w-full' }}
-        actions={{ onClick: () => (isFirstAccess = true) }}
-      />
-    {/if}
+    <h1 class="text-3xl">Entrar</h1>
+    <SignInForm data={data.signIn} state={screenState.signIn} actions={actions.signIn} />
+
+    <a
+      href="/first-access"
+      class="text-primary-strong inline-flex h-10 items-center self-center text-sm underline-offset-4 hover:underline"
+    >
+      Primeiro acesso ou esqueci a senha
+    </a>
 
     {#if data.isMockMode}
       <div>

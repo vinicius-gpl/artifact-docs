@@ -131,23 +131,46 @@ export async function signInWithEmail(email: string, password: string): Promise<
   if (result.error) throw new Error(INVALID_CREDENTIALS);
 }
 
-/**
- * PRIMEIRO ACESSO — cria a conta do dono no Neon Auth e já entra com ela.
- *
- * Mesmo que alguém de fora chegue aqui com o cadastro da Neon aberto, a conta nova não passa
- * da guarda: o Go só aceita os e-mails da lista permitida (403 para o resto).
- */
-export async function signUpWithEmail(
-  name: string,
-  email: string,
-  password: string,
-): Promise<void> {
-  await ensureNeonAuthClient();
-  const result = await neonAuth.signUp.email({ name, email, password });
+const AUTH_UNAVAILABLE =
+  'Não consegui falar com o serviço de login. Confira sua internet e tente de novo.';
 
-  if (result.error) {
-    throw new Error('Não consegui criar a conta. Se ela já existe, entre com e-mail e senha.');
-  }
+const TOO_MANY_ATTEMPTS = 'Muitas tentativas seguidas. Espere alguns minutos e tente de novo.';
+
+export const EXPIRED_LINK = 'Este link não vale mais. Peça um novo no primeiro acesso.';
+
+/**
+ * PRIMEIRO ACESSO (e "esqueci a senha") — pede ao Neon Auth o e-mail com o link de criar a
+ * senha. A conta nasce no painel da Neon sem senha; é por aqui que o dono define a primeira.
+ *
+ * O cliente vem de `ensureNeonAuthClient()`, e não do `neonAuth`: o proxy só sabe embrulhar
+ * função, e `requestPasswordReset` vira outra coisa lá dentro.
+ *
+ * `redirectTo` precisa estar nos domínios confiáveis do Neon Auth — senão ele recusa o pedido
+ * inteiro, sem mandar nada. Limite de tentativas tem mensagem própria: é só esperar.
+ */
+export async function requestPasswordLink(email: string, redirectTo: string): Promise<void> {
+  const client = await ensureNeonAuthClient();
+  const result = await client.requestPasswordReset({ email, redirectTo });
+
+  if (!result.error) return;
+  if (result.error.status === 429) throw new Error(TOO_MANY_ATTEMPTS);
+
+  throw new Error(AUTH_UNAVAILABLE);
+}
+
+/**
+ * SENHA NOVA — a segunda metade do caminho, com o `token` que veio no link do e-mail. Link
+ * vencido é o caso comum e tem conserto do lado da pessoa (pedir outro), por isso mensagem
+ * própria.
+ */
+export async function setNewPassword(token: string, newPassword: string): Promise<void> {
+  const client = await ensureNeonAuthClient();
+  const result = await client.resetPassword({ newPassword, token });
+
+  if (!result.error) return;
+  if ([400, 401, 403].includes(result.error.status)) throw new Error(EXPIRED_LINK);
+
+  throw new Error(AUTH_UNAVAILABLE);
 }
 
 /** Sai da sessão da Neon. A próxima chamada à API recebe 401 e a guarda manda para o login. */
