@@ -23,7 +23,7 @@ import {
   mockMe,
   mockSetup,
   mockSignIn,
-  mockSignUp,
+  mockSetPassword,
   setMockSession,
 } from './mock-auth';
 import { createMockDatabase, htmlUrl, mockPage, type MockDatabase } from './mock-fixtures';
@@ -336,9 +336,9 @@ const ROUTES: MockRoute[] = [
   { method: 'GET', path: '/auth/setup', isPublic: true, handle: mockSetup },
   {
     method: 'POST',
-    path: '/auth/mock/sign-up',
+    path: '/auth/mock/set-password',
     isPublic: true,
-    handle: ({ body }) => mockSignUp(body),
+    handle: ({ body }) => mockSetPassword(body),
   },
   {
     method: 'POST',
