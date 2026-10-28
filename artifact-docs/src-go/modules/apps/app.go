@@ -21,7 +21,8 @@ type Link struct {
 	TypeID string `json:"typeId"`
 	Name   string `json:"name"`
 	URL    string `json:"url"`
-	// LogoURL fica null até existir a rota que serve arquivo do R2; a tela usa o favicon.
+	// LogoURL é o ícone que o monitor achou na página do app (icon.go), null até ele achar —
+	// aí a tela mostra as iniciais.
 	LogoURL   *string    `json:"logoUrl"`
 	Status    string     `json:"status"`
 	CheckedAt *time.Time `json:"checkedAt"`
@@ -41,8 +42,10 @@ type Input struct {
 	TypeName string `json:"typeName"`
 }
 
-// Target é o que o monitor confere: um app e o endereço dele.
+// Target é o que o monitor confere: um app, o endereço dele e o ícone que já tem (vazio =
+// ainda não achou, procura de novo).
 type Target struct {
-	ID  string
-	URL string
+	ID      string
+	URL     string
+	IconURL string
 }

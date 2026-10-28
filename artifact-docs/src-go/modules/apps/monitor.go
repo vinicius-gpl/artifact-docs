@@ -30,6 +30,7 @@ const (
 type MonitorStore interface {
 	Targets(ctx context.Context) ([]Target, error)
 	SetStatus(ctx context.Context, id, status string) error
+	SetIcon(ctx context.Context, id, iconURL string) error
 }
 
 // Monitor confere os apps.
@@ -96,6 +97,25 @@ func (monitor *Monitor) check(ctx context.Context, target Target) {
 	status := probe(ctx, monitor.client, target.URL)
 	if err := monitor.store.SetStatus(ctx, target.ID, status); err != nil {
 		monitor.logger.Error("app monitor: save status", "app", target.ID, "error", err)
+	}
+
+	monitor.findIcon(ctx, target, status)
+}
+
+// findIcon procura o ícone só de quem ainda não tem e está no ar: baixar o HTML de todo app a
+// cada cinco minutos seria tráfego e memória à toa numa VPS de 1 GB, e app fora do ar não
+// teria página para ler.
+func (monitor *Monitor) findIcon(ctx context.Context, target Target, status string) {
+	if target.IconURL != "" || status != statusOnline {
+		return
+	}
+
+	iconURL := discoverIcon(ctx, monitor.client, target.URL)
+	if iconURL == "" {
+		return
+	}
+	if err := monitor.store.SetIcon(ctx, target.ID, iconURL); err != nil {
+		monitor.logger.Error("app monitor: save icon", "app", target.ID, "error", err)
 	}
 }
 
