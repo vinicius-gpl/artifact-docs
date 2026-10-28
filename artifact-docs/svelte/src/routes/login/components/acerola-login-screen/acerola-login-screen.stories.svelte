@@ -7,7 +7,6 @@
   const idle = { isSubmitting: false, error: null, fieldErrors: {} };
   const data = {
     isMockMode: false,
-    needsSetup: false,
     signIn: { values: { email: '', password: '' } },
     firstAccess: { values: { name: '', email: '', password: '', passwordConfirmation: '' } },
   };
@@ -26,8 +25,6 @@
 </script>
 
 <Story name="Default" args={{ data }} />
-
-<Story name="NeedsSetup" args={{ data: { ...data, needsSetup: true } }} />
 
 <Story
   name="MockMode"
