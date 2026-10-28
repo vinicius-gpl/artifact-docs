@@ -7,6 +7,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"strings"
 
 	"github.com/vinicius-gpl/artifact-docs/artifact-docs/src-go/lib/httpjson"
 	"github.com/vinicius-gpl/artifact-docs/artifact-docs/src-go/lib/infra/database"
@@ -14,9 +15,10 @@ import (
 	"github.com/vinicius-gpl/artifact-docs/artifact-docs/src-go/modules/auth"
 )
 
-// maxJSONBytes é o maior corpo JSON aceito (PATCH, restaurar). Os corpos têm poucos campos;
-// um corpo maior que isto não é uma alteração, é engano ou abuso.
-const maxJSONBytes = 4 << 10
+// maxJSONBytes é o maior corpo JSON aceito (PATCH, restaurar). Cabe a descrição inteira (até
+// maxFieldBytes) com título e tags; um corpo maior que isto não é uma alteração, é engano ou
+// abuso.
+const maxJSONBytes = 16 << 10
 
 const notFoundMessage = "Artefato não encontrado. Ele pode ter sido apagado."
 
@@ -164,25 +166,29 @@ func (handlers *Handlers) answeredFailure(writer http.ResponseWriter, request *h
 	return true
 }
 
-// patchBody é o corpo do PATCH. O status precisa distinguir "não veio" de "veio null"
-// (limpar a situação) — por isso o optionalStatus, e não um *string simples.
+// patchBody é o corpo do PATCH. Status e descrição precisam distinguir "não veio" de "veio
+// null" (limpar) — por isso o optionalText, e não um *string simples. Tags `null` ou ausentes
+// mantêm; `[]` limpa.
 type patchBody struct {
-	IsPinned  *bool          `json:"isPinned"`
-	IsPrivate *bool          `json:"isPrivate"`
-	Status    optionalStatus `json:"status"`
+	IsPinned    *bool        `json:"isPinned"`
+	IsPrivate   *bool        `json:"isPrivate"`
+	Status      optionalText `json:"status"`
+	Title       *string      `json:"title"`
+	Description optionalText `json:"description"`
+	Tags        []string     `json:"tags"`
 }
 
-type optionalStatus struct {
+type optionalText struct {
 	Set   bool
 	Value *string
 }
 
 // UnmarshalJSON só é chamado quando a chave está no corpo — inclusive com null. É isso que
 // marca o "veio".
-func (status *optionalStatus) UnmarshalJSON(raw []byte) error {
-	status.Set = true
+func (text *optionalText) UnmarshalJSON(raw []byte) error {
+	text.Set = true
 
-	return json.Unmarshal(raw, &status.Value)
+	return json.Unmarshal(raw, &text.Value)
 }
 
 // readPatch lê e confere o corpo; quando ele é inválido, já respondeu 400.
@@ -193,15 +199,71 @@ func readPatch(writer http.ResponseWriter, request *http.Request) (Patch, bool) 
 		return Patch{}, false
 	}
 
-	if body.Status.Value != nil && !knownStatuses[*body.Status.Value] {
-		httpjson.Error(writer, http.StatusBadRequest, "Situação inválida.")
+	patch, err := body.toPatch()
+	if err != nil {
+		httpjson.Error(writer, http.StatusBadRequest, err.Error())
 		return Patch{}, false
 	}
 
-	return Patch{
-		IsPinned:  body.IsPinned,
-		IsPrivate: body.IsPrivate,
-		StatusSet: body.Status.Set,
-		Status:    body.Status.Value,
-	}, true
+	return patch, true
+}
+
+// toPatch confere cada campo com a MESMA regra da publicação: editar não pode deixar entrar
+// o que publicar recusaria.
+func (body patchBody) toPatch() (Patch, error) {
+	if body.Status.Value != nil && !knownStatuses[*body.Status.Value] {
+		return Patch{}, invalidUpload{"Situação inválida."}
+	}
+
+	patch := Patch{
+		IsPinned:       body.IsPinned,
+		IsPrivate:      body.IsPrivate,
+		StatusSet:      body.Status.Set,
+		Status:         body.Status.Value,
+		DescriptionSet: body.Description.Set,
+	}
+
+	if err := patch.setTitle(body.Title); err != nil {
+		return Patch{}, err
+	}
+	if err := patch.setDescription(body.Description.Value); err != nil {
+		return Patch{}, err
+	}
+	if body.Tags == nil {
+		return patch, nil
+	}
+
+	tags, err := normalizeTags(body.Tags)
+	patch.Tags = tags
+
+	return patch, err
+}
+
+func (patch *Patch) setTitle(raw *string) error {
+	if raw == nil {
+		return nil
+	}
+
+	title := strings.TrimSpace(*raw)
+	if err := checkTitle(title); err != nil {
+		return err
+	}
+	patch.Title = &title
+
+	return nil
+}
+
+// setDescription apara a descrição; vazia vira NULL no banco, como na publicação.
+func (patch *Patch) setDescription(raw *string) error {
+	if raw == nil {
+		return nil
+	}
+
+	description := strings.TrimSpace(*raw)
+	if len(description) > maxFieldBytes {
+		return invalidUpload{"A descrição passa de 4 KB."}
+	}
+	patch.Description = &description
+
+	return nil
 }

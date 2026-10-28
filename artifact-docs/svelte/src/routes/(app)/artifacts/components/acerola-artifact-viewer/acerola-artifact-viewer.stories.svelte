@@ -27,6 +27,7 @@
   const withActions = {
     onRetry: fn(),
     onPublishVersion: fn(),
+    onEdit: fn(),
     onTogglePrivate: fn(),
     onRestore: fn(),
     onDelete: fn(),
