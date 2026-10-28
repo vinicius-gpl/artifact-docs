@@ -48,11 +48,11 @@ describe('AcerolaTopNav', () => {
     expect(screen.getByRole('button', { name: /Mudar para o tema/ })).toBeInTheDocument();
   });
 
-  it('shows who signed in and signs out, with no profile screen nor effects button', async () => {
+  it('signs out, with no avatar, profile screen nor effects button', async () => {
     const onSignOut = vi.fn();
     renderNav('apps', onSignOut);
 
-    expect(screen.getByTitle('Você Mesmo · voce@exemplo.com')).toBeInTheDocument();
+    expect(screen.queryByRole('img', { name: /Você/ })).toBeNull();
     await fireEvent.click(screen.getByRole('button', { name: 'Sair' }));
     expect(onSignOut).toHaveBeenCalled();
     expect(screen.queryByRole('button', { name: /Efeitos|Perfil/ })).toBeNull();

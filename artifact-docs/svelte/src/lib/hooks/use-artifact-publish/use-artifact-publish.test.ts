@@ -125,7 +125,8 @@ describe('useArtifactPublishModel', () => {
     await waitFor(() => expect(artifactsApi.publish).toHaveBeenCalled());
     expect(model.ui.mode).toBe('version');
     const sent = vi.mocked(artifactsApi.publish).mock.calls[0]?.[0];
-    expect(sent).toMatchObject({ label: 'abertura-cnpj', kind: undefined });
+    expect(sent).toMatchObject({ label: 'abertura-cnpj' });
+    expect(sent).not.toHaveProperty('kind');
     expect(sent).not.toHaveProperty('status');
     expect(sent).not.toHaveProperty('isPrivate');
     expect(goto).not.toHaveBeenCalled();
