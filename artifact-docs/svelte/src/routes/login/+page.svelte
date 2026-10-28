@@ -19,7 +19,6 @@
 <LoginScreen
   data={{
     isMockMode: signIn.data.isMockMode,
-    needsSetup: page.data.needsSetup ?? false,
     signIn: signIn.data,
     firstAccess: firstAccess.data,
   }}
