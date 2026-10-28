@@ -41,9 +41,8 @@ export function firstAccessErrorsOf(
 /**
  * O PRIMEIRO ACESSO: cria a conta do dono do hub e já entra com ela.
  *
- * Só é oferecido enquanto não existe conta (`GET /api/auth/setup`). Em produção a conta nasce
- * no **Neon Auth**, direto do navegador; no modo mock, no `mock-auth`. Depois de criar, segue
- * para `returnTo` — a guarda confirma a sessão em `/api/auth/me`.
+ * Em produção a conta nasce no **Neon Auth**, direto do navegador; no modo mock, no
+ * `mock-auth`. Depois de criar, segue para `returnTo` — a guarda confirma a sessão em `/api/auth/me`.
  */
 export function useFirstAccessModel(input: { returnTo: string }): FirstAccessModel {
   const values = $state<FirstAccessInput>({ ...EMPTY });
