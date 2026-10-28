@@ -16,8 +16,8 @@
    * artefato não existe) → conteúdo.
    *
    * As ações em dois grupos, cada um perto do que afeta (Conectividade Uniforme): as do
-   * ARTEFATO no cabeçalho — privado, apagar e, por último, publicar versão nova, a principal
-   * (Von Restorff) —; as da PÁGINA numa barra colada em cima da prévia — abrir em nova aba e
+   * ARTEFATO no cabeçalho — editar (título, descrição, tags, situação e acesso), privado,
+   * apagar e, por último, publicar versão nova, a principal (Von Restorff) —; as da PÁGINA numa barra colada em cima da prévia — abrir em nova aba e
    * tela cheia. Restaurar mora em cada versão antiga da lista.
    *
    * A tela cheia é uma moldura DENTRO do app, e não o F11 do navegador: a prévia cobre a
@@ -36,6 +36,7 @@
     actions: {
       onRetry: () => void;
       onPublishVersion?: () => void;
+      onEdit?: () => void;
       onTogglePrivate?: () => void;
       onRestore?: (version: number) => void;
       onDelete?: () => void;
@@ -50,6 +51,7 @@
   import LockOpen from '@lucide/svelte/icons/lock-open';
   import Maximize2 from '@lucide/svelte/icons/maximize-2';
   import Minimize2 from '@lucide/svelte/icons/minimize-2';
+  import Pencil from '@lucide/svelte/icons/pencil';
   import Trash2 from '@lucide/svelte/icons/trash-2';
   import Upload from '@lucide/svelte/icons/upload';
 
@@ -142,6 +144,14 @@
       </div>
 
       <div class="flex shrink-0 flex-wrap items-center gap-2" role="group" aria-label="Ações do artefato">
+        {#if actions.onEdit}
+          <ActionButton
+            data={{ label: 'Editar' }}
+            ui={{ variant: 'secondary', size: 'lg', icon: Pencil }}
+            state={{ isDisabled: isBusy }}
+            actions={{ onClick: actions.onEdit }}
+          />
+        {/if}
         {#if actions.onTogglePrivate}
           <ActionButton
             data={{ label: artifact.isPrivate ? 'Tornar público' : 'Tornar privado', loadingLabel: 'Salvando…' }}

@@ -113,7 +113,10 @@ function patchArtifact({ params, body }: MockContext) {
   const patch = artifactPatchSchema.safeParse(body);
   if (!patch.success) throw new ApiError(400, 'Alteração inválida.');
 
-  Object.assign(artifact, patch.data);
+  /* Descrição vazia é "sem descrição", como no Go (nullif). */
+  const { description, ...fields } = patch.data;
+  Object.assign(artifact, fields);
+  if (description !== undefined) artifact.description = description || null;
 
   return artifactSchema.parse(artifact);
 }

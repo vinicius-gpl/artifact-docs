@@ -332,10 +332,19 @@ func readField(part *multipart.Part, meta *PublishMeta) error {
 }
 
 func setTitle(meta *PublishMeta, value string) error {
+	if err := checkTitle(value); err != nil {
+		return err
+	}
+	meta.Title = &value
+
+	return nil
+}
+
+// checkTitle é a regra do título, a mesma ao publicar e ao editar (PATCH).
+func checkTitle(value string) error {
 	if value == "" || len([]rune(value)) > maxTitle {
 		return invalidUpload{fmt.Sprintf("O título precisa ter de 1 a %d caracteres.", maxTitle)}
 	}
-	meta.Title = &value
 
 	return nil
 }
@@ -370,25 +379,37 @@ func setPrivate(meta *PublishMeta, value string) error {
 
 // setTags lê as tags separadas por vírgula, sem repetir. Vazio limpa as tags.
 func setTags(meta *PublishMeta, value string) error {
+	tags, err := normalizeTags(strings.Split(value, ","))
+	if err != nil {
+		return err
+	}
+	meta.Tags = tags
+
+	return nil
+}
+
+// normalizeTags apara, tira as vazias e as repetidas e confere os limites — a mesma regra ao
+// publicar (texto com vírgulas) e ao editar (lista do PATCH). Nunca devolve nil: lista vazia
+// é "sem tags", e não "mantém".
+func normalizeTags(raw []string) ([]string, error) {
 	tags := []string{}
 	seen := map[string]bool{}
-	for _, tag := range strings.Split(value, ",") {
+	for _, tag := range raw {
 		tag = strings.TrimSpace(tag)
 		if tag == "" || seen[tag] {
 			continue
 		}
 		if len([]rune(tag)) > maxTagLength {
-			return invalidUpload{fmt.Sprintf("Cada tag tem no máximo %d caracteres.", maxTagLength)}
+			return nil, invalidUpload{fmt.Sprintf("Cada tag tem no máximo %d caracteres.", maxTagLength)}
 		}
 		seen[tag] = true
 		tags = append(tags, tag)
 	}
 	if len(tags) > maxTags {
-		return invalidUpload{fmt.Sprintf("Use no máximo %d tags.", maxTags)}
+		return nil, invalidUpload{fmt.Sprintf("Use no máximo %d tags.", maxTags)}
 	}
-	meta.Tags = tags
 
-	return nil
+	return tags, nil
 }
 
 func removeUpload(received upload) {

@@ -135,6 +135,27 @@ func TestUpdateChangesFlagsWithoutTouchingUpdatedAt(test *testing.T) {
 	}
 }
 
+// feliz
+func TestUpdateEditsTheCardAndTheSearchFollows(test *testing.T) {
+	repository, ownerID := seededRepository(test)
+	ctx := context.Background()
+
+	title, description := "Empresa aberta", ""
+	patch := Patch{Title: &title, DescriptionSet: true, Description: &description, Tags: []string{"cnpj", "contador"}}
+	updated, err := repository.Update(ctx, ownerID, "abertura-cnpj", patch)
+	if err != nil {
+		test.Fatalf("update: %v", err)
+	}
+	if updated.Title != "Empresa aberta" || updated.Description != nil || len(updated.Tags) != 2 {
+		test.Fatalf("update = %+v, want the new title, no description and two tags", updated)
+	}
+
+	found, err := repository.List(ctx, ownerID, Filter{Search: "contador"})
+	if err != nil || len(found) != 1 {
+		test.Fatalf("search by the new tag: list = %+v, err = %v", found, err)
+	}
+}
+
 // triste
 func TestArtifactsOfAnotherOwnerAreNotFound(test *testing.T) {
 	repository, ownerID := seededRepository(test)
