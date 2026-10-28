@@ -226,3 +226,38 @@ describe('flipFrom', () => {
     expect(gsap.fromTo).not.toHaveBeenCalled();
   });
 });
+
+describe('flipFrom, the end of the flight', () => {
+  // feliz
+  it('resolves when the animation lands, and never leaves a transform behind', async () => {
+    setReducedMotion(false);
+    vi.mocked(gsap.fromTo).mockClear();
+    const node = document.createElement('section');
+    node.getBoundingClientRect = () => ({ left: 0, top: 0, width: 400, height: 300 }) as DOMRect;
+
+    const landed = flipFrom(node, { left: 0, top: 0, width: 800, height: 600 } as DOMRect);
+    const vars = vi.mocked(gsap.fromTo).mock.calls[0]?.[2] as {
+      onComplete: () => void;
+      clearProps: string;
+      overwrite: boolean;
+    };
+    vars.onComplete();
+
+    await expect(landed).resolves.toBeUndefined();
+    expect(vars).toMatchObject({ clearProps: 'transform,transformOrigin', overwrite: true });
+  });
+
+  // triste
+  it('resolves at once when there is nothing to animate', async () => {
+    setReducedMotion(true);
+
+    await expect(
+      flipFrom(document.createElement('section'), {
+        left: 0,
+        top: 0,
+        width: 1,
+        height: 1,
+      } as DOMRect),
+    ).resolves.toBeUndefined();
+  });
+});

@@ -29,6 +29,8 @@ var (
 	listTargetsSQL string
 	//go:embed queries/update_app_status.sql
 	updateStatusSQL string
+	//go:embed queries/update_app_icon.sql
+	updateIconSQL string
 )
 
 // Repository lê o hub de apps no Postgres.
@@ -85,7 +87,7 @@ func (repository *Repository) listLinks(ctx context.Context) ([]Link, error) {
 	links := []Link{}
 	for rows.Next() {
 		var link Link
-		if err := rows.Scan(&link.ID, &link.TypeID, &link.Name, &link.URL, &link.Status, &link.CheckedAt); err != nil {
+		if err := rows.Scan(&link.ID, &link.TypeID, &link.Name, &link.URL, &link.LogoURL, &link.Status, &link.CheckedAt); err != nil {
 			return nil, err
 		}
 		link.CheckedAt = database.UTCOrNil(link.CheckedAt)
@@ -172,7 +174,7 @@ func (repository *Repository) Targets(ctx context.Context) ([]Target, error) {
 	targets := []Target{}
 	for rows.Next() {
 		var target Target
-		if err := rows.Scan(&target.ID, &target.URL); err != nil {
+		if err := rows.Scan(&target.ID, &target.URL, &target.IconURL); err != nil {
 			return nil, err
 		}
 		targets = append(targets, target)
@@ -188,6 +190,13 @@ func (repository *Repository) SetStatus(ctx context.Context, id, status string) 
 	return err
 }
 
+// SetIcon grava o ícone que o monitor achou.
+func (repository *Repository) SetIcon(ctx context.Context, id, iconURL string) error {
+	_, err := repository.pool.Exec(ctx, updateIconSQL, id, iconURL)
+
+	return err
+}
+
 func upsertType(ctx context.Context, transaction pgx.Tx, name string) (string, error) {
 	var typeID string
 	err := transaction.QueryRow(ctx, upsertTypeSQL, name).Scan(&typeID)
@@ -199,7 +208,7 @@ func upsertType(ctx context.Context, transaction pgx.Tx, name string) (string, e
 // ordem.
 func scanLink(row pgx.Row) (Link, error) {
 	var link Link
-	err := row.Scan(&link.ID, &link.TypeID, &link.Name, &link.URL, &link.Status, &link.CheckedAt)
+	err := row.Scan(&link.ID, &link.TypeID, &link.Name, &link.URL, &link.LogoURL, &link.Status, &link.CheckedAt)
 	link.CheckedAt = database.UTCOrNil(link.CheckedAt)
 
 	return link, err
