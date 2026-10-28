@@ -1,21 +1,16 @@
-import { fireEvent, render, screen } from '@testing-library/svelte';
+import { render, screen } from '@testing-library/svelte';
 import { describe, expect, it, vi } from 'vitest';
 
 import LoginScreen, { type AcerolaLoginScreenProps } from './acerola-login-screen.svelte';
 
 function renderScreen(overrides: { isMockMode?: boolean } = {}) {
-  const idle = { isSubmitting: false, error: null, fieldErrors: {} };
   const props: AcerolaLoginScreenProps = {
     data: {
       isMockMode: overrides.isMockMode ?? false,
       signIn: { values: { email: '', password: '' } },
-      firstAccess: { values: { name: '', email: '', password: '', passwordConfirmation: '' } },
     },
-    state: { signIn: idle, firstAccess: idle },
-    actions: {
-      signIn: { onChange: vi.fn(), onSubmit: vi.fn() },
-      firstAccess: { onChange: vi.fn(), onSubmit: vi.fn() },
-    },
+    state: { signIn: { isSubmitting: false, error: null, fieldErrors: {} } },
+    actions: { signIn: { onChange: vi.fn(), onSubmit: vi.fn() } },
   };
   render(LoginScreen, { props });
 
@@ -31,16 +26,13 @@ describe('AcerolaLoginScreen', () => {
     expect(screen.getByLabelText('E-mail')).toBeInTheDocument();
   });
 
-  it('switches to the first access and back', async () => {
-    const actions = renderScreen();
+  it('leads to the first access, which is not a sign-up form', () => {
+    renderScreen();
 
-    await fireEvent.click(screen.getByRole('button', { name: 'Primeiro acesso · Criar a conta' }));
-    expect(screen.getByRole('heading', { name: 'Primeiro acesso' })).toBeInTheDocument();
-    await fireEvent.click(screen.getByRole('button', { name: 'Criar conta e entrar' }));
-    expect(actions.firstAccess.onSubmit).toHaveBeenCalled();
-
-    await fireEvent.click(screen.getByRole('button', { name: 'Já tenho conta · Entrar' }));
-    expect(screen.getByRole('heading', { name: 'Entrar' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: 'Primeiro acesso ou esqueci a senha' }),
+    ).toHaveAttribute('href', '/first-access');
+    expect(screen.queryByLabelText('Nome')).toBeNull();
   });
 
   it('says it is local mode in mock mode', () => {
