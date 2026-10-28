@@ -1,5 +1,6 @@
--- O que o monitor confere: todo app, com o endereço.
+-- O que o monitor confere: todo app, com o endereço e o ícone que já tem (vazio = procurar).
 SELECT
   app.id::TEXT,
-  app.url
+  app.url,
+  coalesce(app.icon_url, '')
 FROM apps AS app;
