@@ -107,12 +107,29 @@ export type ArtifactListQuery = {
   q?: string;
 };
 
-/** O que dá para mudar sem subir versão nova: `PATCH /api/artifacts/<label>`. */
+/**
+ * O que dá para mudar sem subir versão nova: `PATCH /api/artifacts/<label>`. Campo que não vai
+ * fica como está; `description: null` e `tags: []` limpam. As regras são as da publicação — o
+ * Go confere o mesmo (`modules/artifacts/handlers.go`, `toPatch`).
+ */
 export const artifactPatchSchema = z
   .object({
     isPinned: z.boolean(),
     isPrivate: z.boolean(),
     status: artifactStatusSchema.nullable(),
+    title: z
+      .string()
+      .trim()
+      .min(1, 'Informe o título')
+      .max(200, 'O título tem no máximo 200 caracteres'),
+    description: z
+      .string()
+      .trim()
+      .max(1000, 'A descrição tem no máximo 1000 caracteres')
+      .nullable(),
+    tags: z
+      .array(z.string().trim().min(1).max(40, 'Cada tag tem no máximo 40 caracteres'))
+      .max(20, 'Use no máximo 20 tags'),
   })
   .partial();
 
