@@ -41,7 +41,8 @@ O endereço público é `hub.vinicius-gpl.com`. Para trocar, crie a **variável*
 
 - DNS: registro `A` de `hub` para o IP da Oracle na Cloudflare, em modo "DNS only", como os outros.
 - Neon Auth: adicione `https://hub.vinicius-gpl.com` aos domínios confiáveis.
-- Primeiro acesso: entre e crie a conta, e depois desligue o cadastro no Neon Auth (`docs/auth.md`).
+- Primeiro acesso: crie o usuário no painel da Neon (Auth → Users) e use "Primeiro acesso ou
+  esqueci a senha" no login para receber o link de criar a senha (`docs/auth.md`).
 
 ## Localmente
 

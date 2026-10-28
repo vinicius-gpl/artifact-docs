@@ -5,8 +5,10 @@ nunca vê a senha, só confere o token que a Neon assina.
 
 ## Como funciona
 
-1. **Primeiro acesso** (só enquanto não existe a conta): a tela de login mostra o botão
-   "Primeiro acesso", e a conta nasce no Neon Auth (`signUp.email`) já logada.
+1. **Primeiro acesso** (não é cadastro): a conta nasce no painel da Neon (Auth → Users), sem
+   senha. No login, "Primeiro acesso ou esqueci a senha" (`/first-access`) pede o e-mail, o Neon
+   Auth manda o link (`requestPasswordReset`) e `/reset-password?token=…` define a senha
+   (`resetPassword`). O mesmo caminho serve para quem esqueceu a senha.
 2. **Entrar**: a tela manda e-mail e senha para o Neon Auth (`signIn.email`) e recebe a sessão.
 3. **Cada chamada à API** leva `Authorization: Bearer <token>` (o JWT da Neon).
 4. **O porteiro do Go** (middleware em toda rota `/api/*`, menos as públicas):
@@ -41,9 +43,10 @@ só diz ONDE o login acontece.
 
 ## Segurança
 
-- **Cadastro aberto na Neon não abre o hub**: quem criar conta sem estar na lista recebe 403
-  em tudo. Mesmo assim, **depois do primeiro acesso, desligue novos cadastros** no painel do
-  Neon Auth.
+- **A tela não cadastra ninguém**: a conta é criada no painel da Neon. Deixe o cadastro
+  desligado no Neon Auth; mesmo ligado, quem não está na lista recebe 403 em tudo.
+- **`https://<seu domínio>`** precisa estar nos domínios confiáveis do Neon Auth: sem isso, o
+  pedido do link é recusado inteiro, sem e-mail.
 - **Mesma mensagem** para e-mail inexistente e senha errada ("E-mail ou senha incorretos.").
 - **Sair limpa o cache** de dados da tela antes de ir para o login.
 - **Artefato privado** (`/a/<token>/`): página aberta direto não manda o cabeçalho
@@ -69,5 +72,5 @@ Com `VITE_API_MOCKS=true` (padrão do `mise run dev`), nada disso sai da máquin
 `src/lib/api/mock-auth.ts` imita o Neon Auth e o porteiro.
 
 - O formulário já vem com o **usuário de teste** (`voce@exemplo.com` / `artifact-docs`).
-- O **primeiro acesso** aparece até você criar uma conta pela tela; depois, ela também entra.
+- O **primeiro acesso** não manda e-mail: vai direto para a senha nova, e a conta passa a entrar.
 - Sessão e conta ficam no `localStorage` do navegador. Para recomeçar, limpe os dados do site.
