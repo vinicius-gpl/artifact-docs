@@ -148,6 +148,13 @@ export const artifactPublishSchema = z.object({
   description: z.string().trim().max(1000, 'A descrição tem no máximo 1000 caracteres'),
   /** Separadas por vírgula, como a pessoa digita. */
   tags: z.string().trim(),
+  /**
+   * Situação de planejamento e ideia; documento não tem. Sem ela, o Go põe "rascunho" no
+   * planejamento e na ideia novos.
+   */
+  status: artifactStatusSchema.optional(),
+  /** Sem ele, o artefato novo nasce PRIVADO (no Go): publicar aberto é escolha, não descuido. */
+  isPrivate: z.boolean().optional(),
 });
 
 export type ArtifactPublishInput = z.infer<typeof artifactPublishSchema>;

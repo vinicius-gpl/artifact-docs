@@ -14,9 +14,13 @@ describe('toPublishForm', () => {
       kind: 'document',
       description: 'Para começar',
       tags: 'hub, marca',
+      status: 'active',
+      isPrivate: true,
     });
 
     expect((form.get('file') as File).name).toBe('guia.html');
+    expect(form.get('status')).toBe('active');
+    expect(form.get('private')).toBe('true');
     expect(form.get('title')).toBe('Guia rápido');
     expect(form.get('kind')).toBe('document');
     expect(form.get('tags')).toBe('hub, marca');
@@ -30,5 +34,7 @@ describe('toPublishForm', () => {
     expect(form.has('title')).toBe(false);
     expect(form.has('description')).toBe(false);
     expect(form.has('tags')).toBe(false);
+    expect(form.has('status')).toBe(false);
+    expect(form.has('private')).toBe(false);
   });
 });
