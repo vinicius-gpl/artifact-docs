@@ -15,13 +15,18 @@ depends = ["dev:api", "dev:web"]
 
 [tasks."dev:api"]
 description = "API Go em :3010"
+# O Go só lê variável de ambiente (src-go/lib/infra/config); quem traz o src-go/.env é o mise.
+# Sem isto o servidor subia sem banco, e o login escondia o "Primeiro acesso".
+env = { _.file = "src-go/.env" }
 run = "go run ."
 
 [tasks."dev:web"]
 description = "SPA (Vite) em :5010, com /api encaminhado para o Go — ou para o mock"
-# Modo mock ligado por padrão enquanto o Go não tem as rotas (src/lib/api/mock-server.ts).
-# Para falar com o Go de verdade: `VITE_API_MOCKS=false mise run dev`.
-env = { VITE_API_MOCKS = "{{ env.VITE_API_MOCKS | default(value='true') }}" }
+# Modo mock ligado por padrão (src/lib/api/mock-server.ts). Para falar com o Go de verdade:
+# `VITE_API_MOCKS=false` no svelte/.env, ou `VITE_API_MOCKS=false mise run dev`.
+# O svelte/.env entra aqui para o padrão `true` não passar por cima do que está nele: variável
+# que já existe no processo vence o .env no Vite.
+env = { _.file = "svelte/.env", VITE_API_MOCKS = "{{ env.VITE_API_MOCKS | default(value='true') }}" }
 run = "npm run dev --prefix svelte"
 
 # ── Build ────────────────────────────────────────────────────────────────────
