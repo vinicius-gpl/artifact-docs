@@ -20,15 +20,13 @@ const { signOutOfNeon } = await import('$lib/auth/neon-auth.client');
 const { goto } = await import('$app/navigation');
 const { page } = await import('$app/state');
 
-const USER = { id: 'u1', email: 'voce@exemplo.com', name: 'Você Mesmo', image: null };
-
 function openScreen(pathname: string) {
   page.url = new URL(`http://localhost:5010${pathname}`);
 }
 
 function mountModel(queryClient = new QueryClient()): TopNavModel {
   let model!: TopNavModel;
-  render(Harness, { props: { user: USER, queryClient, onReady: (ready) => (model = ready) } });
+  render(Harness, { props: { queryClient, onReady: (ready) => (model = ready) } });
 
   return model;
 }
@@ -51,11 +49,6 @@ describe('useTopNavModel', () => {
     openScreen('/apps');
     expect(model.state.activeKey).toBe('apps');
     expect(model.data).toMatchObject({ items: NAV_ITEMS, homeHref: HOME_PATH });
-    expect(model.data.user).toEqual({
-      name: 'Você Mesmo',
-      email: 'voce@exemplo.com',
-      avatarUrl: null,
-    });
   });
 
   it('signs out of the mock session, clears the cached data and goes to the login', async () => {

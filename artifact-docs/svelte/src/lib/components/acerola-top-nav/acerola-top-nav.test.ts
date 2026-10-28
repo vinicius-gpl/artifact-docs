@@ -5,15 +5,13 @@ import { NAV_ITEMS } from '$lib/navigation/navigation';
 
 import TopNav from './acerola-top-nav.svelte';
 
-const USER = { name: 'Você Mesmo', email: 'voce@exemplo.com', avatarUrl: null };
-
 /* `null` (e não `undefined`) para "nada aceso": `undefined` num parâmetro com padrão faz o
    JavaScript usar o padrão, e o teste de "nada aceso" acabava com "Documentos" aceso. */
 function renderNav(active: string | null = 'artifacts', onSignOut = vi.fn()) {
   const activeKey = active ?? undefined;
   return render(TopNav, {
     props: {
-      data: { items: NAV_ITEMS, homeHref: '/apps', user: USER },
+      data: { items: NAV_ITEMS, homeHref: '/apps' },
       state: { activeKey },
       actions: { onSignOut },
     },
