@@ -70,6 +70,20 @@ describe('handleMockRequest', () => {
     expect(detail.isPinned).toBe(true);
   });
 
+  it('edits title, description and tags, and an empty description clears it', async () => {
+    await request('/artifacts/erp-pessoal', {
+      method: 'PATCH',
+      body: { title: 'ERP da casa', description: '', tags: ['erp', 'casa'] },
+    });
+
+    const detail = await request<ArtifactDetail>('/artifacts/erp-pessoal');
+    expect(detail).toMatchObject({
+      title: 'ERP da casa',
+      description: null,
+      tags: ['erp', 'casa'],
+    });
+  });
+
   it('answers the apps hub in the contract shape', async () => {
     const hub = await request<AppHub>('/apps');
 
@@ -86,6 +100,12 @@ describe('handleMockRequest', () => {
     await expect(
       request('/artifacts/erp-pessoal', { method: 'PATCH', body: { isPinned: 'sim' } }),
     ).rejects.toBeInstanceOf(ApiError);
+  });
+
+  it('refuses an edit that empties the title', async () => {
+    await expect(
+      request('/artifacts/erp-pessoal', { method: 'PATCH', body: { title: '   ' } }),
+    ).rejects.toMatchObject({ status: 400 });
   });
 
   it('answers 404 for a route the mock does not have, naming it', async () => {
