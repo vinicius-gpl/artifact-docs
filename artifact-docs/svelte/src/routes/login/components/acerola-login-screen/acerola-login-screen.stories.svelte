@@ -5,21 +5,14 @@
   import LoginScreen from './acerola-login-screen.svelte';
 
   const idle = { isSubmitting: false, error: null, fieldErrors: {} };
-  const data = {
-    isMockMode: false,
-    signIn: { values: { email: '', password: '' } },
-    firstAccess: { values: { name: '', email: '', password: '', passwordConfirmation: '' } },
-  };
+  const data = { isMockMode: false, signIn: { values: { email: '', password: '' } } };
 
   const { Story } = defineMeta({
     title: 'Features/Login/AcerolaLoginScreen',
     component: LoginScreen,
     args: {
-      state: { signIn: idle, firstAccess: idle },
-      actions: {
-        signIn: { onChange: fn(), onSubmit: fn() },
-        firstAccess: { onChange: fn(), onSubmit: fn() },
-      },
+      state: { signIn: idle },
+      actions: { signIn: { onChange: fn(), onSubmit: fn() } },
     },
   });
 </script>
@@ -47,7 +40,6 @@
         ...idle,
         error: 'Esta conta não tem acesso a este hub. Entre com a conta cadastrada.',
       },
-      firstAccess: idle,
     },
   }}
 />

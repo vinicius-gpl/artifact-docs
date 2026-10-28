@@ -4,19 +4,12 @@ import { MOCK_PASSWORD, MOCK_USER } from './mock-fixtures';
 import {
   hasMockSession,
   mockMe,
+  mockSetPassword,
   mockSetup,
   mockSignIn,
-  mockSignUp,
   resetMockAccount,
   setMockSession,
 } from './mock-auth';
-
-const ACCOUNT = {
-  name: 'Você Mesmo',
-  email: 'dono@exemplo.com',
-  password: 'senha-forte',
-  passwordConfirmation: 'senha-forte',
-};
 
 beforeEach(() => {
   resetMockAccount();
@@ -25,37 +18,28 @@ beforeEach(() => {
 
 describe('first access', () => {
   // feliz
-  it('offers the first access while there is no account, and creates it signed in', () => {
+  it('gives the account a password through the link, and lets it sign in', () => {
     expect(mockSetup()).toEqual({ needsSetup: true });
 
-    const user = mockSignUp(ACCOUNT);
+    mockSetPassword({ token: 'mock:dono@exemplo.com', password: 'senha-forte' });
 
-    expect(user).toMatchObject({ name: 'Você Mesmo', email: 'dono@exemplo.com' });
     expect(mockSetup()).toEqual({ needsSetup: false });
+    expect(mockSignIn({ email: 'dono@exemplo.com', password: 'senha-forte' })).toMatchObject({
+      email: 'dono@exemplo.com',
+    });
     expect(mockMe().email).toBe('dono@exemplo.com');
   });
 
-  it('lets the created account sign in again later', () => {
-    mockSignUp(ACCOUNT);
-    setMockSession(null);
-
-    expect(mockSignIn({ email: ACCOUNT.email, password: ACCOUNT.password }).name).toBe(
-      'Você Mesmo',
-    );
-  });
-
   // triste
-  it('refuses a second first access once the account exists', () => {
-    mockSignUp(ACCOUNT);
-
-    expect(() => mockSignUp({ ...ACCOUNT, email: 'outro@exemplo.com' })).toThrow(
-      'A conta do hub já existe',
+  it('refuses a link that is not a mock link', () => {
+    expect(() => mockSetPassword({ token: 'outro', password: 'senha-forte' })).toThrow(
+      'Este link não vale mais.',
     );
+    expect(mockSetup()).toEqual({ needsSetup: true });
   });
 
-  it('refuses a first access with mismatched passwords', () => {
-    expect(() => mockSignUp({ ...ACCOUNT, passwordConfirmation: 'outra' })).toThrow();
-    expect(mockSetup()).toEqual({ needsSetup: true });
+  it('refuses a password shorter than the minimum', () => {
+    expect(() => mockSetPassword({ token: 'mock:dono@exemplo.com', password: 'curta' })).toThrow();
   });
 });
 

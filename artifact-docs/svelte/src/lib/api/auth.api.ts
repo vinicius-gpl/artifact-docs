@@ -1,8 +1,4 @@
-import {
-  type FirstAccessInput,
-  type LoginInput,
-  type SetupStatus,
-} from '$lib/contracts/auth.schema';
+import { type LoginInput, type SetupStatus } from '$lib/contracts/auth.schema';
 import { type SessionUser } from '$lib/contracts/user.schema';
 
 import { apiRequest } from './http-client';
@@ -12,7 +8,7 @@ import { apiRequest } from './http-client';
  * (`lib/auth/neon-auth.client.ts`); o que só a API sabe é se esta pessoa pode usar o hub.
  *
  * `mock*` só existem no modo mock (localhost): é o login com o usuário de mentira e o primeiro
- * acesso de mentira. Em produção essas rotas não existem no Go — lá, entrar e criar a conta
+ * acesso de mentira. Em produção essas rotas não existem no Go — lá, entrar e criar a senha
  * acontecem no Neon Auth.
  */
 /**
@@ -22,13 +18,19 @@ import { apiRequest } from './http-client';
  */
 export const MOCK_CREDENTIALS = { email: 'voce@exemplo.com', password: 'artifact-docs' } as const;
 
+/**
+ * O "link do e-mail" do modo mock: não há e-mail em localhost, então a tela vai direto para a
+ * senha nova com este token, que carrega o e-mail da conta.
+ */
+export const MOCK_LINK_PREFIX = 'mock:';
+
 export const authApi = {
   /** Quem está logado — ou lança 401 (sem sessão) / 403 (conta sem acesso). */
   me: () => apiRequest<SessionUser>('/auth/me'),
-  /** Pública: ainda não existe a conta do dono? Só então a tela oferece o primeiro acesso. */
+  /** Pública: ainda não existe a conta do dono? */
   setup: () => apiRequest<SetupStatus>('/auth/setup'),
-  mockSignUp: (account: FirstAccessInput) =>
-    apiRequest<SessionUser>('/auth/mock/sign-up', { method: 'POST', body: account }),
+  mockSetPassword: (input: { token: string; password: string }) =>
+    apiRequest<void>('/auth/mock/set-password', { method: 'POST', body: input }),
   mockSignIn: (credentials: LoginInput) =>
     apiRequest<SessionUser>('/auth/mock/sign-in', { method: 'POST', body: credentials }),
   mockSignOut: () => apiRequest<void>('/auth/mock/sign-out', { method: 'POST' }),
