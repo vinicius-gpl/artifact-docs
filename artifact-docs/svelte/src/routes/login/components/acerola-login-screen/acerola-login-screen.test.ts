@@ -3,12 +3,11 @@ import { describe, expect, it, vi } from 'vitest';
 
 import LoginScreen, { type AcerolaLoginScreenProps } from './acerola-login-screen.svelte';
 
-function renderScreen(overrides: { isMockMode?: boolean; needsSetup?: boolean } = {}) {
+function renderScreen(overrides: { isMockMode?: boolean } = {}) {
   const idle = { isSubmitting: false, error: null, fieldErrors: {} };
   const props: AcerolaLoginScreenProps = {
     data: {
       isMockMode: overrides.isMockMode ?? false,
-      needsSetup: overrides.needsSetup ?? false,
       signIn: { values: { email: '', password: '' } },
       firstAccess: { values: { name: '', email: '', password: '', passwordConfirmation: '' } },
     },
@@ -32,8 +31,8 @@ describe('AcerolaLoginScreen', () => {
     expect(screen.getByLabelText('E-mail')).toBeInTheDocument();
   });
 
-  it('switches to the first access while there is no account, and back', async () => {
-    const actions = renderScreen({ needsSetup: true });
+  it('switches to the first access and back', async () => {
+    const actions = renderScreen();
 
     await fireEvent.click(screen.getByRole('button', { name: 'Primeiro acesso · Criar a conta' }));
     expect(screen.getByRole('heading', { name: 'Primeiro acesso' })).toBeInTheDocument();
@@ -51,9 +50,9 @@ describe('AcerolaLoginScreen', () => {
   });
 
   // triste
-  it('hides the first access once the account exists', () => {
-    renderScreen({ needsSetup: false });
+  it('hides the local mode badge outside mock mode', () => {
+    renderScreen({ isMockMode: false });
 
-    expect(screen.queryByRole('button', { name: /Primeiro acesso/ })).toBeNull();
+    expect(screen.queryByText('Modo local')).toBeNull();
   });
 });
