@@ -34,13 +34,14 @@ func TestServeDeliversTheCurrentVersionInsideTheSandbox(test *testing.T) {
 	response := serveRequest(handlers, "token", "")
 	body, _ := io.ReadAll(response.Body)
 
-	if response.StatusCode != http.StatusOK || string(body) != "<h1>no ar</h1>" {
+	// A página de entrada ganha o cartão do link no começo; o conteúdo vem intacto depois.
+	if response.StatusCode != http.StatusOK || !strings.HasSuffix(string(body), "<h1>no ar</h1>") {
 		test.Fatalf("status = %d, body = %q", response.StatusCode, body)
 	}
 	if response.Header.Get("Content-Security-Policy") != sandboxPolicy {
 		test.Fatalf("csp = %q, want the sandbox", response.Header.Get("Content-Security-Policy"))
 	}
-	if response.Header.Get("Referrer-Policy") != "no-referrer" || response.Header.Get("ETag") != `"etag-1"` {
+	if response.Header.Get("Referrer-Policy") != "no-referrer" || !strings.HasPrefix(response.Header.Get("ETag"), `"etag-1-`) {
 		test.Fatalf("headers = %v", response.Header)
 	}
 

@@ -1,8 +1,10 @@
 package artifacts
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"path"
 	"strings"
@@ -56,7 +58,18 @@ func (handlers *Handlers) Serve(writer http.ResponseWriter, request *http.Reques
 		return
 	}
 
+	if isEntryPage(request.PathValue("path"), served.Format) {
+		handlers.streamEntryPage(writer, request, served, linkOf(request, access.LinkToken))
+		return
+	}
+
 	handlers.stream(writer, request, served, name)
+}
+
+// isEntryPage diz se o pedido é a página que o link abre — a que ganha o cartão. Os assets e
+// as subpáginas de um site vão como estão; o PDF não tem <head>.
+func isEntryPage(requested string, format string) bool {
+	return requested == "" && format != "pdf"
 }
 
 // RedirectToFolder é GET /a/{access}: manda para /a/{access}/. Sem a barra final, o
@@ -80,20 +93,59 @@ func (handlers *Handlers) resolve(request *http.Request, linkToken string) (Serv
 }
 
 func (handlers *Handlers) stream(writer http.ResponseWriter, request *http.Request, served Served, name string) {
-	object, err := handlers.files.Get(request.Context(), versionFolder(served.ArtifactID, served.Version)+name)
-	if errors.Is(err, storage.ErrNotFound) {
-		http.Error(writer, "Arquivo não encontrado.", http.StatusNotFound)
-		return
-	}
-	if err != nil {
-		handlers.logger.Error("read artifact file", "artifact", served.ArtifactID, "file", name, "error", err)
-		http.Error(writer, "Não consegui abrir o arquivo. Tente de novo em instantes.", http.StatusBadGateway)
+	object, ok := handlers.open(writer, request, served, name)
+	if !ok {
 		return
 	}
 	defer func() { _ = object.Content.Close() }()
 
 	setServedHeaders(writer.Header(), served, name, object)
 	http.ServeContent(writer, request, name, object.LastModified, object.Content)
+}
+
+// streamEntryPage serve o index.html com as tags do cartão do link no <head> (preview.go).
+// A página inteira passa pela memória, então só até maxEntryPageBytes: acima disso ela vai
+// como está, sem cartão.
+func (handlers *Handlers) streamEntryPage(writer http.ResponseWriter, request *http.Request, served Served, link previewLink) {
+	const name = "index.html"
+	object, ok := handlers.open(writer, request, served, name)
+	if !ok {
+		return
+	}
+	defer func() { _ = object.Content.Close() }()
+
+	setServedHeaders(writer.Header(), served, name, object)
+	if object.Size > maxEntryPageBytes {
+		http.ServeContent(writer, request, name, object.LastModified, object.Content)
+		return
+	}
+
+	page, err := io.ReadAll(io.LimitReader(object.Content, maxEntryPageBytes))
+	if err != nil {
+		handlers.logger.Error("read artifact entry page", "artifact", served.ArtifactID, "error", err)
+		http.Error(writer, "Não consegui abrir o arquivo. Tente de novo em instantes.", http.StatusBadGateway)
+		return
+	}
+
+	page = injectPreview(page, served, link)
+	writer.Header().Set("ETag", previewETag(object.ETag, page))
+	http.ServeContent(writer, request, name, object.LastModified, bytes.NewReader(page))
+}
+
+// open busca o arquivo no R2 e já responde a falha: false é "a resposta foi dada".
+func (handlers *Handlers) open(writer http.ResponseWriter, request *http.Request, served Served, name string) (storage.Object, bool) {
+	object, err := handlers.files.Get(request.Context(), versionFolder(served.ArtifactID, served.Version)+name)
+	if errors.Is(err, storage.ErrNotFound) {
+		http.Error(writer, "Arquivo não encontrado.", http.StatusNotFound)
+		return storage.Object{}, false
+	}
+	if err != nil {
+		handlers.logger.Error("read artifact file", "artifact", served.ArtifactID, "file", name, "error", err)
+		http.Error(writer, "Não consegui abrir o arquivo. Tente de novo em instantes.", http.StatusBadGateway)
+		return storage.Object{}, false
+	}
+
+	return object, true
 }
 
 // setServedHeaders põe os cabeçalhos de todo arquivo servido.
