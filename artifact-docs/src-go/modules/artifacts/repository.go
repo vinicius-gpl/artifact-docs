@@ -174,7 +174,16 @@ func normalized(artifact Artifact) Artifact {
 func (repository *Repository) FindServed(ctx context.Context, linkToken string) (Served, error) {
 	var served Served
 	err := repository.pool.QueryRow(ctx, findServedSQL, linkToken).
-		Scan(&served.ArtifactID, &served.Version, &served.Format, &served.IsPrivate)
+		Scan(
+			&served.ArtifactID,
+			&served.Version,
+			&served.Format,
+			&served.IsPrivate,
+			&served.Title,
+			&served.Description,
+			&served.Kind,
+			&served.HasThumb,
+		)
 
 	return served, database.NotFoundOr(err)
 }
