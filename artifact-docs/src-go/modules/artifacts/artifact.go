@@ -94,6 +94,11 @@ type Served struct {
 	Version    int
 	Format     string
 	IsPrivate  bool
+	// Title, Description, Kind e HasThumb montam o cartão do link (preview.go).
+	Title       string
+	Description *string
+	Kind        string
+	HasThumb    bool
 }
 
 // PublishTarget é onde a próxima versão cai: o artefato existente e a maior versão dele.
