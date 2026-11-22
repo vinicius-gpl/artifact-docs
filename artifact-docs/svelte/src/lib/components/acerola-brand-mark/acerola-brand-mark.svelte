@@ -9,8 +9,8 @@
   };
 
   /* A marca é SÓ a logo, sem o nome escrito ao lado — a mesma dos documentos exportados. O
-     arquivo é o ícone da aba (`static/favicon.svg`): uma fonte só para a marca na tela. O
-     desenho tem uma folga transparente em volta, e por isso as medidas parecem generosas. */
+     arquivo é o ícone da aba (`static/favicon.svg`): uma fonte só para a marca na tela. É o
+     selo padrão dos apps — quadrado na primária, monograma e a faixa no destaque. */
   const LOGO_SIZES = { sm: 'size-10', md: 'size-12', lg: 'size-20' } as const;
 
   let { ui }: AcerolaBrandMarkProps = $props();
