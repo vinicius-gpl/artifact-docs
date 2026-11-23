@@ -1,0 +1,61 @@
+# artifact-docs no Swarm do hetzner (Stack hetzner_artifact-docs do Komodo, ver komodo.toml).
+# O APP_IMAGE vem do komodo.sh: a imagem que o Build do Komodo deixou neste mesmo hetzner.
+# As variáveis vêm do compose_cmd_wrapper da Stack (Variables do Komodo), nunca de um .env.
+# O Caddy do config chega no serviço como hetzner_artifact-docs_app:3000, pela rede edge.
+services:
+  app:
+    image: ${APP_IMAGE:?}
+    environment:
+      - APP_ENV=production
+      - API_PORT=3000
+      # GOMEMLIMIT faz o Go devolver memória antes do teto do container derrubá-lo.
+      - GOMEMLIMIT=64MiB
+      - DATABASE_URL=${DATABASE_URL:?}
+      - NEON_AUTH_URL=${NEON_AUTH_URL:?}
+      - NEON_AUTH_JWKS_URL=${NEON_AUTH_JWKS_URL:?}
+      - AUTH_ALLOWED_EMAILS=${AUTH_ALLOWED_EMAILS:?}
+      - R2_ENDPOINT=${R2_ENDPOINT:?}
+      - R2_ACCESS_KEY_ID=${R2_ACCESS_KEY_ID:?}
+      - R2_SECRET_ACCESS_KEY=${R2_SECRET_ACCESS_KEY:?}
+      - R2_BUCKET=${R2_BUCKET:?}
+      - ARTIFACT_LINK_SECRET=${ARTIFACT_LINK_SECRET:?}
+    # O upload grande (multipart) transborda para o /tmp; o resto do disco é só leitura.
+    read_only: true
+    volumes:
+      - type: tmpfs
+        target: /tmp
+        tmpfs:
+          size: 67108864
+    networks:
+      - edge
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          # O GOMEMLIMIT segura o Go, e este teto protege o resto do servidor.
+          memory: 160M
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 60s
+      update_config:
+        parallelism: 1
+        order: start-first
+        failure_action: rollback
+        monitor: 30s
+      rollback_config:
+        parallelism: 1
+        order: start-first
+      labels:
+        app: artifact-docs
+        server: hetzner
+
+networks:
+  edge:
+    external: true

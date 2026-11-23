@@ -124,7 +124,7 @@ git merge develop
 ### 3.3 Conferir
 
 **Teste não roda na máquina.** Envie a branch e abra (ou atualize) o PR para a `develop`; quem
-confere é o CI (`.github/workflows/tests.yml`): `gh pr checks <n> --watch --interval 30`.
+confere é o CI (`.github/workflows/artifact-docs-tests.yml`): `gh pr checks <n> --watch --interval 30`.
 Vermelho → corrija na branch, commite, envie, repita.
 
 ### 3.4 Mostrar e pedir o OK
