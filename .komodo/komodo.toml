@@ -3,10 +3,10 @@
 #
 #   Sync       aplica este arquivo (webhook do GitHub no push da main).
 #   Repo       clone da main no hetzner; Build e Stack leem dele.
-#   Build      artifact-docs/docker/dockerfile construído NO PRÓPRIO hetzner. Sem registry: a imagem
-#              fica local como artifact-docs:<commit curto>-hetzner.
-#   Stack      .komodo/compose.yml no Swarm do hetzner; o komodo.sh roda as etapas do deploy e o
-#              route.sh publica hub.docs.vinicius-gpl.com no Caddy do servidor (rede edge).
+#   Build      artifact-docs/.config/docker/dockerfile construído NO PRÓPRIO hetzner. Sem registry: a
+#              imagem fica local como artifact-docs:<commit curto>-hetzner.
+#   Stack      .komodo/artifact-docs.compose.yml no Swarm do hetzner; o komodo.sh roda as etapas do
+#              deploy e o route.sh publica o artifact-docs.caddy (hub.docs.vinicius-gpl.com) no Caddy.
 #   Procedure  Pull -> Build -> Deploy, disparada pelo webhook do GitHub
 #              (/listener/github/procedure/hetzner_artifact-docs/main).
 #   Action     rollback nativo do Swarm para a versão anterior.
@@ -45,7 +45,7 @@ builder = "hetzner"
 linked_repo = "hetzner_artifact-docs"
 webhook_enabled = false
 build_path = "artifact-docs"
-dockerfile_path = "docker/dockerfile"
+dockerfile_path = ".config/docker/dockerfile"
 image_name = "artifact-docs"
 image_tag = "hetzner"
 include_latest_tag = false
@@ -69,7 +69,7 @@ project_name = "hetzner_artifact-docs"
 linked_repo = "hetzner_artifact-docs"
 webhook_enabled = false
 run_directory = ".komodo"
-file_paths = ["compose.yml"]
+file_paths = ["artifact-docs.compose.yml"]
 extra_args = ["--resolve-image", "never", "--detach=false"]
 links = ["https://hub.docs.vinicius-gpl.com"]
 pre_deploy.command = "sh komodo.sh pre-deploy artifact-docs hetzner"

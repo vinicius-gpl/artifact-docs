@@ -1,18 +1,18 @@
 #!/bin/sh
-# Etapas do deploy chamadas pela Stack do Komodo (.komodo/komodo.toml). Igual em todos os apps.
+# Deploy steps called by the Komodo Stack (.komodo/komodo.toml). Same file in every app.
 #
-#   sh komodo.sh pre-deploy  <app> <servidor>            confere que o Build deixou a imagem aqui
-#   sh komodo.sh deploy      <app> <servidor> <comando>  envolve o comando `docker stack` do Komodo
-#   sh komodo.sh post-deploy <app> <servidor>            publica a rota no Caddy do servidor
+#   sh komodo.sh pre-deploy  <app> <server>            checks that the Build left the image here
+#   sh komodo.sh deploy      <app> <server> <command>  wraps Komodo's `docker stack` command
+#   sh komodo.sh post-deploy <app> <server>            publishes the route on the server's Caddy
 #
-# A imagem vem do Build do Komodo neste mesmo servidor, sem registry:
-# <app>:<commit curto>-<servidor>. A stack é <servidor>_<app> e o Swarm chama os serviços de
-# <servidor>_<app>_<serviço>, que é para onde o Caddy faz proxy pela rede edge.
+# The image comes from the Komodo Build on this same server, with no registry:
+# <app>:<short commit>-<server>. The stack is <server>_<app> and Swarm names the services
+# <server>_<app>_<service>, which is what Caddy proxies to over the edge network.
 set -eu
 
-step="${1:?Etapa: pre-deploy, deploy ou post-deploy}"
-APP_NAME="${2:?Nome do app}"
-DEPLOY_SERVER="${3:?Nome do servidor}"
+step="${1:?Step: pre-deploy, deploy or post-deploy}"
+APP_NAME="${2:?App name}"
+DEPLOY_SERVER="${3:?Server name}"
 shift 3
 
 APP_REVISION="$(git rev-parse --short HEAD)"
@@ -23,13 +23,13 @@ export APP_NAME DEPLOY_SERVER APP_REVISION APP_IMAGE STACK_NAME
 case "$step" in
   pre-deploy)
     if ! docker image inspect "$APP_IMAGE" >/dev/null 2>&1; then
-      echo "Imagem $APP_IMAGE não existe neste servidor: rode o Build antes." >&2
+      echo "Image $APP_IMAGE not found on this server: run the Build first." >&2
       exit 1
     fi
     ;;
 
   deploy)
-    # O Komodo guarda a saída do `docker stack config`: as variáveis ficam fora dela.
+    # Komodo stores the output of `docker stack config`: keep variables out of it.
     case "$*" in
       "docker stack config "*) exec "$@" --skip-interpolation ;;
     esac
@@ -41,7 +41,7 @@ case "$step" in
     ;;
 
   *)
-    echo "Etapa inválida: $step" >&2
+    echo "Unknown step: $step" >&2
     exit 1
     ;;
 esac
