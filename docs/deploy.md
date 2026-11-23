@@ -8,10 +8,10 @@ do Caddy de lá. Quem publica é o **Komodo**: tudo do deploy está em [`.komodo
 A cada push na `main`, o webhook do GitHub dispara a Procedure `hetzner_artifact-docs` do Komodo:
 
 1. **Pull**: o Repo `hetzner_artifact-docs` atualiza o clone da `main` no hetzner.
-2. **Build**: o Build `hetzner_artifact-docs` constrói o `artifact-docs/docker/dockerfile` **no próprio
+2. **Build**: o Build `hetzner_artifact-docs` constrói o `artifact-docs/.config/docker/dockerfile` **no próprio
    hetzner**: a SPA (Node), o binário Go com a SPA embutida e a imagem final `distroless/static:nonroot`.
    Não existe registry: a imagem fica só no hetzner, como `artifact-docs:<commit curto>-hetzner`.
-3. **Deploy**: a Stack `hetzner_artifact-docs` sobe o `.komodo/compose.yml` no Swarm do hetzner, com o
+3. **Deploy**: a Stack `hetzner_artifact-docs` sobe o `.komodo/artifact-docs.compose.yml` no Swarm do hetzner, com o
    disco só de leitura e um teto de 160 MB (o Go com `GOMEMLIMIT=64MiB`). As migrations rodam ao
    subir. O `komodo.sh` confere a imagem antes e, depois, o `route.sh` grava
    `conf.d/hetzner_artifact-docs.caddy` no Caddy, valida e recarrega.
@@ -41,7 +41,8 @@ webhooks do Komodo):
 | `ARTIFACT_DOCS_R2_ENDPOINT`, `ARTIFACT_DOCS_R2_ACCESS_KEY_ID`, `ARTIFACT_DOCS_R2_SECRET_ACCESS_KEY`, `ARTIFACT_DOCS_R2_BUCKET` | Cloudflare → R2 → Manage API tokens |
 | `ARTIFACT_DOCS_LINK_SECRET` | `openssl rand -hex 32` |
 
-O endereço público é `hub.docs.vinicius-gpl.com`, em `.komodo/site.caddy`.
+O endereço público é `hub.docs.vinicius-gpl.com`, em `.komodo/artifact-docs.caddy`. Dentro do
+container a API escuta na porta 3000, como em todos os projetos.
 
 ## Antes do primeiro deploy
 
@@ -57,7 +58,7 @@ O endereço público é `hub.docs.vinicius-gpl.com`, em `.komodo/site.caddy`.
 A mesma imagem de produção:
 
 ```bash
-docker build -f artifact-docs/docker/dockerfile --build-arg VITE_NEON_AUTH_URL=... artifact-docs
+docker build -f artifact-docs/.config/docker/dockerfile --build-arg VITE_NEON_AUTH_URL=... artifact-docs
 ```
 
 Para desenvolver, continua o `mise run dev`.

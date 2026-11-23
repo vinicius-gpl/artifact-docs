@@ -1,13 +1,13 @@
 # artifact-docs no Swarm do hetzner (Stack hetzner_artifact-docs do Komodo, ver komodo.toml).
 # O APP_IMAGE vem do komodo.sh: a imagem que o Build do Komodo deixou neste mesmo hetzner.
 # As variáveis vêm do compose_cmd_wrapper da Stack (Variables do Komodo), nunca de um .env.
-# O Caddy do config chega no serviço como hetzner_artifact-docs_app:3010, pela rede edge.
+# O Caddy do config chega no serviço como hetzner_artifact-docs_app:3000, pela rede edge.
 services:
   app:
     image: ${APP_IMAGE:?}
     environment:
       - APP_ENV=production
-      - API_PORT=3010
+      - API_PORT=3000
       # GOMEMLIMIT faz o Go devolver memória antes do teto do container derrubá-lo.
       - GOMEMLIMIT=64MiB
       - DATABASE_URL=${DATABASE_URL:?}
