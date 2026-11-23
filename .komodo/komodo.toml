@@ -1,0 +1,132 @@
+# Deploy do artifact-docs pelo Komodo, no servidor hetzner.
+# Nomes no padrão <servidor>_<app>; o Swarm completa os serviços com _<serviço> (hetzner_artifact-docs_app).
+#
+#   Sync       aplica este arquivo (webhook do GitHub no push da main).
+#   Repo       clone da main no hetzner; Build e Stack leem dele.
+#   Build      artifact-docs/docker/dockerfile construído NO PRÓPRIO hetzner. Sem registry: a imagem
+#              fica local como artifact-docs:<commit curto>-hetzner.
+#   Stack      .komodo/compose.yml no Swarm do hetzner; o komodo.sh roda as etapas do deploy e o
+#              route.sh publica hub.docs.vinicius-gpl.com no Caddy do servidor (rede edge).
+#   Procedure  Pull -> Build -> Deploy, disparada pelo webhook do GitHub
+#              (/listener/github/procedure/hetzner_artifact-docs/main).
+#   Action     rollback nativo do Swarm para a versão anterior.
+#
+# Os segredos são Variables secretas do Komodo, com o prefixo ARTIFACT_DOCS_ (lista em docs/deploy.md).
+
+[[resource_sync]]
+name = "artifact-docs"
+description = "Aplica o deploy do artifact-docs (.komodo/komodo.toml)"
+tags = ["env:hetzner", "app:artifact-docs"]
+[resource_sync.config]
+git_provider = "github.com"
+repo = "vinicius-gpl/artifact-docs"
+branch = "main"
+resource_path = [".komodo/komodo.toml"]
+delete = false
+
+[[repo]]
+name = "hetzner_artifact-docs"
+description = "Clone da main do artifact-docs no hetzner"
+tags = ["env:hetzner", "app:artifact-docs"]
+[repo.config]
+server = "hetzner"
+git_provider = "github.com"
+repo = "vinicius-gpl/artifact-docs"
+branch = "main"
+webhook_enabled = false
+links = ["https://github.com/vinicius-gpl/artifact-docs/tree/main"]
+
+[[build]]
+name = "hetzner_artifact-docs"
+description = "Imagem do artifact-docs, construída no próprio hetzner (sem registry)"
+tags = ["env:hetzner", "app:artifact-docs"]
+[build.config]
+builder = "hetzner"
+linked_repo = "hetzner_artifact-docs"
+webhook_enabled = false
+build_path = "artifact-docs"
+dockerfile_path = "docker/dockerfile"
+image_name = "artifact-docs"
+image_tag = "hetzner"
+include_latest_tag = false
+include_version_tags = false
+include_commit_tag = true
+build_args = "VITE_NEON_AUTH_URL=[[ARTIFACT_DOCS_NEON_AUTH_URL]]"
+labels = """
+org.opencontainers.image.source=https://github.com/vinicius-gpl/artifact-docs
+app=artifact-docs
+server=hetzner
+"""
+links = ["https://hub.docs.vinicius-gpl.com"]
+
+[[stack]]
+name = "hetzner_artifact-docs"
+description = "artifact-docs no Swarm do hetzner"
+tags = ["env:hetzner", "app:artifact-docs"]
+[stack.config]
+swarm = "hetzner"
+project_name = "hetzner_artifact-docs"
+linked_repo = "hetzner_artifact-docs"
+webhook_enabled = false
+run_directory = ".komodo"
+file_paths = ["compose.yml"]
+extra_args = ["--resolve-image", "never", "--detach=false"]
+links = ["https://hub.docs.vinicius-gpl.com"]
+pre_deploy.command = "sh komodo.sh pre-deploy artifact-docs hetzner"
+compose_cmd_wrapper_include = ["config", "deploy"]
+compose_cmd_wrapper = '''
+DATABASE_URL='[[ARTIFACT_DOCS_DATABASE_URL]]' \
+NEON_AUTH_URL='[[ARTIFACT_DOCS_NEON_AUTH_URL]]' \
+NEON_AUTH_JWKS_URL='[[ARTIFACT_DOCS_NEON_AUTH_JWKS_URL]]' \
+AUTH_ALLOWED_EMAILS='[[ARTIFACT_DOCS_AUTH_ALLOWED_EMAILS]]' \
+R2_ENDPOINT='[[ARTIFACT_DOCS_R2_ENDPOINT]]' \
+R2_ACCESS_KEY_ID='[[ARTIFACT_DOCS_R2_ACCESS_KEY_ID]]' \
+R2_SECRET_ACCESS_KEY='[[ARTIFACT_DOCS_R2_SECRET_ACCESS_KEY]]' \
+R2_BUCKET='[[ARTIFACT_DOCS_R2_BUCKET]]' \
+ARTIFACT_LINK_SECRET='[[ARTIFACT_DOCS_LINK_SECRET]]' \
+sh komodo.sh deploy artifact-docs hetzner [[COMPOSE_COMMAND]]
+'''
+post_deploy.command = "sh komodo.sh post-deploy artifact-docs hetzner"
+
+[[procedure]]
+name = "hetzner_artifact-docs"
+description = "Publica a main do artifact-docs no hetzner: Pull, Build e Deploy"
+tags = ["env:hetzner", "app:artifact-docs"]
+[procedure.config]
+webhook_enabled = true
+
+[[procedure.config.stage]]
+name = "Pull"
+executions = [
+  { execution.type = "PullRepo", execution.params.repo = "hetzner_artifact-docs" },
+]
+
+[[procedure.config.stage]]
+name = "Build"
+executions = [
+  { execution.type = "RunBuild", execution.params.build = "hetzner_artifact-docs" },
+]
+
+[[procedure.config.stage]]
+name = "Deploy"
+executions = [
+  { execution.type = "DeployStack", execution.params.stack = "hetzner_artifact-docs" },
+]
+
+[[action]]
+name = "hetzner_artifact-docs_rollback"
+description = "Volta o artifact-docs para a versão anterior (rollback do Swarm)"
+tags = ["env:hetzner", "app:artifact-docs"]
+[action.config]
+webhook_enabled = false
+file_contents = '''
+const stack = 'hetzner_artifact-docs';
+await komodo.execute_server_terminal(
+  {
+    server: 'hetzner',
+    command: `docker service ls -q --filter label=com.docker.stack.namespace=${stack} | xargs -r -n1 docker service rollback --detach=false`,
+    init: { command: 'sh' },
+  },
+  { onLine: (line) => console.log(line), onFinish: (code) => console.log(`exit ${code}`) },
+);
+'''
