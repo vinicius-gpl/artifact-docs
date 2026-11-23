@@ -24,7 +24,7 @@
 #   backend   artifact-docs/src-go/, artifact-docs/main.go, artifact-docs/go.mod, artifact-docs/go.sum (Go)
 #   web       artifact-docs/svelte/ (SPA)
 #   db        artifact-docs/src-go/lib/infra/database/migrations/
-#   infra     deploy/ (Caddy, systemd, VPS)
+#   infra     .komodo/ e artifact-docs/docker/ (Komodo, Caddy, VPS)
 #   tooling   mise.toml, artifact-docs/mise.toml, artifact-docs/.golangci.yml, .vscode/
 #   git       .githooks/, scripts/git/, .gitmessage, .gitattributes, .gitignore
 #   ci        .github/
