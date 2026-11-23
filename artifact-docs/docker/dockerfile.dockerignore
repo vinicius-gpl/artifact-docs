@@ -1,0 +1,10 @@
+# Fora do contexto do build: dependências e saídas locais (o Dockerfile instala e gera tudo de novo).
+**/node_modules
+svelte/dist
+svelte/.svelte-kit
+svelte/storybook-static
+svelte/test-results
+svelte/playwright-report
+bin
+**/.env
+**/.env.*

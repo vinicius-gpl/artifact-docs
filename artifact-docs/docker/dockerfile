@@ -1,0 +1,35 @@
+# Imagem de produção do artifact-docs. Quem constrói é o Komodo, no próprio hetzner (sem registry):
+# a imagem fica local e a Stack sobe com ela. Contexto do build: a pasta artifact-docs/.
+#
+# Três estágios: a SPA (Node), o binário Go com a SPA embutida (o mesmo que o `mise run build`
+# gera) e a imagem final distroless, sem shell e sem root.
+
+FROM node:24-alpine AS web
+WORKDIR /app/svelte
+COPY svelte/package.json svelte/package-lock.json ./
+RUN npm ci --no-audit --no-fund
+COPY svelte/ ./
+# O endereço do Neon Auth entra no bundle (é público: só diz ONDE o login acontece).
+ARG VITE_NEON_AUTH_URL
+# O teto do heap do Node evita que o build derrube o resto do servidor.
+ENV VITE_API_MOCKS=false \
+    VITE_API_URL="" \
+    VITE_NEON_AUTH_URL=$VITE_NEON_AUTH_URL \
+    NODE_OPTIONS=--max-old-space-size=384
+RUN npm run build
+
+FROM golang:1.27.1-alpine AS api
+WORKDIR /app
+COPY go.mod go.sum ./
+RUN go mod download
+COPY main.go ./
+COPY src-go/ ./src-go/
+# O go:embed só enxerga arquivos dentro do próprio pacote: a SPA vai para src-go/lib/web/dist.
+COPY --from=web /app/svelte/dist/ ./src-go/lib/web/dist/
+# CGO desligado dá um binário estático, que roda na distroless sem libc. -p=1 compila um pacote
+# por vez, para o build não disputar memória com o resto do servidor.
+RUN CGO_ENABLED=0 GOOS=linux GOFLAGS=-p=1 go build -ldflags '-s -w' -o /out/artifact-docs .
+
+FROM gcr.io/distroless/static-debian12:nonroot
+COPY --from=api /out/artifact-docs /app/artifact-docs
+ENTRYPOINT ["/app/artifact-docs"]
