@@ -25,7 +25,7 @@ Siga a skill **`git-flow`**:
 2. O trabalho é commitado nessa branch (skill **`git-commit`**, formato `[tipo](local): Mensagem`).
 3. No fim: trazer a `develop` para a branch, enviar a branch e abrir o PR para a `develop` com
    título `[merge](local): …`.
-4. **Teste não roda na máquina — roda no CI do PR** (`.github/workflows/tests.yml`). Acompanhe
+4. **Teste não roda na máquina — roda no CI do PR** (`.github/workflows/artifact-docs-tests.yml`). Acompanhe
    com `gh pr checks <n> --watch`; vermelho → corrija na branch e envie de novo.
 5. Só com CI verde e OK explícito: merge na `develop`.
 6. A `main` só recebe release/hotfix, em Modo Admin (`git config project.admin true`). A trava
